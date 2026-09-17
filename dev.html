@@ -63,20 +63,21 @@
         <div id="menu-foot"></div>
       </div>
 
-      <!-- Batalha por turnos -->
+      <!-- Batalha por turnos: foes à esq, party à dir, comandos horizontais embaixo -->
       <div id="battle" class="hidden">
         <div id="boss-bar" class="hidden">
           <div id="boss-name"></div>
           <div class="bbar hp big"><div id="boss-fill"></div></div>
         </div>
+        <div id="battle-foes"></div>
+        <div id="battle-party"></div>
         <canvas id="battle-canvas" width="960" height="340"></canvas>
         <div id="battle-bottom">
-          <div id="battle-msg" class="ff-box"></div>
-          <div id="battle-party" class="ff-box"></div>
           <div id="battle-menu" class="ff-box">
             <div id="battle-cmds"></div>
           </div>
         </div>
+        <div id="battle-msg" class="ff-box"></div>
       </div>
 
       <!-- Tela de título -->

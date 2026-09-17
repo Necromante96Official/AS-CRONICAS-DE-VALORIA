@@ -52,6 +52,7 @@ export class BattleSystem {
     this.g = this.cv.getContext('2d');
     this.msgEl = document.getElementById('battle-msg');
     this.partyEl = document.getElementById('battle-party');
+    this.foesEl = document.getElementById('battle-foes');
     this.cmdEl = document.getElementById('battle-cmds');
     this.bossBar = document.getElementById('boss-bar');
     this.bossName = document.getElementById('boss-name');
@@ -59,6 +60,10 @@ export class BattleSystem {
     this.active = false;
     this.heroArt = {};
     for (const [k, p] of Object.entries(PALETTES)) this.heroArt[k] = makeHumanoid(p, { kind: k });
+    this.heroIcons = {};
+    for (const k of Object.keys(this.heroArt)) {
+      try { this.heroIcons[k] = this.heroArt[k].down.toDataURL(); } catch { this.heroIcons[k] = ''; }
+    }
     this._resetFx();
     // mouse: passar por cima seleciona
     this.cmdEl.addEventListener('mouseover', (e) => {
@@ -128,6 +133,7 @@ export class BattleSystem {
     if (opts.region) this.el.classList.add('bg-' + opts.region);
     if (this.isBoss) this.el.classList.add('bg-boss');
     this.enemyArt = enemies.map((e) => enemySprite(e.sprite));
+    this.enemyIcons = this.enemyArt.map((cv) => { try { return cv.toDataURL(); } catch { return ''; } });
     if (this.isBoss && enemies[0]) {
       this.bossName.textContent = `☠ ${enemies[0].name} ☠`;
       this.bossBar.classList.remove('hidden');
@@ -170,27 +176,32 @@ export class BattleSystem {
     this.banner = { text, sub, t: 0, dur: 1.6 };
   }
 
-  /** Prévia da ordem de turno (só visual). */
-  _orderPreview() {
-    const units = [];
-    this.party.forEach((h, i) => { if (h.hp > 0) units.push({ nm: h.name, spd: h.spd, hero: true }); });
-    this.enemies.forEach((e) => { if (e.hp > 0) units.push({ nm: e.name.split(' ')[0], spd: e.spd, hero: false }); });
-    units.sort((a, b) => b.spd - a.spd);
-    return units.slice(0, 6).map((u) => u.nm).join(' → ');
-  }
-
   _renderAll() {
-    // status da party: linha única enquadrada (nome · Nv · números) + 2 barras finas
-    const turn = Math.max(1, this.turnCount);
-    const order = this.phase === 'command' ? `<div class="border-order">${this._orderPreview()}</div>` : '';
-    this.partyEl.innerHTML = `<div class="bturn">TURNO ${turn}${this.isBoss ? ' · CHEFE' : ''}</div>${order}` + this.party.map((h, i) => {
+    // topo-esquerda: foto + HP dos inimigos vivos (alvo atual destacado)
+    const cursor = this.phase === 'command' && this.menu === 'targetE' ? this._foeAtCursor() : -2;
+    if (this.foesEl) {
+      this.foesEl.innerHTML = this._aliveFoes().map((idx) => {
+        const e = this.enemies[idx];
+        const tags = `${e.burn > 0 ? '🔥' : ''}${e.stun ? '💫' : ''}${e.charge ? '⚡' : ''}`;
+        return `<div class="bfoe ${idx === cursor ? 'targeted' : ''}">
+          <img src="${(this.enemyIcons || [])[idx] || ''}" alt="" />
+          <div class="bfoe-info"><span class="bfoe-nm">${tags}${e.name}</span>
+          <div class="bbar hp"><div style="width:${(100 * Math.max(0, e.hp) / e.maxHp).toFixed(0)}%"></div></div></div>
+        </div>`;
+      }).join('');
+    }
+    // topo-direita: foto + HP/MP da party (sem painel de turno)
+    this.partyEl.innerHTML = this.party.map((h, i) => {
       const low = h.hp > 0 && h.hp < h.maxHp * 0.3;
       const tags = `${h.guard ? '<span class="btag guard">🛡</span>' : ''}${low ? '<span class="btag low">!</span>' : ''}`;
       return `
       <div class="bchar ${this.phase === 'command' && i === this.heroIdx ? 'active' : ''} ${low ? 'lowhp' : ''}">
-        <div class="brow"><span class="bnm">${h.hp <= 0 ? '✝' : '●'} ${h.name}</span><span class="blv">Nv${h.level}</span>${tags}<span class="bnums">HP ${Math.max(0, Math.ceil(h.hp))}/${h.maxHp} · MP ${Math.max(0, Math.ceil(h.mp))}/${h.maxMp}</span></div>
-        <div class="bbar hp"><div style="width:${(100 * Math.max(0, h.hp) / h.maxHp).toFixed(0)}%"></div></div>
-        <div class="bbar mp"><div style="width:${(100 * Math.max(0, h.mp) / h.maxMp).toFixed(0)}%"></div></div>
+        <img class="bface" src="${this.heroIcons[h.sprite] || this.heroIcons.hero || ''}" alt="" />
+        <div class="bchar-info">
+          <div class="brow"><span class="bnm">${h.hp <= 0 ? '✝' : '●'} ${h.name}</span><span class="blv">Nv${h.level}</span>${tags}<span class="bnums">HP ${Math.max(0, Math.ceil(h.hp))}/${h.maxHp} · MP ${Math.max(0, Math.ceil(h.mp))}/${h.maxMp}</span></div>
+          <div class="bbar hp"><div style="width:${(100 * Math.max(0, h.hp) / h.maxHp).toFixed(0)}%"></div></div>
+          <div class="bbar mp"><div style="width:${(100 * Math.max(0, h.mp) / h.maxMp).toFixed(0)}%"></div></div>
+        </div>
       </div>`;
     }).join('');
     if (this.isBoss && this.enemies[0] && this.bossFill) {

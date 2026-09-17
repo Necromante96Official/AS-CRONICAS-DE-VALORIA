@@ -25,6 +25,7 @@ export class NPC {
     this.moving = false; // deslizando até o tile vizinho?
     this.tx = this.x; this.ty = this.y; // destino em px
     this.animT = 0; // alimenta os frames de passo
+    this.spd = 45 + Math.random() * 20; // cada um anda no seu ritmo
   }
 
   /** @param {number} dt @param {import('./TileMap.js').TileMap} map */
@@ -32,7 +33,7 @@ export class NPC {
     if (!this.wander) { this.moving = false; return; }
     // desliza até o destino (em vez de teleportar)
     if (this.moving) {
-      const spd = 55 * dt;
+      const spd = this.spd * dt;
       const dx = this.tx - this.x, dy = this.ty - this.y;
       const d = Math.hypot(dx, dy);
       if (d <= spd) {

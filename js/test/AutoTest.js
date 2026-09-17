@@ -564,6 +564,20 @@ export async function runAutoTest(game) {
       log(await dismissDialog(), 'pescador-fala');
       log((game.inv.fish || 0) === f0 + 1, 'pescador-presente');
     }
+    // avanço: herói corre até o alvo ao atacar; inimigo avança ao golpear
+    {
+      game.battle.start(game.party, game.inv, [makeEnemy('slime', 1)], { region: 'field', onEnd: () => {} });
+      game.battle._heroAct(game.party[0], 0, { type: 'attack', target: 0 });
+      const a = game.battle.anim;
+      log(!!a && a.who === 'hero' && a.tx != null && a.tx < a.fx, 'ataque-avanca');
+      const e = game.battle.enemies[0];
+      e.hp = e.maxHp;
+      game.battle._enemyAct(e, 0);
+      const b = game.battle.anim;
+      log(!!b && b.who === 'enemy', 'inimigo-avanca');
+      game.battle.stop();
+      for (const hh of game.party) { hh.hp = hh.maxHp; hh.mp = hh.maxMp; }
+    }
   } catch (e) {
     console.log(`[AUTOTEST] FAIL excecao ${e && e.stack ? e.stack : e}`);
     details.push(`excecao: ${e && e.stack ? e.stack : e}`);

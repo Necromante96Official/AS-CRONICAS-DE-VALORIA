@@ -548,7 +548,9 @@ export class BattleSystem {
       e.hp -= dmg;
       e.hitT = 0.35;
       this.audio.sfx(crit ? 'crit' : 'hit');
-      this.anim = { who: 'hero', idx: hi, t: 0.35 };
+      // avanço: o herói corre até o alvo e volta (golpe físico)
+      { const from = this.heroPos(hi), to = this.enemyPos(this.enemies.indexOf(e));
+        this.anim = { who: 'hero', idx: hi, t: 0.38, dur: 0.38, fx: from.x, fy: from.y, tx: to.x, ty: to.y }; }
       const pos = this.enemyPos(this.enemies.indexOf(e));
       this._slashFx(pos, crit);
       this._strikeFx(pos, '#fff');
@@ -567,7 +569,7 @@ export class BattleSystem {
         e.hp -= dmg;
         e.hitT = 0.4;
         this.audio.sfx(spellSfx(act.spell));
-        this.anim = { who: 'hero', idx: hi, t: 0.4 };
+        this.anim = { who: 'hero', idx: hi, t: 0.4, dur: 0.4 };
         const from = this.heroPos(hi), to = this.enemyPos(this.enemies.indexOf(e));
         const col = spellColor(act.spell);
         if (act.spell === 'thunder') {
@@ -603,7 +605,7 @@ export class BattleSystem {
         const v = Math.min(Math.round(h.mag * sp.power * 3), a.maxHp - Math.max(0, a.hp));
         a.hp = Math.min(a.maxHp, Math.max(0, a.hp) + v);
         this.audio.sfx('heal');
-        this.anim = { who: 'hero', idx: hi, t: 0.35 };
+        this.anim = { who: 'hero', idx: hi, t: 0.35, dur: 0.35 };
         this._healFx(this.heroPos(ti));
         this._floatDmg(this.heroPos(ti), `+${v}`, '#7dff9a', false);
         this._log(`${h.name} conjura ${sp.name} em ${a.name}! +${v} HP!`);
@@ -659,14 +661,20 @@ export class BattleSystem {
     return alive[Math.floor(Math.random() * alive.length)];
   }
 
-  _hurtHero(t, rawDmg, e, ei, label) {
+  /** @param {{x:number,y:number}|null} [lungeTo] alvo do avanço (nulo = golpe à distância) */
+  _hurtHero(t, rawDmg, e, ei, label, lungeTo = null) {
     const ti = this.party.indexOf(t);
     let dmg = rawDmg;
     let blocked = false;
     if (t.guard) { dmg = Math.max(1, Math.ceil(rawDmg / 2)); blocked = true; }
     t.hp -= dmg;
     t.hitT = 0.35;
-    this.anim = { who: 'enemy', idx: ei, t: 0.35 };
+    if (lungeTo) {
+      const from = this.enemyPos(ei);
+      this.anim = { who: 'enemy', idx: ei, t: 0.38, dur: 0.38, fx: from.x, fy: from.y, tx: lungeTo.x, ty: lungeTo.y };
+    } else {
+      this.anim = { who: 'enemy', idx: ei, t: 0.35, dur: 0.35 };
+    }
     this._strikeFx(this.heroPos(ti), '#ff6b6b');
     this._floatDmg(this.heroPos(ti), blocked ? `🛡${dmg}` : dmg, blocked ? '#6bb8ff' : '#ff6b6b', false);
     if (dmg >= 20) this._shake(4, 0.2);
@@ -704,7 +712,7 @@ export class BattleSystem {
     // Boss: a cada 3º turno, baforada em área
     if (e.boss && this.turnCount % 3 === 0) {
       this.audio.sfx('fire');
-      this.anim = { who: 'enemy', idx: ei, t: 0.4 };
+      this.anim = { who: 'enemy', idx: ei, t: 0.4, dur: 0.4 };
       this.flashT = 0.25; this.flashColor = '255,120,40';
       this._shake(6, 0.35);
       const ep = this.enemyPos(ei);
@@ -744,7 +752,7 @@ export class BattleSystem {
       const dmg = Math.round(physDmg(e.atk, t.def) * (heavy ? 1.8 : 1));
       this.audio.sfx(heavy ? 'fire' : 'hit');
       if (heavy) { this._boltFx(this.heroPos(ti), '#7fd4ff'); this._shake(4, 0.2); }
-      this._hurtHero(t, dmg, e, ei, heavy ? 'descarrega VOLTAGEM em' : 'ataca');
+      this._hurtHero(t, dmg, e, ei, heavy ? 'descarrega VOLTAGEM em' : 'ataca', heavy ? null : this.heroPos(ti));
       return;
     }
     // Slime Rei: esmagamento real no mais resistente
@@ -753,7 +761,7 @@ export class BattleSystem {
       const dmg = Math.round(physDmg(e.atk + 3, t.def));
       this.audio.sfx('crit');
       this._shake(5, 0.25);
-      this._hurtHero(t, dmg, e, ei, 'esmaga com o PESO REAL');
+      this._hurtHero(t, dmg, e, ei, 'esmaga com o PESO REAL', this.heroPos(this.party.indexOf(t)));
       return;
     }
     // Slime: gosma ácida ignora metade da defesa
@@ -771,7 +779,7 @@ export class BattleSystem {
       const dmg = Math.round(physDmg(e.atk, t.def) * 1.5);
       this.audio.sfx('crit');
       this._shake(5, 0.25);
-      this._hurtHero(t, dmg, e, ei, 'com a PINÇA ESMAGADORA');
+      this._hurtHero(t, dmg, e, ei, 'com a PINÇA ESMAGADORA', this.heroPos(this.party.indexOf(t)));
       return;
     }
     // Escorpião: ferrão fura metade da defesa
@@ -780,7 +788,7 @@ export class BattleSystem {
       const dmg = Math.max(1, Math.round(e.atk * 2.2 - t.def * 0.6 + Math.random() * 4));
       this.audio.sfx('crit');
       this._burstFx(this.heroPos(this.party.indexOf(t)), '#8e2bff', 12);
-      this._hurtHero(t, dmg, e, ei, 'com o FERRÃO VENENOSO em');
+      this._hurtHero(t, dmg, e, ei, 'com o FERRÃO VENENOSO em', this.heroPos(this.party.indexOf(t)));
       return;
     }
     // Cogumelo: esporos curativos quando ferido
@@ -797,7 +805,7 @@ export class BattleSystem {
     const t = this._pickTarget(e);
     const dmg = physDmg(e.atk, t.def);
     this.audio.sfx('hit');
-    this._hurtHero(t, dmg, e, ei, 'ataca');
+    this._hurtHero(t, dmg, e, ei, 'ataca', this.heroPos(this.party.indexOf(t)));
   }
 
   _checkEnd() {
@@ -900,6 +908,23 @@ export class BattleSystem {
   }
 
   // ---------- desenho ----------
+  /**
+   * Deslocamento do atacante: avanço até o alvo e volta (lunge) ou golpe curto.
+   * @param {'hero'|'enemy'} who @param {number} idx
+   * @returns {{x:number, y:number}}
+   */
+  _animOffset(who, idx) {
+    const a = this.anim;
+    if (!a || a.who !== who || a.idx !== idx) return { x: 0, y: 0 };
+    const el = Math.min(1, Math.max(0, 1 - a.t / (a.dur || 0.35)));
+    if (a.tx == null) return { x: (who === 'hero' ? -30 : 26) * Math.sin(el * Math.PI), y: 0 };
+    const dx = a.tx - a.fx, dy = a.ty - a.fy;
+    let k;
+    if (el < 0.45) { const u = el / 0.45; k = (1 - Math.pow(1 - u, 3)) * 0.85; }
+    else { const u = (el - 0.45) / 0.55; k = 0.85 * (1 - u); }
+    return { x: dx * k, y: dy * k };
+  }
+
   _scenery() {
     return SCENERY[this.region] || SCENERY.field;
   }
@@ -1102,8 +1127,8 @@ export class BattleSystem {
       const p = this.enemyPos(i);
       const spawnK = e.spawnT > 0 ? 1 - e.spawnT / 0.9 : 1;
       const bob = Math.sin(this.time * 3 + i * 1.7) * 5;
-      let ox = 0;
-      if (this.anim?.who === 'enemy' && this.anim.idx === i) ox = 26 * Math.sin((0.35 - this.anim.t) / 0.35 * Math.PI);
+      const lunge = this._animOffset('enemy', i);
+      const ox = lunge.x, oy = lunge.y;
       const img = this.enemyArt[i];
       const baseW = this.isBoss ? 136 : e.sprite === 'king' ? 78 : e.sprite === 'golem' ? 68 : e.sprite === 'scorpion' ? 70 : e.sprite === 'crab' ? 66 : e.sprite === 'wisp' ? 60 : e.sprite === 'bat' ? 64 : 60;
       const w = baseW * Math.max(0.2, spawnK);
@@ -1134,13 +1159,21 @@ export class BattleSystem {
       if (e.burn > 0) {
         g.shadowColor = '#ff7b2e'; g.shadowBlur = 14;
       }
-      g.drawImage(img, p.x - dw / 2 + ox, p.y - dh / 2 + dy - (1 - spawnK) * 30, dw, dh);
+      g.drawImage(img, p.x - dw / 2 + ox, p.y - dh / 2 + dy + oy - (1 - spawnK) * 30, dw, dh);
       try { g.filter = 'none'; } catch { /* sem filtro */ }
       g.shadowBlur = 0;
       g.restore();
       // chamas da queimadura
       if (e.burn > 0 && Math.random() < 0.4) {
         this.particles.push({ x: p.x + (Math.random() - 0.5) * 30, y: p.y + 10, vx: 0, vy: -50, life: 0.4, maxLife: 0.4, color: '#ff7b2e', size: 3, grav: -20 });
+      }
+      // respiro ambiente: motas da fagulha, esporos do cogumelo, brasas do dragão
+      if (e.sprite === 'wisp' && Math.random() < 0.12) {
+        this.particles.push({ x: p.x + (Math.random() - 0.5) * 24, y: p.y + (Math.random() - 0.5) * 20, vx: (Math.random() - 0.5) * 20, vy: -30, life: 0.6, maxLife: 0.6, color: '#7fd4ff', size: 2, grav: -30 });
+      } else if (e.sprite === 'shroom' && Math.random() < 0.1) {
+        this.particles.push({ x: p.x + (Math.random() - 0.5) * 26, y: p.y - 14, vx: (Math.random() - 0.5) * 16, vy: -18, life: 0.9, maxLife: 0.9, color: '#e8f0d0', size: 2, grav: -20 });
+      } else if (e.sprite === 'dragon' && Math.random() < 0.15) {
+        this.particles.push({ x: p.x + (Math.random() - 0.5) * 50, y: p.y + 20, vx: (Math.random() - 0.5) * 20, vy: -40, life: 0.7, maxLife: 0.7, color: '#ff7b3c', size: 3, grav: -30 });
       }
       // barra de HP minimalista ACIMA do monstro (verde → vermelha) + fantasma de dano
       const bw = this.isBoss ? 0 : 46; // chefe usa a barra DOM no topo
@@ -1168,10 +1201,12 @@ export class BattleSystem {
       const p = this.heroPos(i);
       const victoryJump = this.victoryT > 0 && h.hp > 0 ? -Math.abs(Math.sin(this.time * 6 + i)) * 14 : 0;
       const bob = (h.hp > 0 ? Math.sin(this.time * 4 + i * 2) * 2 : 0) + victoryJump;
-      let ox = 0;
-      if (this.anim?.who === 'hero' && this.anim.idx === i) ox = -30 * Math.sin((0.35 - this.anim.t) / 0.35 * Math.PI);
+      const off = this._animOffset('hero', i);
+      const ox = off.x, oy = off.y;
       const heroSet = this.heroArt[h.sprite]?.down || this.heroArt.hero.down;
-      const img = Array.isArray(heroSet) ? heroSet[0] : heroSet;
+      const fr = Array.isArray(heroSet) ? heroSet : [heroSet];
+      // avançando: usa o frame de passo (investida)
+      const img = (Math.hypot(ox, oy) > 6 && fr[1]) ? fr[1] : fr[0];
       const s = this.heroScale(i);
       const dim = targeting && this.menu === 'targetA' && this.sel !== i ? 0.45 : 1;
       g.save();
@@ -1182,10 +1217,10 @@ export class BattleSystem {
       if (h.guard && h.hp > 0) {
         g.strokeStyle = `rgba(107,184,255,${0.6 + 0.3 * Math.sin(this.time * 6)})`;
         g.lineWidth = 3;
-        g.beginPath(); g.ellipse(p.x + ox, p.y + bob + 8, 24 * s, 24 * s, 0, 0, 7); g.stroke();
+        g.beginPath(); g.ellipse(p.x + ox, p.y + bob + oy + 8, 24 * s, 24 * s, 0, 0, 7); g.stroke();
       }
       // heróis olham para a esquerda (inimigos)
-      g.translate(p.x + ox, p.y + bob);
+      g.translate(p.x + ox, p.y + bob + oy);
       g.scale(-s, s);
       g.drawImage(img, -20, -25, 40, 50);
       g.restore();

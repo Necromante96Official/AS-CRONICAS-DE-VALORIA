@@ -10,6 +10,9 @@ const BESTIARY = {
   bat:    { name: 'Morcego Sombrio', hp: 18, atk: 9,  def: 2, spd: 12, xp: 12, gold: 10, sprite: 'bat' },
   golem:  { name: 'Golem Jr.',    hp: 40, atk: 12, def: 8, spd: 3,  xp: 22, gold: 18, sprite: 'golem' },
   wisp:   { name: 'Fagulha',      hp: 26, atk: 13, def: 4, spd: 10, xp: 26, gold: 22, sprite: 'wisp' },
+  crab:   { name: 'Caranguejo',   hp: 30, atk: 10, def: 9, spd: 5,  xp: 18, gold: 14, sprite: 'crab' },
+  scorpion: { name: 'Escorpião',  hp: 24, atk: 14, def: 5, spd: 11, xp: 24, gold: 20, sprite: 'scorpion' },
+  shroom: { name: 'Cogumelo',     hp: 34, atk: 11, def: 6, spd: 6,  xp: 24, gold: 16, sprite: 'shroom' },
   king:   { name: 'SLIME REI',    hp: 70, atk: 15, def: 9, spd: 6,  xp: 70, gold: 80, sprite: 'king' },
   dragon: { name: 'DRAGÃO DO CAOS', hp: 220, atk: 22, def: 12, spd: 9, xp: 250, gold: 500, sprite: 'dragon', boss: true },
 };
@@ -17,10 +20,12 @@ const BESTIARY = {
 /** Tabela de encontros por região: [id, peso]. @param {string} region */
 export function encounterTable(region) {
   switch (region) {
-    case 'forest': return [['bat', 4], ['slime', 2], ['wisp', 2]];
+    case 'forest': return [['bat', 4], ['slime', 2], ['shroom', 2], ['wisp', 1]];
     case 'dungeon': case 'altar': return [['golem', 4], ['wisp', 4], ['bat', 2]];
     case 'snow': return [['wisp', 4], ['bat', 3], ['golem', 3]];
-    case 'beach': return [['slime', 5], ['bat', 3], ['golem', 1]];
+    case 'beach': return [['crab', 4], ['slime', 3], ['bat', 1]];
+    case 'desert': return [['scorpion', 4], ['golem', 2], ['bat', 2]];
+    case 'swamp': return [['shroom', 4], ['bat', 2], ['wisp', 2]];
     default: return [['slime', 5], ['bat', 3], ['golem', 1]];
   }
 }
@@ -43,7 +48,7 @@ export function makeEncounter(region, avgLevel) {
     return table[0][0];
   };
   const count = region === 'field' ? (Math.random() < 0.55 ? 2 : 1) : (1 + Math.floor(Math.random() * 3));
-  const scale = 1 + (avgLevel - 1) * 0.22 + (region === 'dungeon' ? 0.35 : region === 'snow' ? 0.25 : region === 'forest' ? 0.15 : 0);
+  const scale = 1 + (avgLevel - 1) * 0.22 + (region === 'dungeon' ? 0.35 : region === 'snow' ? 0.25 : region === 'desert' ? 0.2 : region === 'forest' ? 0.15 : region === 'swamp' ? 0.1 : 0);
   const group = [];
   for (let i = 0; i < count; i++) group.push(makeEnemy(pick(), scale));
   // encontro raro: Slime Rei na planície para grupos experientes

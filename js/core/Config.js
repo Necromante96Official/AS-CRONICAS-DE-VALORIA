@@ -9,8 +9,8 @@ export const TILE = 32;
 export const VIEW_W = 960;
 export const VIEW_H = 540;
 /** Dimensões do mapa-múndi. */
-export const MAP_W = 64;
-export const MAP_H = 48;
+export const MAP_W = 80;
+export const MAP_H = 60;
 
 /** Velocidade de movimento (px/s). */
 export const PLAYER_SPEED = 150;
@@ -29,4 +29,6 @@ export const LOCATIONS = {
   altar: 'Altar do Caos',
   beach: 'Praia do Sol',
   snow: 'Pico Nevado',
+  desert: 'Deserto Dourado',
+  swamp: 'Pântano Sombrio',
 };

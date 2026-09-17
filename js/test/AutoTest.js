@@ -6,7 +6,7 @@
  * @module test/AutoTest
  */
 import { SaveSystem } from '../systems/SaveSystem.js';
-import { makeEncounter, encounterTable } from '../entities/Enemies.js';
+import { makeEncounter, makeEnemy, encounterTable } from '../entities/Enemies.js';
 import { TILE } from '../core/Config.js';
 import { regionAt } from '../world/MapData.js';
 import { T } from '../world/Tiles.js';
@@ -488,6 +488,81 @@ export async function runAutoTest(game) {
       game._tapWorld(44 * TILE + 16, 35 * TILE + 16);
       log(game._fishCd > 0, 'tap-pesca-chegou');
       await dismissDialog();
+    }
+
+    // ---- 14. mundo expandido: regiões, inimigos novos e especiais ----
+    log(regionAt(66, 40) === 'desert', 'bioma-deserto');
+    log(regionAt(12, 50) === 'swamp', 'bioma-pantano');
+    log(regionAt(70, 10) === 'forest', 'bioma-bosque-leste');
+    log(encounterTable('desert').some(([id]) => id === 'scorpion'), 'tabela-deserto');
+    log(encounterTable('swamp').some(([id]) => id === 'shroom'), 'tabela-pantano');
+    log(encounterTable('beach').some(([id]) => id === 'crab'), 'tabela-praia-crab');
+    {
+      const c = makeEnemy('crab', 1), s = makeEnemy('scorpion', 1), m = makeEnemy('shroom', 1);
+      log(c.maxHp > 0 && s.atk > c.atk && m.maxHp > 0, 'stats-novos');
+    }
+    log(game.battle._scanFlavor('crab').includes('Pinça') &&
+      game.battle._scanFlavor('scorpion').includes('Ferrão') &&
+      game.battle._scanFlavor('shroom').includes('esporos'), 'scan-novos');
+    // sprites gerados com tamanho válido
+    {
+      game.battle.start(game.party, game.inv,
+        [makeEnemy('crab', 1), makeEnemy('scorpion', 1), makeEnemy('shroom', 1)],
+        { region: 'desert', onEnd: () => {} });
+      const ok = game.battle.enemyArt.length === 3 &&
+        game.battle.enemyArt.every((cv) => cv && cv.width > 0 && cv.height > 0);
+      log(ok, 'sprites-novos');
+      game.battle.stop();
+    }
+    // buff pesado para testes de especiais determinísticos
+    game.party.forEach((h) => {
+      h.level = 10; h.maxHp = 220; h.hp = 220; h.maxMp = 120; h.mp = 120;
+      h.atk = 34; h.def = 22; h.mag = 34; h.spd = 14;
+    });
+    // cogumelo se cura com esporos
+    {
+      game.battle.start(game.party, game.inv, [makeEnemy('shroom', 1)], { region: 'swamp', onEnd: () => {} });
+      const e = game.battle.enemies[0];
+      e.hp = Math.floor(e.maxHp * 0.3);
+      let healed = false;
+      for (let i = 0; i < 40 && !healed; i++) {
+        const before = e.hp;
+        game.battle._enemyAct(e, 0);
+        if (e.hp > before) healed = true;
+        for (const h of game.party) if (h.hp <= 0) h.hp = 1;
+      }
+      log(healed, 'shroom-cura');
+      game.battle.stop();
+    }
+    // caranguejo e escorpião agem sem erro e causam dano
+    {
+      game.battle.start(game.party, game.inv, [makeEnemy('crab', 0.7), makeEnemy('scorpion', 0.7)], { region: 'desert', onEnd: () => {} });
+      const hp0 = game.party.reduce((s, h) => s + h.hp, 0);
+      for (let i = 0; i < 6; i++) {
+        game.battle.enemies.forEach((e, j) => { if (e.hp > 0) game.battle._enemyAct(e, j); });
+        for (const h of game.party) if (h.hp <= 0) h.hp = 1;
+      }
+      const hp1 = game.party.reduce((s, h) => s + h.hp, 0);
+      log(hp1 < hp0, 'crab-scorpion-atacam');
+      game.battle.stop();
+    }
+    // baú do deserto existe e abre
+    {
+      teleport(74, 37, 'down');
+      await frames(3);
+      const g0 = game.gold;
+      log(game._tryChest() === true, 'bau-deserto-abre');
+      log(await dismissDialog(), 'bau-deserto-fecha');
+      log(game.flags.chest_desert === true && game.gold === g0 + 120, 'bau-deserto-loot');
+    }
+    // pescador presente e presenteia
+    {
+      const fisher = game.npcs.find((n) => n.id === 'fisher');
+      log(!!fisher, 'pescador-existe');
+      const f0 = game.inv.fish || 0;
+      game._talk(fisher);
+      log(await dismissDialog(), 'pescador-fala');
+      log((game.inv.fish || 0) === f0 + 1, 'pescador-presente');
     }
   } catch (e) {
     console.log(`[AUTOTEST] FAIL excecao ${e && e.stack ? e.stack : e}`);

@@ -4,7 +4,7 @@
  */
 import { SPELLS, grantXp, aliveHeroes, partyWiped } from '../entities/Party.js';
 import { ITEMS } from '../systems/Inventory.js';
-import { makeHumanoid, makeSlime, makeBat, makeGolem, makeDragon, makeKing, makeWisp } from '../core/SpriteFactory.js';
+import { makeHumanoid, makeSlime, makeBat, makeGolem, makeDragon, makeKing, makeWisp, makeCrab, makeScorpion, makeShroom } from '../core/SpriteFactory.js';
 
 const PALETTES = {
   hero:   { skin: '#f2c89b', hair: '#7a4a21', tunic: '#2b6fd6', pants: '#3a3a5a', cape: '#c22a3a' },
@@ -18,6 +18,9 @@ function enemySprite(id) {
     case 'bat': return makeBat('#6a5cff');
     case 'golem': return makeGolem();
     case 'wisp': return makeWisp();
+    case 'crab': return makeCrab();
+    case 'scorpion': return makeScorpion();
+    case 'shroom': return makeShroom();
     case 'king': return makeKing();
     case 'dragon': return makeDragon();
     default: return makeSlime();
@@ -36,6 +39,8 @@ const SCENERY = {
   boss:    { sky: ['#1e060a', '#5e1020', '#a02838'], sun: '#ff9b5b', far: '#3a0a12', near: '#521420', ground: '#4a2028', groundD: '#33141c', deco: 'embers', night: true },
   beach:   { sky: ['#3d7ac8', '#7ec8ff', '#cfeaff'], sun: '#fff8dc', far: '#2b6fd6', near: '#e0c886', ground: '#e0c886', groundD: '#b8945a', deco: 'shells', night: false },
   snow:    { sky: ['#8aa4c4', '#c9d8ea', '#eef4fd'], sun: '#ffffff', far: '#7d8aa0', near: '#a8b8cc', ground: '#e8f0ff', groundD: '#b9c8de', deco: 'snowfall', night: false },
+  desert:  { sky: ['#e8933a', '#f5c86e', '#ffe9b8'], sun: '#fff3c4', far: '#c98a3a', near: '#d9b878', ground: '#d9b878', groundD: '#a8845c', deco: 'cactus', night: false },
+  swamp:   { sky: ['#0e1a12', '#1d3325', '#2e4a38'], sun: '#c9e88a', far: '#0a140e', near: '#16241b', ground: '#2e4a38', groundD: '#1d3325', deco: 'fog', night: true },
 };
 
 export class BattleSystem {
@@ -476,6 +481,9 @@ export class BattleSystem {
       bat: 'Rápido, mas frágil. Caia antes que voe. Mira nos mais frágeis.',
       golem: 'Casca dura: prefira magias. Esmaga quem tem mais HP.',
       wisp: 'Arde em essência azul. Carrega energia antes do golpe forte!',
+      crab: 'Casca dura de praia! Pinça esmagadora de vez em quando.',
+      scorpion: 'Ferrão venenoso que fura defesa. Rápido e frágil.',
+      shroom: 'Solta esporos que o curam. Derrube rápido!',
       king: 'Um rei entre gosmas! Recompensa real para quem vencer.',
       dragon: 'O CAOS encarnado. Fases de fúria: baforadas, regeneração e fúria final!',
     }[id] || 'Sem dados no bestiário.';
@@ -734,6 +742,35 @@ export class BattleSystem {
       this._hurtHero(t, dmg, e, ei, 'cospindo GOSMA ÁCIDA em');
       return;
     }
+    // Caranguejo: pinça esmagadora no mais resistente
+    if (e.id === 'crab' && Math.random() < 0.3) {
+      const t = [...alive].sort((a, b) => b.maxHp - a.maxHp)[0];
+      const dmg = Math.round(physDmg(e.atk, t.def) * 1.5);
+      this.audio.sfx('crit');
+      this._shake(5, 0.25);
+      this._hurtHero(t, dmg, e, ei, 'com a PINÇA ESMAGADORA');
+      return;
+    }
+    // Escorpião: ferrão fura metade da defesa
+    if (e.id === 'scorpion' && Math.random() < 0.25) {
+      const t = this._pickTarget(e);
+      const dmg = Math.max(1, Math.round(e.atk * 2.2 - t.def * 0.6 + Math.random() * 4));
+      this.audio.sfx('crit');
+      this._burstFx(this.heroPos(this.party.indexOf(t)), '#8e2bff', 12);
+      this._hurtHero(t, dmg, e, ei, 'com o FERRÃO VENENOSO em');
+      return;
+    }
+    // Cogumelo: esporos curativos quando ferido
+    if (e.id === 'shroom' && e.hp < e.maxHp * 0.7 && Math.random() < 0.3) {
+      const v = Math.min(Math.round(e.maxHp * 0.15), e.maxHp - Math.max(0, e.hp));
+      e.hp = Math.min(e.maxHp, Math.max(0, e.hp) + v);
+      this.audio.sfx('heal');
+      this._healFx(this.enemyPos(ei), '#c9e88a');
+      this._floatDmg(this.enemyPos(ei), `+${v}`, '#7dff9a', false);
+      this._log(`${e.name} solta ESPOROS CURATIVOS! +${v} HP!`);
+      this._renderAll();
+      return;
+    }
     const t = this._pickTarget(e);
     const dmg = physDmg(e.atk, t.def);
     this.audio.sfx('hit');
@@ -984,6 +1021,33 @@ export class BattleSystem {
       // brilho do gelo no chão
       g.fillStyle = `rgba(180,220,255,${0.2 + 0.15 * Math.sin(this.time * 2)})`;
       g.beginPath(); g.ellipse(480, 296, 380, 30, 0, 0, 7); g.fill();
+    } else if (sc.deco === 'cactus') {
+      // silhuetas de cactos + poeira quente
+      for (const [cx, s] of [[90, 1], [850, 1.3], [700, 0.8]]) {
+        g.fillStyle = 'rgba(46,90,50,.85)';
+        g.fillRect(cx, 250 - 46 * s, 10 * s, 46 * s);
+        g.fillRect(cx - 12 * s, 250 - 34 * s, 8 * s, 20 * s);
+        g.fillRect(cx + 14 * s, 250 - 30 * s, 8 * s, 16 * s);
+      }
+      for (let i = 0; i < 12; i++) {
+        const x = (i * 331 + this.time * 60) % 980 - 10;
+        const y = 262 + ((i * 47) % 60);
+        g.fillStyle = `rgba(230,200,140,${0.3 + 0.25 * Math.sin(this.time * 3 + i)})`;
+        g.fillRect(x, y, 8, 2);
+      }
+    } else if (sc.deco === 'fog') {
+      // névoa à deriva + vagalumes verdes
+      for (let i = 0; i < 5; i++) {
+        const x = ((i * 260 + this.time * (14 + i * 4)) % 1100) - 70;
+        const y = 210 + i * 22;
+        g.fillStyle = `rgba(200,220,205,${0.1 + 0.05 * Math.sin(this.time + i)})`;
+        g.beginPath(); g.ellipse(x, y, 90, 12, 0, 0, 7); g.fill();
+      }
+      for (let i = 0; i < 10; i++) {
+        const x = (i * 211 + this.time * 18) % 960, y = 200 + ((i * 83) % 100) + Math.sin(this.time * 2 + i) * 8;
+        g.fillStyle = `rgba(160,255,150,${0.35 + 0.35 * Math.sin(this.time * 3 + i * 2)})`;
+        g.fillRect(x, y, 3, 3);
+      }
     }
   }
 
@@ -1018,7 +1082,7 @@ export class BattleSystem {
       let ox = 0;
       if (this.anim?.who === 'enemy' && this.anim.idx === i) ox = 26 * Math.sin((0.35 - this.anim.t) / 0.35 * Math.PI);
       const img = this.enemyArt[i];
-      const baseW = this.isBoss ? 136 : e.sprite === 'king' ? 78 : e.sprite === 'golem' ? 68 : e.sprite === 'wisp' ? 60 : e.sprite === 'bat' ? 64 : 60;
+      const baseW = this.isBoss ? 136 : e.sprite === 'king' ? 78 : e.sprite === 'golem' ? 68 : e.sprite === 'scorpion' ? 70 : e.sprite === 'crab' ? 66 : e.sprite === 'wisp' ? 60 : e.sprite === 'bat' ? 64 : 60;
       const w = baseW * Math.max(0.2, spawnK);
       const hgt = w * (img.height / img.width);
       const breathe = 1 + Math.sin(this.time * 3 + i) * 0.02;

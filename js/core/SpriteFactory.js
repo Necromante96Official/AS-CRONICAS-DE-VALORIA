@@ -469,6 +469,143 @@ export function makeGolem() {
   return c;
 }
 
+/** Caranguejo — casca vermelha, pinças grandes e olhos em hastes. */
+export function makeCrab() {
+  const c = document.createElement('canvas');
+  c.width = 36 * S; c.height = 24 * S;
+  const g = c.getContext('2d');
+  const shell = '#c22a3a', dark = '#8e1f2b', lite = '#e8606e';
+  g.fillStyle = 'rgba(0,0,0,.3)';
+  g.beginPath(); g.ellipse(18 * S, 22 * S, 12 * S, 2 * S, 0, 0, 7); g.fill();
+  // pernas laterais
+  g.fillStyle = dark;
+  for (let i = 0; i < 3; i++) {
+    g.fillRect((4 + i * 2) * S, (15 + i * 2) * S, 3 * S, 1.2 * S);
+    g.fillRect((29 - i * 2) * S, (15 + i * 2) * S, 3 * S, 1.2 * S);
+  }
+  // braços + pinças
+  g.fillStyle = dark;
+  g.fillRect(6 * S, 10 * S, 4 * S, 3 * S); g.fillRect(26 * S, 10 * S, 4 * S, 3 * S);
+  g.fillStyle = shell;
+  g.beginPath(); g.ellipse(6 * S, 8 * S, 3.4 * S, 3 * S, -0.3, 0, 7); g.fill();
+  g.beginPath(); g.ellipse(30 * S, 8 * S, 3.4 * S, 3 * S, 0.3, 0, 7); g.fill();
+  g.fillStyle = dark;
+  g.beginPath(); g.moveTo(4 * S, 6 * S); g.lineTo(8 * S, 6 * S); g.lineTo(6 * S, 9.5 * S); g.closePath(); g.fill();
+  g.beginPath(); g.moveTo(28 * S, 6 * S); g.lineTo(32 * S, 6 * S); g.lineTo(30 * S, 9.5 * S); g.closePath(); g.fill();
+  g.fillStyle = lite;
+  g.fillRect(4.6 * S, 6.6 * S, 1.2 * S, 1.6 * S); g.fillRect(30.2 * S, 6.6 * S, 1.2 * S, 1.6 * S);
+  // carapaça oval com brilho
+  g.fillStyle = dark;
+  g.beginPath(); g.ellipse(18 * S, 16 * S, 10.4 * S, 6.4 * S, 0, 0, 7); g.fill();
+  g.fillStyle = shell;
+  g.beginPath(); g.ellipse(18 * S, 15.4 * S, 9.4 * S, 5.6 * S, 0, 0, 7); g.fill();
+  g.fillStyle = lite;
+  g.beginPath(); g.ellipse(14.5 * S, 12.5 * S, 4 * S, 2.2 * S, -0.35, 0, 7); g.fill();
+  // olhos em hastes + boca
+  g.fillStyle = dark;
+  g.fillRect(14.6 * S, 8.4 * S, 1.2 * S, 2.4 * S); g.fillRect(20.2 * S, 8.4 * S, 1.2 * S, 2.4 * S);
+  g.fillStyle = '#fff';
+  g.beginPath(); g.arc(15.2 * S, 7.8 * S, 1.4 * S, 0, 7); g.fill();
+  g.beginPath(); g.arc(20.8 * S, 7.8 * S, 1.4 * S, 0, 7); g.fill();
+  g.fillStyle = '#101018';
+  g.beginPath(); g.arc(15.2 * S, 7.8 * S, 0.7 * S, 0, 7); g.fill();
+  g.beginPath(); g.arc(20.8 * S, 7.8 * S, 0.7 * S, 0, 7); g.fill();
+  g.strokeStyle = dark; g.lineWidth = 1 * S;
+  g.beginPath(); g.moveTo(16 * S, 17.5 * S); g.quadraticCurveTo(18 * S, 18.5 * S, 20 * S, 17.5 * S); g.stroke();
+  return c;
+}
+
+/** Escorpião — corpo âmbar, cauda com ferrão e pinças. */
+export function makeScorpion() {
+  const c = document.createElement('canvas');
+  c.width = 38 * S; c.height = 28 * S;
+  const g = c.getContext('2d');
+  const body = '#c98a3a', dark = '#7a4a21', lite = '#e8b34a';
+  g.fillStyle = 'rgba(0,0,0,.3)';
+  g.beginPath(); g.ellipse(17 * S, 26 * S, 12 * S, 2 * S, 0, 0, 7); g.fill();
+  // cauda segmentada curvada para cima + ferrão
+  g.fillStyle = dark;
+  g.beginPath(); g.ellipse(28 * S, 20 * S, 4 * S, 3 * S, 0.5, 0, 7); g.fill();
+  g.beginPath(); g.ellipse(31 * S, 15 * S, 3.4 * S, 2.6 * S, 0.8, 0, 7); g.fill();
+  g.beginPath(); g.ellipse(32.4 * S, 10.4 * S, 2.8 * S, 2.2 * S, 1, 0, 7); g.fill();
+  g.fillStyle = body;
+  g.beginPath(); g.ellipse(28 * S, 19.6 * S, 3.2 * S, 2.2 * S, 0.5, 0, 7); g.fill();
+  g.beginPath(); g.ellipse(31 * S, 14.6 * S, 2.6 * S, 1.8 * S, 0.8, 0, 7); g.fill();
+  g.fillStyle = '#3a2410';
+  g.beginPath(); g.moveTo(31 * S, 8.6 * S); g.lineTo(35.5 * S, 5 * S); g.lineTo(33.4 * S, 10 * S); g.closePath(); g.fill();
+  g.fillStyle = '#8e2bff';
+  g.beginPath(); g.arc(34.6 * S, 6.2 * S, 1 * S, 0, 7); g.fill();
+  // 6 patas
+  g.fillStyle = dark;
+  for (let i = 0; i < 3; i++) {
+    g.fillRect((9 + i * 4) * S, (21 + (i % 2)) * S, 1.4 * S, 4 * S);
+  }
+  // pinças dianteiras
+  g.fillStyle = dark;
+  g.fillRect(3 * S, 15 * S, 4 * S, 2.6 * S); g.fillRect(7 * S, 12 * S, 3 * S, 5 * S);
+  g.fillStyle = body;
+  g.beginPath(); g.ellipse(4.6 * S, 13 * S, 2.8 * S, 2.6 * S, -0.4, 0, 7); g.fill();
+  g.fillStyle = dark;
+  g.beginPath(); g.moveTo(2.6 * S, 11 * S); g.lineTo(6 * S, 11 * S); g.lineTo(4.4 * S, 14 * S); g.closePath(); g.fill();
+  // corpo oval + placas + olhos
+  g.fillStyle = dark;
+  g.beginPath(); g.ellipse(17 * S, 18 * S, 9 * S, 6 * S, 0, 0, 7); g.fill();
+  g.fillStyle = body;
+  g.beginPath(); g.ellipse(17 * S, 17.4 * S, 8 * S, 5.2 * S, 0, 0, 7); g.fill();
+  g.fillStyle = dark;
+  for (let i = 0; i < 3; i++) g.fillRect((12 + i * 4.4) * S, 14.6 * S, 1 * S, 5.4 * S);
+  g.fillStyle = lite;
+  g.beginPath(); g.ellipse(14 * S, 14.6 * S, 3 * S, 1.6 * S, -0.3, 0, 7); g.fill();
+  g.fillStyle = '#a00';
+  g.beginPath(); g.arc(10.4 * S, 15.6 * S, 1.2 * S, 0, 7); g.fill();
+  g.beginPath(); g.arc(13.4 * S, 15.6 * S, 1.2 * S, 0, 7); g.fill();
+  g.fillStyle = '#fff';
+  g.fillRect(10 * S, 15.2 * S, 0.7 * S, 0.7 * S); g.fillRect(13 * S, 15.2 * S, 0.7 * S, 0.7 * S);
+  return c;
+}
+
+/** Cogumelo — chapéu vermelho de bolinhas, corpo rechonchudo e esporos. */
+export function makeShroom() {
+  const c = document.createElement('canvas');
+  c.width = 32 * S; c.height = 30 * S;
+  const g = c.getContext('2d');
+  const cap = '#c22a3a', stem = '#f2ead8', dark = '#7a1f2b';
+  g.fillStyle = 'rgba(0,0,0,.3)';
+  g.beginPath(); g.ellipse(16 * S, 28 * S, 10 * S, 1.8 * S, 0, 0, 7); g.fill();
+  // bracinhos
+  g.fillStyle = stem;
+  g.fillRect(6 * S, 19 * S, 3 * S, 5 * S); g.fillRect(23 * S, 19 * S, 3 * S, 5 * S);
+  g.fillStyle = dark;
+  g.fillRect(6 * S, 23 * S, 3 * S, 1 * S); g.fillRect(23 * S, 23 * S, 3 * S, 1 * S);
+  // corpo
+  g.fillStyle = dark;
+  g.beginPath(); g.ellipse(16 * S, 22 * S, 8.4 * S, 6.4 * S, 0, 0, 7); g.fill();
+  g.fillStyle = stem;
+  g.beginPath(); g.ellipse(16 * S, 21.6 * S, 7.4 * S, 5.6 * S, 0, 0, 7); g.fill();
+  g.fillStyle = '#d9c9a8';
+  g.beginPath(); g.ellipse(16 * S, 24.4 * S, 5 * S, 2.6 * S, 0, 0, 7); g.fill();
+  // olhos bravos + boca
+  g.fillStyle = '#101018';
+  g.beginPath(); g.moveTo(11.4 * S, 19.4 * S); g.lineTo(14.6 * S, 20.4 * S); g.lineTo(11.4 * S, 21.4 * S); g.closePath(); g.fill();
+  g.beginPath(); g.moveTo(20.6 * S, 19.4 * S); g.lineTo(17.4 * S, 20.4 * S); g.lineTo(20.6 * S, 21.4 * S); g.closePath(); g.fill();
+  g.strokeStyle = dark; g.lineWidth = 1 * S;
+  g.beginPath(); g.moveTo(14.4 * S, 23.4 * S); g.quadraticCurveTo(16 * S, 24.2 * S, 17.6 * S, 23.4 * S); g.stroke();
+  // chapéu com bolinhas
+  g.fillStyle = dark;
+  g.beginPath(); g.ellipse(16 * S, 12.6 * S, 12.4 * S, 7.4 * S, 0, 0, 7); g.fill();
+  g.fillStyle = cap;
+  g.beginPath(); g.ellipse(16 * S, 11.8 * S, 11.4 * S, 6.6 * S, 0, 0, 7); g.fill();
+  g.fillStyle = '#e8606e';
+  g.beginPath(); g.ellipse(12 * S, 9 * S, 4.4 * S, 2.4 * S, -0.3, 0, 7); g.fill();
+  g.fillStyle = '#fff';
+  const dot = (x, y, r) => { g.beginPath(); g.arc(x * S, y * S, r * S, 0, 7); g.fill(); };
+  dot(10, 11.5, 1.5); dot(16.5, 8.6, 1.8); dot(22.5, 11.8, 1.4); dot(19, 13.8, 1.1); dot(13.4, 14, 1);
+  // esporos flutuando
+  g.fillStyle = 'rgba(255,255,255,.7)';
+  g.fillRect(5 * S, 6 * S, 1.2 * S, 1.2 * S); g.fillRect(26 * S, 8 * S, 1.4 * S, 1.4 * S);
+  return c;
+}
+
 /** Dragão do Caos (boss) — réptil alado com focinho, asas com garras e cauda com ponta. */
 export function makeDragon() {
   const c = document.createElement('canvas');

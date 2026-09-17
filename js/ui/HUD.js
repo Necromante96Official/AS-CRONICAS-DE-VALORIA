@@ -44,7 +44,7 @@ export class HUD {
 
   /**
    * Minimapa: base pré-renderizada + viewport + jogador + altar.
-   * @param {HTMLCanvasElement} base 128x96 (2px por tile)
+   * @param {HTMLCanvasElement} base (2px por tile)
    * @param {number} ox @param {number} oy offsets da câmera
    * @param {number} ptx @param {number} pty tile do jogador
    * @param {{x:number,y:number}|null} altar
@@ -53,7 +53,7 @@ export class HUD {
     if (!this.mm || !base) return;
     const g = this.mm.getContext('2d');
     g.imageSmoothingEnabled = false;
-    g.clearRect(0, 0, 128, 96);
+    g.clearRect(0, 0, this.mm.width, this.mm.height);
     g.drawImage(base, 0, 0);
     g.strokeStyle = '#ffffffaa'; g.lineWidth = 1;
     g.strokeRect((-ox / 32) * 2 + 0.5, (-oy / 32) * 2 + 0.5, (960 / 32) * 2, (540 / 32) * 2);

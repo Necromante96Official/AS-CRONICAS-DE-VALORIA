@@ -2,7 +2,7 @@
  * Player — movimento topdown em pixel com colisão + passos p/ encontros.
  * @module entities/Player
  */
-import { TILE, PLAYER_SPEED } from '../core/Config.js';
+import { TILE, PLAYER_SPEED, MAP_W, MAP_H } from '../core/Config.js';
 
 export class Player {
   /** @param {number} tx @param {number} ty */
@@ -54,8 +54,8 @@ export class Player {
       this.animT = 0;
     }
     // mantém dentro do mapa
-    this.x = Math.max(TILE, Math.min(this.x, 64 * TILE - TILE - this.w));
-    this.y = Math.max(TILE, Math.min(this.y, 48 * TILE - TILE - this.h));
+    this.x = Math.max(TILE, Math.min(this.x, MAP_W * TILE - TILE - this.w));
+    this.y = Math.max(TILE, Math.min(this.y, MAP_H * TILE - TILE - this.h));
   }
 
   _hitsBlockers(px, py, blockers) {

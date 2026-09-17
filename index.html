@@ -593,7 +593,7 @@ html, body {
         <div id="hud-right">
           <div id="hud-location">Valoria</div>
           <div id="hud-gold">💰 0 G</div>
-          <canvas id="minimap" width="128" height="96"></canvas>
+          <canvas id="minimap" width="160" height="120"></canvas>
         </div>
       </div>
 
@@ -692,8 +692,8 @@ const TILE = 32;
 const VIEW_W = 960;
 const VIEW_H = 540;
 /** Dimensões do mapa-múndi. */
-const MAP_W = 64;
-const MAP_H = 48;
+const MAP_W = 80;
+const MAP_H = 60;
 
 /** Velocidade de movimento (px/s). */
 const PLAYER_SPEED = 150;
@@ -712,6 +712,8 @@ const LOCATIONS = {
   altar: 'Altar do Caos',
   beach: 'Praia do Sol',
   snow: 'Pico Nevado',
+  desert: 'Deserto Dourado',
+  swamp: 'Pântano Sombrio',
 };
 
 /* ===== js\core\Input.js ===== */
@@ -1056,17 +1058,18 @@ const T = {
   DARK_GRASS: 15, RUIN: 16, PLAZA: 17,
   FENCE: 18, LAMP: 19, WELL: 20, SIGN: 21, CRATE: 22,
   SOIL: 23, MOUNTAIN: 24, PALM: 25, SNOW: 26,
+  CACTUS: 27, SWAMP: 28, DUNE: 29, DEAD_TREE: 30,
 };
 
 /** Tiles que bloqueiam movimento. */
 const SOLID = new Set([T.WATER, T.TREE, T.PINE, T.STONE, T.WALL, T.ROOF, T.ALTAR, T.RUIN,
-  T.FENCE, T.LAMP, T.WELL, T.SIGN, T.CRATE, T.MOUNTAIN, T.PALM]);
+  T.FENCE, T.LAMP, T.WELL, T.SIGN, T.CRATE, T.MOUNTAIN, T.PALM, T.CACTUS, T.DEAD_TREE]);
 
-/** Grama alta / neve = zona de encontros. */
-const isEncounterTile = (t) => t === T.TALL_GRASS || t === T.DARK_GRASS || t === T.SNOW;
+/** Grama alta / neve / pântano / duna = zona de encontros. */
+const isEncounterTile = (t) => t === T.TALL_GRASS || t === T.DARK_GRASS || t === T.SNOW || t === T.SWAMP || t === T.DUNE;
 
 /** Terrenos "pisáveis" (para bordas de transição). */
-const GROUND = new Set([T.GRASS, T.TALL_GRASS, T.FLOWER, T.DARK_GRASS, T.PATH, T.SAND, T.FLOOR, T.PLAZA, T.SOIL, T.SNOW]);
+const GROUND = new Set([T.GRASS, T.TALL_GRASS, T.FLOWER, T.DARK_GRASS, T.PATH, T.SAND, T.FLOOR, T.PLAZA, T.SOIL, T.SNOW, T.SWAMP, T.DUNE]);
 const GRASSY = new Set([T.GRASS, T.TALL_GRASS, T.FLOWER, T.DARK_GRASS]);
 /** Caminhos que emendam entre si (trilhas de carroça). */
 const WALKWAY = new Set([T.PATH, T.PLAZA, T.FLOOR, T.BRIDGE]);
@@ -1112,6 +1115,10 @@ function tileColor(t) {
     case T.MOUNTAIN: return '#9aa0ad';
     case T.PALM: return '#2e7d46';
     case T.SNOW: return '#e8f0ff';
+    case T.CACTUS: return '#3f9142';
+    case T.SWAMP: return '#2e4a38';
+    case T.DUNE: return '#d9b878';
+    case T.DEAD_TREE: return '#4a4a52';
     case T.TALL_GRASS: return '#2e7d46';
     case T.DARK_GRASS: return '#1e5b30';
     case T.FLOWER: return '#57b357';
@@ -1225,6 +1232,10 @@ function drawTile(g, t, dx, dy, ts, x, y, time, nb, opts = {}) {
       }
       for (const d of ['n', 's', 'w', 'e']) if (GRASSY.has(edge(d))) strip(d, 3, '#a8845c');
       for (const d of ['n', 's', 'w', 'e']) if (edge(d) === T.SNOW) strip(d, 3, '#b9c8de');
+      for (const d of ['n', 's', 'w', 'e']) {
+        if (edge(d) === T.DUNE) strip(d, 3, '#c2a878');
+        else if (edge(d) === T.SWAMP) strip(d, 3, '#2a3d2e');
+      }
       // trilhas de carroça ao longo do caminho
       const ew = WALKWAY.has(edge('w')) || WALKWAY.has(edge('e'));
       const ns = WALKWAY.has(edge('n')) || WALKWAY.has(edge('s'));
@@ -1450,6 +1461,111 @@ function drawTile(g, t, dx, dy, ts, x, y, time, nb, opts = {}) {
       g.fillRect(dx + 10, dy + 27, 4, 3); g.fillRect(dx + 17, dy + 27, 4, 3);
       if (!trunkOnly) drawCanopyTop(g, t, dx, dy, ts, x, y, time);
       else { g.fillStyle = 'rgba(60,40,20,.25)'; g.fillRect(dx + 8, dy + 18, 16, 4); }
+      break;
+    }
+    case T.DUNE: {
+      // DUNA: areia ondulada com capim seco — esconde monstros!
+      g.fillStyle = '#d9b878'; g.fillRect(dx, dy, ts, ts);
+      g.fillStyle = '#c9a86a';
+      g.beginPath(); g.ellipse(dx + 9, dy + 9, 9, 4, -0.3, 0, 7); g.fill();
+      g.beginPath(); g.ellipse(dx + 23, dy + 23, 8, 4, 0.3, 0, 7); g.fill();
+      g.fillStyle = '#e8cc8e';
+      g.beginPath(); g.ellipse(dx + 9, dy + 7, 9, 2, -0.3, 0, 7); g.fill();
+      // marquinhas do vento
+      g.fillStyle = 'rgba(160,120,70,.5)';
+      for (let i = 0; i < 3; i++) g.fillRect(dx + 4 + i * 9, dy + 14 + (i % 2) * 8, 6, 1);
+      // tufos de capim seco balançando
+      g.fillStyle = '#b8a05a';
+      for (let i = 0; i < 4; i++) {
+        const bx = dx + 4 + i * 8 + Math.sin(time * 2 + x * 2 + i * 1.7) * 1.5;
+        const bh = 7 + ((h * 31 + i * 7) | 0) % 6;
+        g.fillRect(bx, dy + 24 - bh, 2, bh);
+      }
+      g.fillStyle = '#d9c878';
+      g.fillRect(dx + 6, dy + 5, 2, 3); g.fillRect(dx + 24, dy + 12, 2, 3);
+      for (const d of ['n', 's', 'w', 'e']) if (edge(d) === T.SNOW) strip(d, 3, '#c9d8ea');
+      break;
+    }
+    case T.SWAMP: {
+      // PÂNTANO: água rasa e turva com juncos, bolhas e névoa baixa.
+      g.fillStyle = '#22392c'; g.fillRect(dx, dy, ts, ts);
+      g.fillStyle = '#2e4a38';
+      g.beginPath(); g.ellipse(dx + 11, dy + 12, 10, 6, -0.2, 0, 7); g.fill();
+      g.beginPath(); g.ellipse(dx + 22, dy + 22, 9, 5, 0.3, 0, 7); g.fill();
+      g.fillStyle = '#3d6b4a';
+      g.fillRect(dx + 5, dy + 8, 8, 2); g.fillRect(dx + 19, dy + 18, 7, 2);
+      // bolhas subindo
+      const bph = (time * 10 + h * 60) % 32;
+      g.fillStyle = 'rgba(180,230,190,.55)';
+      g.fillRect(dx + 8 + ((h2 * 16) | 0), dy + 28 - bph, 2, 2);
+      if (h > 0.5) g.fillRect(dx + 20 - ((h * 12) | 0), dy + 26 - ((bph + 14) % 32), 2, 2);
+      // juncos
+      g.fillStyle = '#1d3325';
+      g.fillRect(dx + 4, dy + 14, 2, 12); g.fillRect(dx + 27, dy + 6, 2, 12);
+      g.fillStyle = '#4a7d54';
+      g.fillRect(dx + 4, dy + 12, 2, 4); g.fillRect(dx + 27, dy + 4, 2, 4);
+      g.fillStyle = '#6e4a3a'; g.fillRect(dx + 4, dy + 10, 2, 3); // taboa
+      // névoa baixa à deriva
+      g.fillStyle = `rgba(200,220,205,${(0.1 + 0.08 * Math.sin(time * 1.5 + x + y)).toFixed(2)})`;
+      g.fillRect(dx, dy + 20 + Math.sin(time + x) * 2, ts, 6);
+      for (const d of ['n', 's', 'w', 'e']) if (edge(d) === T.WATER) strip(d, 2, 'rgba(220,235,225,.5)');
+      break;
+    }
+    case T.CACTUS: {
+      // CACTO: coluna verde com braços, espinhos e flor — marca do deserto.
+      g.fillStyle = '#e0c886'; g.fillRect(dx, dy, ts, ts);
+      g.fillStyle = '#d3ba7c';
+      g.fillRect(dx + ((h * 20) | 0), dy + ((h2 * 20) | 0), 8, 3);
+      g.fillStyle = 'rgba(0,0,0,.2)';
+      g.beginPath(); g.ellipse(dx + 16, dy + 29, 9, 2.5, 0, 0, 7); g.fill();
+      // coluna principal
+      g.fillStyle = '#1e5b20'; g.fillRect(dx + 13, dy + 6, 7, 23);
+      g.fillStyle = '#2e7d32'; g.fillRect(dx + 14, dy + 6, 5, 23);
+      g.fillStyle = '#43a047'; g.fillRect(dx + 14, dy + 6, 2, 23);
+      g.fillStyle = '#1e5b20'; g.fillRect(dx + 13, dy + 6, 7, 2);
+      // braços
+      const armY = dy + (h > 0.5 ? 14 : 17);
+      g.fillStyle = '#1e5b20';
+      g.fillRect(dx + 6, armY, 5, 9); g.fillRect(dx + 6, armY - 4, 9, 4);
+      g.fillStyle = '#2e7d32';
+      g.fillRect(dx + 7, armY, 3, 9); g.fillRect(dx + 6, armY - 4, 8, 3);
+      // espinhos + flor no topo
+      g.fillStyle = '#e8f0d0';
+      for (let i = 0; i < 4; i++) { g.fillRect(dx + 12, dy + 9 + i * 5, 1, 1); g.fillRect(dx + 20, dy + 11 + i * 5, 1, 1); }
+      if (h2 > 0.55) {
+        g.fillStyle = '#ff8fb3';
+        g.fillRect(dx + 14, dy + 2, 5, 4);
+        g.fillStyle = '#ffd75e'; g.fillRect(dx + 16, dy + 3, 1, 2);
+      }
+      break;
+    }
+    case T.DEAD_TREE: {
+      // ÁRVORE MORTA: tronco retorcido e galhos secos — marca do pântano.
+      g.fillStyle = '#22392c'; g.fillRect(dx, dy, ts, ts);
+      g.fillStyle = 'rgba(0,0,0,.3)';
+      g.beginPath(); g.ellipse(dx + 16, dy + 29, 9, 2.5, 0, 0, 7); g.fill();
+      // tronco inclinado em segmentos
+      g.fillStyle = '#3a3a42';
+      g.fillRect(dx + 13, dy + 18, 6, 11);
+      g.fillRect(dx + 11 + (h > 0.5 ? 2 : 0), dy + 10, 6, 9);
+      g.fillStyle = '#565664';
+      g.fillRect(dx + 13, dy + 18, 2, 11);
+      g.fillRect(dx + 11 + (h > 0.5 ? 2 : 0), dy + 10, 2, 9);
+      // galhos secos
+      g.strokeStyle = '#3a3a42'; g.lineWidth = 2.5; g.lineCap = 'round';
+      const sway = Math.sin(time * 1.2 + x + y) * 1;
+      g.beginPath(); g.moveTo(dx + 14, dy + 12); g.lineTo(dx + 5 + sway, dy + 4); g.stroke();
+      g.beginPath(); g.moveTo(dx + 16, dy + 14); g.lineTo(dx + 26 + sway, dy + 7); g.stroke();
+      g.beginPath(); g.moveTo(dx + 8 + sway, dy + 7); g.lineTo(dx + 5 + sway, dy + 2); g.stroke();
+      // musgo pendurado + corvo ocasional
+      g.fillStyle = '#3f9142';
+      g.fillRect(dx + 20, dy + 9, 2, 5); g.fillRect(dx + 8, dy + 6, 2, 4);
+      if (h2 > 0.8) {
+        g.fillStyle = '#101018';
+        g.fillRect(dx + 22, dy + 4, 5, 3);
+        g.fillRect(dx + 23, dy + 2, 3, 2);
+        g.fillStyle = '#ffd75e'; g.fillRect(dx + 25, dy + 4, 1, 1);
+      }
       break;
     }
     case T.STONE: {
@@ -2092,6 +2208,7 @@ const CHESTS = [
   { id: 'plain', x: 28, y: 32, loot: { gold: 80, items: { potion: 1 } } },
   { id: 'forest', x: 5, y: 9, loot: { gold: 40, items: { ether: 1, antidote: 1 } } },
   { id: 'ruin', x: 53, y: 11, loot: { gold: 150, items: { hipotion: 1 } } },
+  { id: 'desert', x: 74, y: 38, loot: { gold: 120, items: { ether: 1 } } },
 ];
 /** Meta da quest de caça do Guarda Cato (slimes derrotados). */
 const HUNT_GOAL = 6;
@@ -2114,9 +2231,15 @@ function buildMap() {
   for (let y = 14; y < 34; y++) for (let x = 20; x < 44; x++) {
     if (hash2(x, y * 2) > 0.55) set(x, y, T.TALL_GRASS);
   }
-  // bosque sombrio (noroeste): grama escura + pinheiros
-  for (let y = 3; y < 17; y++) for (let x = 2; x < 17; x++) {
+  // bosque sombrio (noroeste, maior): grama escura + pinheiros
+  for (let y = 3; y < 20; y++) for (let x = 2; x < 19; x++) {
     const r = hash2(x * 5, y * 5 + 3);
+    if (r > 0.45) set(x, y, T.DARK_GRASS);
+    if (r > 0.82) set(x, y, T.PINE);
+  }
+  // bosque profundo (leste): outro braço do bosque, além das ruínas
+  for (let y = 2; y < 16; y++) for (let x = 63; x < 80; x++) {
+    const r = hash2(x * 5 + 9, y * 5 + 1);
     if (r > 0.45) set(x, y, T.DARK_GRASS);
     if (r > 0.82) set(x, y, T.PINE);
   }
@@ -2127,10 +2250,12 @@ function buildMap() {
     if (r > 0.86) set(x, y, T.RUIN);
   }
 
-  // rio vertical x=44..45, com ponte em y=29..30
+  // rio vertical x=44..45, com ponte em y=29..30 e segunda ponte ao sul (y=52..53)
   for (let y = 0; y < h; y++) { set(44, y, T.WATER); set(45, y, T.WATER); }
   set(44, 29, T.BRIDGE); set(45, 29, T.BRIDGE);
   set(44, 30, T.BRIDGE); set(45, 30, T.BRIDGE);
+  set(44, 52, T.BRIDGE); set(45, 52, T.BRIDGE);
+  set(44, 53, T.BRIDGE); set(45, 53, T.BRIDGE);
   // margens de areia
   for (let y = 0; y < h; y++) {
     if (get(43, y) !== T.BRIDGE && get(43, y) === T.GRASS && hash2(43, y) > 0.4) set(43, y, T.SAND);
@@ -2142,6 +2267,9 @@ function buildMap() {
   const pathV = (y0, y1, x) => { for (let y = y0; y <= y1; y++) if (get(x, y) !== T.WATER) set(x, y, T.PATH); };
   pathH(10, 43, 30); pathH(46, 54, 29);
   pathV(15, 30, 54); pathV(30, 40, 14);
+  // caminhos do sul e do deserto (ponte sul -> praia/deserto, trilha do oásis)
+  pathH(43, 66, 52); pathH(54, 66, 29);
+  pathV(28, 54, 66); pathV(44, 54, 12);
 
   // ---- Vila Lumen (sudoeste): fileiras simétricas + praça central ----
   rect(7, 33, 21, 43, T.PATH);
@@ -2200,25 +2328,58 @@ function buildMap() {
   set(2, 38, T.FENCE); set(5, 38, T.FENCE);
   set(2, 39, T.FENCE); set(5, 39, T.FENCE);
 
-  // ---- Bioma praia (sudeste): areia, conchas e palmeiras. Zona calma, ótima p/ pesca ----
-  for (let y = 44; y <= 45; y++) for (let x = 24; x <= 42; x++) {
-    if (get(x, y) === T.WATER) continue;
+  // ---- Bioma praia (sul, maior): areia, conchas e palmeiras. Zona calma, ótima p/ pesca ----
+  for (let y = 44; y <= 52; y++) for (let x = 24; x <= 42; x++) {
+    if (get(x, y) === T.WATER || get(x, y) === T.PATH) continue;
     set(x, y, hash2(x * 11 + 5, y * 13) > 0.78 ? T.GRASS : T.SAND);
   }
   set(26, 44, T.PALM); set(32, 45, T.PALM); set(39, 44, T.PALM);
-  // ---- Bioma neve (norte): campo nevado com pinheiros. Encontros mais duros ----
-  for (let y = 2; y <= 3; y++) for (let x = 18; x <= 43; x++) {
+  set(30, 49, T.PALM); set(37, 50, T.PALM);
+  // ---- Bioma neve (norte, maior): campo nevado com pinheiros. Encontros mais duros ----
+  for (let y = 2; y <= 4; y++) for (let x = 18; x <= 46; x++) {
     if (get(x, y) === T.WATER) continue;
     set(x, y, T.SNOW);
   }
-  for (let x = 19; x <= 42; x += 3) { if (hash2(x, 77) > 0.35 && get(x, 2) !== T.WATER) set(x, 2, T.PINE); }
-  set(24, 3, T.PINE); set(36, 3, T.PINE);
+  for (let x = 19; x <= 45; x += 3) { if (hash2(x, 77) > 0.35 && get(x, 2) !== T.WATER) set(x, 2, T.PINE); }
+  set(24, 3, T.PINE); set(36, 3, T.PINE); set(30, 4, T.PINE);
+  // ---- Bioma pântano (sudoeste): água rasa, juncos e árvores mortas ----
+  for (let y = 46; y <= 56; y++) for (let x = 3; x <= 22; x++) {
+    if (get(x, y) === T.WATER || get(x, y) === T.PATH) continue;
+    const r = hash2(x * 9 + 4, y * 7 + 2);
+    if (r > 0.72) set(x, y, T.SWAMP);
+    else if (r > 0.4) set(x, y, T.DARK_GRASS);
+    else set(x, y, T.GRASS);
+  }
+  blob(9, 50, 2, T.WATER, [T.SWAMP, T.DARK_GRASS, T.GRASS]);
+  blob(17, 52, 1, T.WATER, [T.SWAMP, T.DARK_GRASS, T.GRASS]);
+  for (let y = 47; y <= 55; y++) for (let x = 4; x <= 21; x++) {
+    const t = get(x, y);
+    if ((t === T.SWAMP || t === T.DARK_GRASS) && hash2(x * 5 + 8, y * 3 + 6) > 0.86) set(x, y, T.DEAD_TREE);
+  }
+  // ---- Bioma deserto (leste): dunas, cactos e um oásis ----
+  for (let y = 16; y <= 56; y++) for (let x = 58; x <= 78; x++) {
+    if (get(x, y) === T.WATER || get(x, y) === T.PATH) continue;
+    set(x, y, hash2(x * 13 + 3, y * 11 + 9) > 0.62 ? T.DUNE : T.SAND);
+  }
+  for (let y = 18; y <= 54; y++) for (let x = 59; x <= 77; x++) {
+    if (get(x, y) !== T.SAND) continue;
+    const r = hash2(x * 7 + 11, y * 5 + 1);
+    if (r > 0.88) set(x, y, T.CACTUS);
+    else if (r < 0.04) set(x, y, T.STONE);
+  }
+  // oásis com palmeiras (limpa cactos da lagoa)
+  blob(70, 42, 2, T.WATER, [T.SAND, T.DUNE]);
+  for (let y = 39; y <= 45; y++) for (let x = 67; x <= 73; x++) {
+    if (get(x, y) === T.CACTUS && Math.hypot(x - 70, y - 42) < 3.4) set(x, y, T.SAND);
+  }
+  set(68, 40, T.PALM); set(72, 40, T.PALM); set(68, 44, T.PALM); set(72, 44, T.PALM);
 
   // ---- Baús: garante chão pisável no tile e ao redor (ruína) ----
   set(28, 32, T.GRASS);
   set(5, 9, T.GRASS);
   set(53, 11, T.DARK_GRASS);
   set(52, 11, T.DARK_GRASS); set(53, 10, T.DARK_GRASS); set(53, 12, T.DARK_GRASS);
+  set(74, 38, T.SAND);
 
   // ---- Altar do Caos (norte das ruínas) ----
   rect(51, 3, 57, 8, T.FLOOR);
@@ -2243,11 +2404,14 @@ function buildMap() {
  */
 function regionAt(tx, ty) {
   if (tx >= 51 && tx <= 57 && ty >= 3 && ty <= 8) return 'altar';
+  if (tx >= 63 && ty <= 15) return 'forest';
   if (tx >= 47 && ty <= 15) return 'dungeon';
-  if (tx <= 17 && ty <= 17) return 'forest';
+  if (ty >= 2 && ty <= 4 && tx >= 18 && tx <= 46) return 'snow';
+  if (tx <= 18 && ty <= 19) return 'forest';
   if (tx >= 7 && tx <= 22 && ty >= 32 && ty <= 44) return 'town';
-  if (ty <= 3 && tx >= 18 && tx <= 43) return 'snow';
-  if (ty >= 44 && tx >= 23 && tx <= 43) return 'beach';
+  if (tx >= 3 && tx <= 22 && ty >= 46 && ty <= 56) return 'swamp';
+  if (ty >= 44 && ty <= 53 && tx >= 23 && tx <= 43) return 'beach';
+  if (tx >= 58 && ty >= 16) return 'desert';
   if (tx >= 20 && tx <= 46 && ty >= 14 && ty <= 34) return 'field';
   return 'field';
 }
@@ -2291,6 +2455,14 @@ const NPC_DEFS = [
       'Leve ÉTERES, use a magia CURA e guarde sua magia de FOGO para o fim. Que o cristal o proteja.',
     ],
     gift: 'ether',
+  },
+  {
+    id: 'fisher', x: 30, y: 47, name: 'Pescador Kai', kind: 'fisher', wander: false,
+    gift: 'fish',
+    lines: [
+      'Bom dia! Aqui na Praia do Sol a água é calma e o peixe morde fácil.',
+      'Dizem que PÉROLAS aparecem na linha de quem pesca na praia... Tente a sorte encarando a água!',
+    ],
   },
 ];
 
@@ -2403,8 +2575,8 @@ class Player {
       this.animT = 0;
     }
     // mantém dentro do mapa
-    this.x = Math.max(TILE, Math.min(this.x, 64 * TILE - TILE - this.w));
-    this.y = Math.max(TILE, Math.min(this.y, 48 * TILE - TILE - this.h));
+    this.x = Math.max(TILE, Math.min(this.x, MAP_W * TILE - TILE - this.w));
+    this.y = Math.max(TILE, Math.min(this.y, MAP_H * TILE - TILE - this.h));
   }
 
   _hitsBlockers(px, py, blockers) {
@@ -2500,6 +2672,9 @@ const BESTIARY = {
   bat:    { name: 'Morcego Sombrio', hp: 18, atk: 9,  def: 2, spd: 12, xp: 12, gold: 10, sprite: 'bat' },
   golem:  { name: 'Golem Jr.',    hp: 40, atk: 12, def: 8, spd: 3,  xp: 22, gold: 18, sprite: 'golem' },
   wisp:   { name: 'Fagulha',      hp: 26, atk: 13, def: 4, spd: 10, xp: 26, gold: 22, sprite: 'wisp' },
+  crab:   { name: 'Caranguejo',   hp: 30, atk: 10, def: 9, spd: 5,  xp: 18, gold: 14, sprite: 'crab' },
+  scorpion: { name: 'Escorpião',  hp: 24, atk: 14, def: 5, spd: 11, xp: 24, gold: 20, sprite: 'scorpion' },
+  shroom: { name: 'Cogumelo',     hp: 34, atk: 11, def: 6, spd: 6,  xp: 24, gold: 16, sprite: 'shroom' },
   king:   { name: 'SLIME REI',    hp: 70, atk: 15, def: 9, spd: 6,  xp: 70, gold: 80, sprite: 'king' },
   dragon: { name: 'DRAGÃO DO CAOS', hp: 220, atk: 22, def: 12, spd: 9, xp: 250, gold: 500, sprite: 'dragon', boss: true },
 };
@@ -2507,10 +2682,12 @@ const BESTIARY = {
 /** Tabela de encontros por região: [id, peso]. @param {string} region */
 function encounterTable(region) {
   switch (region) {
-    case 'forest': return [['bat', 4], ['slime', 2], ['wisp', 2]];
+    case 'forest': return [['bat', 4], ['slime', 2], ['shroom', 2], ['wisp', 1]];
     case 'dungeon': case 'altar': return [['golem', 4], ['wisp', 4], ['bat', 2]];
     case 'snow': return [['wisp', 4], ['bat', 3], ['golem', 3]];
-    case 'beach': return [['slime', 5], ['bat', 3], ['golem', 1]];
+    case 'beach': return [['crab', 4], ['slime', 3], ['bat', 1]];
+    case 'desert': return [['scorpion', 4], ['golem', 2], ['bat', 2]];
+    case 'swamp': return [['shroom', 4], ['bat', 2], ['wisp', 2]];
     default: return [['slime', 5], ['bat', 3], ['golem', 1]];
   }
 }
@@ -2533,7 +2710,7 @@ function makeEncounter(region, avgLevel) {
     return table[0][0];
   };
   const count = region === 'field' ? (Math.random() < 0.55 ? 2 : 1) : (1 + Math.floor(Math.random() * 3));
-  const scale = 1 + (avgLevel - 1) * 0.22 + (region === 'dungeon' ? 0.35 : region === 'snow' ? 0.25 : region === 'forest' ? 0.15 : 0);
+  const scale = 1 + (avgLevel - 1) * 0.22 + (region === 'dungeon' ? 0.35 : region === 'snow' ? 0.25 : region === 'desert' ? 0.2 : region === 'forest' ? 0.15 : region === 'swamp' ? 0.1 : 0);
   const group = [];
   for (let i = 0; i < count; i++) group.push(makeEnemy(pick(), scale));
   // encontro raro: Slime Rei na planície para grupos experientes
@@ -3124,7 +3301,7 @@ class HUD {
 
   /**
    * Minimapa: base pré-renderizada + viewport + jogador + altar.
-   * @param {HTMLCanvasElement} base 128x96 (2px por tile)
+   * @param {HTMLCanvasElement} base (2px por tile)
    * @param {number} ox @param {number} oy offsets da câmera
    * @param {number} ptx @param {number} pty tile do jogador
    * @param {{x:number,y:number}|null} altar
@@ -3133,7 +3310,7 @@ class HUD {
     if (!this.mm || !base) return;
     const g = this.mm.getContext('2d');
     g.imageSmoothingEnabled = false;
-    g.clearRect(0, 0, 128, 96);
+    g.clearRect(0, 0, this.mm.width, this.mm.height);
     g.drawImage(base, 0, 0);
     g.strokeStyle = '#ffffffaa'; g.lineWidth = 1;
     g.strokeRect((-ox / 32) * 2 + 0.5, (-oy / 32) * 2 + 0.5, (960 / 32) * 2, (540 / 32) * 2);
@@ -3787,6 +3964,143 @@ function makeGolem() {
   return c;
 }
 
+/** Caranguejo — casca vermelha, pinças grandes e olhos em hastes. */
+function makeCrab() {
+  const c = document.createElement('canvas');
+  c.width = 36 * S; c.height = 24 * S;
+  const g = c.getContext('2d');
+  const shell = '#c22a3a', dark = '#8e1f2b', lite = '#e8606e';
+  g.fillStyle = 'rgba(0,0,0,.3)';
+  g.beginPath(); g.ellipse(18 * S, 22 * S, 12 * S, 2 * S, 0, 0, 7); g.fill();
+  // pernas laterais
+  g.fillStyle = dark;
+  for (let i = 0; i < 3; i++) {
+    g.fillRect((4 + i * 2) * S, (15 + i * 2) * S, 3 * S, 1.2 * S);
+    g.fillRect((29 - i * 2) * S, (15 + i * 2) * S, 3 * S, 1.2 * S);
+  }
+  // braços + pinças
+  g.fillStyle = dark;
+  g.fillRect(6 * S, 10 * S, 4 * S, 3 * S); g.fillRect(26 * S, 10 * S, 4 * S, 3 * S);
+  g.fillStyle = shell;
+  g.beginPath(); g.ellipse(6 * S, 8 * S, 3.4 * S, 3 * S, -0.3, 0, 7); g.fill();
+  g.beginPath(); g.ellipse(30 * S, 8 * S, 3.4 * S, 3 * S, 0.3, 0, 7); g.fill();
+  g.fillStyle = dark;
+  g.beginPath(); g.moveTo(4 * S, 6 * S); g.lineTo(8 * S, 6 * S); g.lineTo(6 * S, 9.5 * S); g.closePath(); g.fill();
+  g.beginPath(); g.moveTo(28 * S, 6 * S); g.lineTo(32 * S, 6 * S); g.lineTo(30 * S, 9.5 * S); g.closePath(); g.fill();
+  g.fillStyle = lite;
+  g.fillRect(4.6 * S, 6.6 * S, 1.2 * S, 1.6 * S); g.fillRect(30.2 * S, 6.6 * S, 1.2 * S, 1.6 * S);
+  // carapaça oval com brilho
+  g.fillStyle = dark;
+  g.beginPath(); g.ellipse(18 * S, 16 * S, 10.4 * S, 6.4 * S, 0, 0, 7); g.fill();
+  g.fillStyle = shell;
+  g.beginPath(); g.ellipse(18 * S, 15.4 * S, 9.4 * S, 5.6 * S, 0, 0, 7); g.fill();
+  g.fillStyle = lite;
+  g.beginPath(); g.ellipse(14.5 * S, 12.5 * S, 4 * S, 2.2 * S, -0.35, 0, 7); g.fill();
+  // olhos em hastes + boca
+  g.fillStyle = dark;
+  g.fillRect(14.6 * S, 8.4 * S, 1.2 * S, 2.4 * S); g.fillRect(20.2 * S, 8.4 * S, 1.2 * S, 2.4 * S);
+  g.fillStyle = '#fff';
+  g.beginPath(); g.arc(15.2 * S, 7.8 * S, 1.4 * S, 0, 7); g.fill();
+  g.beginPath(); g.arc(20.8 * S, 7.8 * S, 1.4 * S, 0, 7); g.fill();
+  g.fillStyle = '#101018';
+  g.beginPath(); g.arc(15.2 * S, 7.8 * S, 0.7 * S, 0, 7); g.fill();
+  g.beginPath(); g.arc(20.8 * S, 7.8 * S, 0.7 * S, 0, 7); g.fill();
+  g.strokeStyle = dark; g.lineWidth = 1 * S;
+  g.beginPath(); g.moveTo(16 * S, 17.5 * S); g.quadraticCurveTo(18 * S, 18.5 * S, 20 * S, 17.5 * S); g.stroke();
+  return c;
+}
+
+/** Escorpião — corpo âmbar, cauda com ferrão e pinças. */
+function makeScorpion() {
+  const c = document.createElement('canvas');
+  c.width = 38 * S; c.height = 28 * S;
+  const g = c.getContext('2d');
+  const body = '#c98a3a', dark = '#7a4a21', lite = '#e8b34a';
+  g.fillStyle = 'rgba(0,0,0,.3)';
+  g.beginPath(); g.ellipse(17 * S, 26 * S, 12 * S, 2 * S, 0, 0, 7); g.fill();
+  // cauda segmentada curvada para cima + ferrão
+  g.fillStyle = dark;
+  g.beginPath(); g.ellipse(28 * S, 20 * S, 4 * S, 3 * S, 0.5, 0, 7); g.fill();
+  g.beginPath(); g.ellipse(31 * S, 15 * S, 3.4 * S, 2.6 * S, 0.8, 0, 7); g.fill();
+  g.beginPath(); g.ellipse(32.4 * S, 10.4 * S, 2.8 * S, 2.2 * S, 1, 0, 7); g.fill();
+  g.fillStyle = body;
+  g.beginPath(); g.ellipse(28 * S, 19.6 * S, 3.2 * S, 2.2 * S, 0.5, 0, 7); g.fill();
+  g.beginPath(); g.ellipse(31 * S, 14.6 * S, 2.6 * S, 1.8 * S, 0.8, 0, 7); g.fill();
+  g.fillStyle = '#3a2410';
+  g.beginPath(); g.moveTo(31 * S, 8.6 * S); g.lineTo(35.5 * S, 5 * S); g.lineTo(33.4 * S, 10 * S); g.closePath(); g.fill();
+  g.fillStyle = '#8e2bff';
+  g.beginPath(); g.arc(34.6 * S, 6.2 * S, 1 * S, 0, 7); g.fill();
+  // 6 patas
+  g.fillStyle = dark;
+  for (let i = 0; i < 3; i++) {
+    g.fillRect((9 + i * 4) * S, (21 + (i % 2)) * S, 1.4 * S, 4 * S);
+  }
+  // pinças dianteiras
+  g.fillStyle = dark;
+  g.fillRect(3 * S, 15 * S, 4 * S, 2.6 * S); g.fillRect(7 * S, 12 * S, 3 * S, 5 * S);
+  g.fillStyle = body;
+  g.beginPath(); g.ellipse(4.6 * S, 13 * S, 2.8 * S, 2.6 * S, -0.4, 0, 7); g.fill();
+  g.fillStyle = dark;
+  g.beginPath(); g.moveTo(2.6 * S, 11 * S); g.lineTo(6 * S, 11 * S); g.lineTo(4.4 * S, 14 * S); g.closePath(); g.fill();
+  // corpo oval + placas + olhos
+  g.fillStyle = dark;
+  g.beginPath(); g.ellipse(17 * S, 18 * S, 9 * S, 6 * S, 0, 0, 7); g.fill();
+  g.fillStyle = body;
+  g.beginPath(); g.ellipse(17 * S, 17.4 * S, 8 * S, 5.2 * S, 0, 0, 7); g.fill();
+  g.fillStyle = dark;
+  for (let i = 0; i < 3; i++) g.fillRect((12 + i * 4.4) * S, 14.6 * S, 1 * S, 5.4 * S);
+  g.fillStyle = lite;
+  g.beginPath(); g.ellipse(14 * S, 14.6 * S, 3 * S, 1.6 * S, -0.3, 0, 7); g.fill();
+  g.fillStyle = '#a00';
+  g.beginPath(); g.arc(10.4 * S, 15.6 * S, 1.2 * S, 0, 7); g.fill();
+  g.beginPath(); g.arc(13.4 * S, 15.6 * S, 1.2 * S, 0, 7); g.fill();
+  g.fillStyle = '#fff';
+  g.fillRect(10 * S, 15.2 * S, 0.7 * S, 0.7 * S); g.fillRect(13 * S, 15.2 * S, 0.7 * S, 0.7 * S);
+  return c;
+}
+
+/** Cogumelo — chapéu vermelho de bolinhas, corpo rechonchudo e esporos. */
+function makeShroom() {
+  const c = document.createElement('canvas');
+  c.width = 32 * S; c.height = 30 * S;
+  const g = c.getContext('2d');
+  const cap = '#c22a3a', stem = '#f2ead8', dark = '#7a1f2b';
+  g.fillStyle = 'rgba(0,0,0,.3)';
+  g.beginPath(); g.ellipse(16 * S, 28 * S, 10 * S, 1.8 * S, 0, 0, 7); g.fill();
+  // bracinhos
+  g.fillStyle = stem;
+  g.fillRect(6 * S, 19 * S, 3 * S, 5 * S); g.fillRect(23 * S, 19 * S, 3 * S, 5 * S);
+  g.fillStyle = dark;
+  g.fillRect(6 * S, 23 * S, 3 * S, 1 * S); g.fillRect(23 * S, 23 * S, 3 * S, 1 * S);
+  // corpo
+  g.fillStyle = dark;
+  g.beginPath(); g.ellipse(16 * S, 22 * S, 8.4 * S, 6.4 * S, 0, 0, 7); g.fill();
+  g.fillStyle = stem;
+  g.beginPath(); g.ellipse(16 * S, 21.6 * S, 7.4 * S, 5.6 * S, 0, 0, 7); g.fill();
+  g.fillStyle = '#d9c9a8';
+  g.beginPath(); g.ellipse(16 * S, 24.4 * S, 5 * S, 2.6 * S, 0, 0, 7); g.fill();
+  // olhos bravos + boca
+  g.fillStyle = '#101018';
+  g.beginPath(); g.moveTo(11.4 * S, 19.4 * S); g.lineTo(14.6 * S, 20.4 * S); g.lineTo(11.4 * S, 21.4 * S); g.closePath(); g.fill();
+  g.beginPath(); g.moveTo(20.6 * S, 19.4 * S); g.lineTo(17.4 * S, 20.4 * S); g.lineTo(20.6 * S, 21.4 * S); g.closePath(); g.fill();
+  g.strokeStyle = dark; g.lineWidth = 1 * S;
+  g.beginPath(); g.moveTo(14.4 * S, 23.4 * S); g.quadraticCurveTo(16 * S, 24.2 * S, 17.6 * S, 23.4 * S); g.stroke();
+  // chapéu com bolinhas
+  g.fillStyle = dark;
+  g.beginPath(); g.ellipse(16 * S, 12.6 * S, 12.4 * S, 7.4 * S, 0, 0, 7); g.fill();
+  g.fillStyle = cap;
+  g.beginPath(); g.ellipse(16 * S, 11.8 * S, 11.4 * S, 6.6 * S, 0, 0, 7); g.fill();
+  g.fillStyle = '#e8606e';
+  g.beginPath(); g.ellipse(12 * S, 9 * S, 4.4 * S, 2.4 * S, -0.3, 0, 7); g.fill();
+  g.fillStyle = '#fff';
+  const dot = (x, y, r) => { g.beginPath(); g.arc(x * S, y * S, r * S, 0, 7); g.fill(); };
+  dot(10, 11.5, 1.5); dot(16.5, 8.6, 1.8); dot(22.5, 11.8, 1.4); dot(19, 13.8, 1.1); dot(13.4, 14, 1);
+  // esporos flutuando
+  g.fillStyle = 'rgba(255,255,255,.7)';
+  g.fillRect(5 * S, 6 * S, 1.2 * S, 1.2 * S); g.fillRect(26 * S, 8 * S, 1.4 * S, 1.4 * S);
+  return c;
+}
+
 /** Dragão do Caos (boss) — réptil alado com focinho, asas com garras e cauda com ponta. */
 function makeDragon() {
   const c = document.createElement('canvas');
@@ -3966,6 +4280,9 @@ function enemySprite(id) {
     case 'bat': return makeBat('#6a5cff');
     case 'golem': return makeGolem();
     case 'wisp': return makeWisp();
+    case 'crab': return makeCrab();
+    case 'scorpion': return makeScorpion();
+    case 'shroom': return makeShroom();
     case 'king': return makeKing();
     case 'dragon': return makeDragon();
     default: return makeSlime();
@@ -3984,6 +4301,8 @@ const SCENERY = {
   boss:    { sky: ['#1e060a', '#5e1020', '#a02838'], sun: '#ff9b5b', far: '#3a0a12', near: '#521420', ground: '#4a2028', groundD: '#33141c', deco: 'embers', night: true },
   beach:   { sky: ['#3d7ac8', '#7ec8ff', '#cfeaff'], sun: '#fff8dc', far: '#2b6fd6', near: '#e0c886', ground: '#e0c886', groundD: '#b8945a', deco: 'shells', night: false },
   snow:    { sky: ['#8aa4c4', '#c9d8ea', '#eef4fd'], sun: '#ffffff', far: '#7d8aa0', near: '#a8b8cc', ground: '#e8f0ff', groundD: '#b9c8de', deco: 'snowfall', night: false },
+  desert:  { sky: ['#e8933a', '#f5c86e', '#ffe9b8'], sun: '#fff3c4', far: '#c98a3a', near: '#d9b878', ground: '#d9b878', groundD: '#a8845c', deco: 'cactus', night: false },
+  swamp:   { sky: ['#0e1a12', '#1d3325', '#2e4a38'], sun: '#c9e88a', far: '#0a140e', near: '#16241b', ground: '#2e4a38', groundD: '#1d3325', deco: 'fog', night: true },
 };
 
 class BattleSystem {
@@ -4424,6 +4743,9 @@ class BattleSystem {
       bat: 'Rápido, mas frágil. Caia antes que voe. Mira nos mais frágeis.',
       golem: 'Casca dura: prefira magias. Esmaga quem tem mais HP.',
       wisp: 'Arde em essência azul. Carrega energia antes do golpe forte!',
+      crab: 'Casca dura de praia! Pinça esmagadora de vez em quando.',
+      scorpion: 'Ferrão venenoso que fura defesa. Rápido e frágil.',
+      shroom: 'Solta esporos que o curam. Derrube rápido!',
       king: 'Um rei entre gosmas! Recompensa real para quem vencer.',
       dragon: 'O CAOS encarnado. Fases de fúria: baforadas, regeneração e fúria final!',
     }[id] || 'Sem dados no bestiário.';
@@ -4682,6 +5004,35 @@ class BattleSystem {
       this._hurtHero(t, dmg, e, ei, 'cospindo GOSMA ÁCIDA em');
       return;
     }
+    // Caranguejo: pinça esmagadora no mais resistente
+    if (e.id === 'crab' && Math.random() < 0.3) {
+      const t = [...alive].sort((a, b) => b.maxHp - a.maxHp)[0];
+      const dmg = Math.round(physDmg(e.atk, t.def) * 1.5);
+      this.audio.sfx('crit');
+      this._shake(5, 0.25);
+      this._hurtHero(t, dmg, e, ei, 'com a PINÇA ESMAGADORA');
+      return;
+    }
+    // Escorpião: ferrão fura metade da defesa
+    if (e.id === 'scorpion' && Math.random() < 0.25) {
+      const t = this._pickTarget(e);
+      const dmg = Math.max(1, Math.round(e.atk * 2.2 - t.def * 0.6 + Math.random() * 4));
+      this.audio.sfx('crit');
+      this._burstFx(this.heroPos(this.party.indexOf(t)), '#8e2bff', 12);
+      this._hurtHero(t, dmg, e, ei, 'com o FERRÃO VENENOSO em');
+      return;
+    }
+    // Cogumelo: esporos curativos quando ferido
+    if (e.id === 'shroom' && e.hp < e.maxHp * 0.7 && Math.random() < 0.3) {
+      const v = Math.min(Math.round(e.maxHp * 0.15), e.maxHp - Math.max(0, e.hp));
+      e.hp = Math.min(e.maxHp, Math.max(0, e.hp) + v);
+      this.audio.sfx('heal');
+      this._healFx(this.enemyPos(ei), '#c9e88a');
+      this._floatDmg(this.enemyPos(ei), `+${v}`, '#7dff9a', false);
+      this._log(`${e.name} solta ESPOROS CURATIVOS! +${v} HP!`);
+      this._renderAll();
+      return;
+    }
     const t = this._pickTarget(e);
     const dmg = physDmg(e.atk, t.def);
     this.audio.sfx('hit');
@@ -4932,6 +5283,33 @@ class BattleSystem {
       // brilho do gelo no chão
       g.fillStyle = `rgba(180,220,255,${0.2 + 0.15 * Math.sin(this.time * 2)})`;
       g.beginPath(); g.ellipse(480, 296, 380, 30, 0, 0, 7); g.fill();
+    } else if (sc.deco === 'cactus') {
+      // silhuetas de cactos + poeira quente
+      for (const [cx, s] of [[90, 1], [850, 1.3], [700, 0.8]]) {
+        g.fillStyle = 'rgba(46,90,50,.85)';
+        g.fillRect(cx, 250 - 46 * s, 10 * s, 46 * s);
+        g.fillRect(cx - 12 * s, 250 - 34 * s, 8 * s, 20 * s);
+        g.fillRect(cx + 14 * s, 250 - 30 * s, 8 * s, 16 * s);
+      }
+      for (let i = 0; i < 12; i++) {
+        const x = (i * 331 + this.time * 60) % 980 - 10;
+        const y = 262 + ((i * 47) % 60);
+        g.fillStyle = `rgba(230,200,140,${0.3 + 0.25 * Math.sin(this.time * 3 + i)})`;
+        g.fillRect(x, y, 8, 2);
+      }
+    } else if (sc.deco === 'fog') {
+      // névoa à deriva + vagalumes verdes
+      for (let i = 0; i < 5; i++) {
+        const x = ((i * 260 + this.time * (14 + i * 4)) % 1100) - 70;
+        const y = 210 + i * 22;
+        g.fillStyle = `rgba(200,220,205,${0.1 + 0.05 * Math.sin(this.time + i)})`;
+        g.beginPath(); g.ellipse(x, y, 90, 12, 0, 0, 7); g.fill();
+      }
+      for (let i = 0; i < 10; i++) {
+        const x = (i * 211 + this.time * 18) % 960, y = 200 + ((i * 83) % 100) + Math.sin(this.time * 2 + i) * 8;
+        g.fillStyle = `rgba(160,255,150,${0.35 + 0.35 * Math.sin(this.time * 3 + i * 2)})`;
+        g.fillRect(x, y, 3, 3);
+      }
     }
   }
 
@@ -4966,7 +5344,7 @@ class BattleSystem {
       let ox = 0;
       if (this.anim?.who === 'enemy' && this.anim.idx === i) ox = 26 * Math.sin((0.35 - this.anim.t) / 0.35 * Math.PI);
       const img = this.enemyArt[i];
-      const baseW = this.isBoss ? 136 : e.sprite === 'king' ? 78 : e.sprite === 'golem' ? 68 : e.sprite === 'wisp' ? 60 : e.sprite === 'bat' ? 64 : 60;
+      const baseW = this.isBoss ? 136 : e.sprite === 'king' ? 78 : e.sprite === 'golem' ? 68 : e.sprite === 'scorpion' ? 70 : e.sprite === 'crab' ? 66 : e.sprite === 'wisp' ? 60 : e.sprite === 'bat' ? 64 : 60;
       const w = baseW * Math.max(0.2, spawnK);
       const hgt = w * (img.height / img.width);
       const breathe = 1 + Math.sin(this.time * 3 + i) * 0.02;
@@ -5181,6 +5559,7 @@ const NPC_PALETTES = {
   kid:      { skin: '#f2c89b', hair: '#e8a23c', tunic: '#4fc3ff', pants: '#5a4a6e' },
   guard:    { skin: '#e8b88a', hair: '#222222', tunic: '#8c8c9c', pants: '#3a3a4a' },
   hermit:   { skin: '#c89878', hair: '#eeeeee', tunic: '#5e4a7a', pants: '#2a2a3a' },
+  fisher:   { skin: '#d89a6a', hair: '#3a2a1a', tunic: '#2e7d8c', pants: '#4a3a2a' },
 };
 
 const HERO_PALETTES = {
@@ -5239,6 +5618,7 @@ class Engine {
       Pip: humanoidFace(this.npcArt.kid),
       'Guarda Cato': humanoidFace(this.npcArt.guard),
       'Eremita Sable': humanoidFace(this.npcArt.hermit),
+      'Pescador Kai': humanoidFace(this.npcArt.fisher),
       'DRAGÃO DO CAOS': dragonFace(this.dragonArt),
     };
     this.dialog.portraitProvider = (name) => this.faceCanvas[name] || null;
@@ -5312,8 +5692,8 @@ class Engine {
   _showBanner(region) {
     const el = document.getElementById('region-banner');
     if (!el) return;
-    const names = { town: 'Vila Lumen', field: 'Planície Verdejante', forest: 'Bosque Sombrio', dungeon: 'Ruínas do Cristal', altar: 'Altar do Caos', beach: 'Praia do Sol', snow: 'Pico Nevado' };
-    const subs = { town: 'povoado pacato', field: 'cuidado com a grama alta', forest: 'feras entre as árvores', dungeon: 'o cristal o aguarda', altar: 'NÃO HÁ VOLTA', beach: 'águas calmas — bom p/ pescar', snow: 'o frio morde — feras fortes' };
+    const names = { town: 'Vila Lumen', field: 'Planície Verdejante', forest: 'Bosque Sombrio', dungeon: 'Ruínas do Cristal', altar: 'Altar do Caos', beach: 'Praia do Sol', snow: 'Pico Nevado', desert: 'Deserto Dourado', swamp: 'Pântano Sombrio' };
+    const subs = { town: 'povoado pacato', field: 'cuidado com a grama alta', forest: 'feras entre as árvores', dungeon: 'o cristal o aguarda', altar: 'NÃO HÁ VOLTA', beach: 'águas calmas — bom p/ pescar', snow: 'o frio morde — feras fortes', desert: 'o oásis esconde um baú', swamp: 'não beba a água' };
     el.innerHTML = `${names[region] || region}<small>${subs[region] || ''}</small>`;
     el.classList.remove('hidden');
     void el.offsetWidth;
@@ -5347,8 +5727,9 @@ class Engine {
     this.flags = d.flags;
     this.playSec = d.playSec || 0;
     this.npcs = NPC_DEFS.map((def) => new NPC(def));
-    const giftNpc = this.npcs.find((n) => n.id === 'hermit');
-    if (giftNpc && d.flags.giftTaken) giftNpc.giftGiven = true;
+    for (const n of this.npcs) {
+      if (n.gift && (d.flags[`gift_${n.id}`] || (n.id === 'hermit' && d.flags.giftTaken))) n.giftGiven = true;
+    }
     this.camera.snap(this.player.cx, this.player.cy);
   }
 
@@ -5356,7 +5737,7 @@ class Engine {
     return {
       x: this.player.x, y: this.player.y, dir: this.player.dir,
       party: serializeParty(this.party), inv: { ...this.inv },
-      gold: this.gold, flags: { ...this.flags, giftTaken: this.npcs.find((n) => n.id === 'hermit')?.giftGiven },
+      gold: this.gold, flags: { ...this.flags, giftTaken: this.npcs.find((n) => n.id === 'hermit')?.giftGiven, ...Object.fromEntries(this.npcs.filter((n) => n.gift).map((n) => [`gift_${n.id}`, !!n.giftGiven])) },
       playSec: Math.floor(this._elapsed()),
     };
   }
@@ -5505,7 +5886,7 @@ class Engine {
     const region = regionAt(this.player.tileX, this.player.tileY);
     if (!this._lastRegion) this._lastRegion = region;
     else if (this._lastRegion !== region) { this._lastRegion = region; this._showBanner(region); }
-    const want = region === 'town' || region === 'beach' ? 'town' : region === 'dungeon' || region === 'altar' ? 'dungeon' : 'field';
+    const want = region === 'town' || region === 'beach' ? 'town' : region === 'dungeon' || region === 'altar' || region === 'swamp' ? 'dungeon' : 'field';
     if (this.audio.ctx && this.audio.currentTrack !== want) this.audio.playMusic(want);
     this.hud.renderMinimap(this.mmBase, this.camera.ox, this.camera.oy, this.player.tileX, this.player.tileY, this.flags.bossDefeated ? null : BOSS_ALTAR);
     const sig = `${region}|${this.gold}|${this.audio.muted}|${this.party.map((h) => `${Math.ceil(h.hp)}/${Math.ceil(h.mp)}/${h.level}`).join(',')}`;
@@ -6236,6 +6617,10 @@ class Engine {
         ? { type: 'spark', x: R(0, VIEW_W), y: R(100, VIEW_H), vx: R(-12, 12), vy: R(-14, -4), t: 0, life: R(2, 4), seed: R(0, 9) }
         : { type: 'gull', x: -30, y: R(50, 150), vx: R(50, 90), vy: 0, t: 0, life: 24, seed: R(0, 9) };
       case 'town': return { type: 'dust', x: R(0, VIEW_W), y: R(0, VIEW_H), vx: R(-8, 8), vy: R(-12, -4), t: 0, life: R(3, 6), seed: R(0, 9) };
+      case 'desert': return { type: 'sand', x: -20, y: R(60, VIEW_H), vx: R(120, 220), vy: R(-8, 8), t: 0, life: 9, seed: R(0, 9) };
+      case 'swamp': return Math.random() < 0.6
+        ? { type: 'bog', x: R(0, VIEW_W), y: R(120, VIEW_H), vx: R(-10, 10), vy: R(-12, -4), t: 0, life: R(3, 6), seed: R(0, 9) }
+        : { type: 'mist', x: -120, y: R(180, 420), vx: R(16, 30), vy: 0, t: 0, life: 30, seed: R(0, 9) };
       default: return { type: 'leaf', x: R(0, VIEW_W), y: R(-20, VIEW_H), vx: R(-45, -15), vy: R(10, 30), t: 0, life: R(4, 8), seed: R(0, 9), col: ['#7dd87d', '#c9e88a', '#ff8fb3'][(Math.random() * 3) | 0] };
     }
   }
@@ -6265,6 +6650,15 @@ class Engine {
       } else if (q.type === 'dust') {
         g.fillStyle = `rgba(255,250,220,${(0.12 + 0.12 * Math.sin(q.t * 2 + q.seed)).toFixed(2)})`;
         g.fillRect(q.x, q.y, 2, 2);
+      } else if (q.type === 'sand') {
+        g.fillStyle = `rgba(230,200,140,${(0.25 + 0.2 * Math.sin(q.t * 4 + q.seed)).toFixed(2)})`;
+        g.fillRect(q.x, q.y, 10, 2);
+      } else if (q.type === 'bog') {
+        g.fillStyle = `rgba(160,255,150,${(0.3 + 0.4 * Math.abs(Math.sin(q.t * 2.5 + q.seed))).toFixed(2)})`;
+        g.fillRect(q.x, q.y, 2, 2);
+      } else if (q.type === 'mist') {
+        g.fillStyle = 'rgba(200,220,205,.09)';
+        g.beginPath(); g.ellipse(q.x, q.y, 110, 16, 0, 0, 7); g.fill();
       } else {
         g.fillStyle = q.col || '#7dd87d';
         g.fillRect(q.x, q.y, 3, 2);

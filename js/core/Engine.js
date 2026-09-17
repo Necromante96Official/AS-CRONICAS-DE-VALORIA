@@ -32,6 +32,7 @@ const NPC_PALETTES = {
   kid:      { skin: '#f2c89b', hair: '#e8a23c', tunic: '#4fc3ff', pants: '#5a4a6e' },
   guard:    { skin: '#e8b88a', hair: '#222222', tunic: '#8c8c9c', pants: '#3a3a4a' },
   hermit:   { skin: '#c89878', hair: '#eeeeee', tunic: '#5e4a7a', pants: '#2a2a3a' },
+  fisher:   { skin: '#d89a6a', hair: '#3a2a1a', tunic: '#2e7d8c', pants: '#4a3a2a' },
 };
 
 const HERO_PALETTES = {
@@ -90,6 +91,7 @@ export class Engine {
       Pip: humanoidFace(this.npcArt.kid),
       'Guarda Cato': humanoidFace(this.npcArt.guard),
       'Eremita Sable': humanoidFace(this.npcArt.hermit),
+      'Pescador Kai': humanoidFace(this.npcArt.fisher),
       'DRAGÃO DO CAOS': dragonFace(this.dragonArt),
     };
     this.dialog.portraitProvider = (name) => this.faceCanvas[name] || null;
@@ -163,8 +165,8 @@ export class Engine {
   _showBanner(region) {
     const el = document.getElementById('region-banner');
     if (!el) return;
-    const names = { town: 'Vila Lumen', field: 'Planície Verdejante', forest: 'Bosque Sombrio', dungeon: 'Ruínas do Cristal', altar: 'Altar do Caos', beach: 'Praia do Sol', snow: 'Pico Nevado' };
-    const subs = { town: 'povoado pacato', field: 'cuidado com a grama alta', forest: 'feras entre as árvores', dungeon: 'o cristal o aguarda', altar: 'NÃO HÁ VOLTA', beach: 'águas calmas — bom p/ pescar', snow: 'o frio morde — feras fortes' };
+    const names = { town: 'Vila Lumen', field: 'Planície Verdejante', forest: 'Bosque Sombrio', dungeon: 'Ruínas do Cristal', altar: 'Altar do Caos', beach: 'Praia do Sol', snow: 'Pico Nevado', desert: 'Deserto Dourado', swamp: 'Pântano Sombrio' };
+    const subs = { town: 'povoado pacato', field: 'cuidado com a grama alta', forest: 'feras entre as árvores', dungeon: 'o cristal o aguarda', altar: 'NÃO HÁ VOLTA', beach: 'águas calmas — bom p/ pescar', snow: 'o frio morde — feras fortes', desert: 'o oásis esconde um baú', swamp: 'não beba a água' };
     el.innerHTML = `${names[region] || region}<small>${subs[region] || ''}</small>`;
     el.classList.remove('hidden');
     void el.offsetWidth;
@@ -198,8 +200,9 @@ export class Engine {
     this.flags = d.flags;
     this.playSec = d.playSec || 0;
     this.npcs = NPC_DEFS.map((def) => new NPC(def));
-    const giftNpc = this.npcs.find((n) => n.id === 'hermit');
-    if (giftNpc && d.flags.giftTaken) giftNpc.giftGiven = true;
+    for (const n of this.npcs) {
+      if (n.gift && (d.flags[`gift_${n.id}`] || (n.id === 'hermit' && d.flags.giftTaken))) n.giftGiven = true;
+    }
     this.camera.snap(this.player.cx, this.player.cy);
   }
 
@@ -207,7 +210,7 @@ export class Engine {
     return {
       x: this.player.x, y: this.player.y, dir: this.player.dir,
       party: serializeParty(this.party), inv: { ...this.inv },
-      gold: this.gold, flags: { ...this.flags, giftTaken: this.npcs.find((n) => n.id === 'hermit')?.giftGiven },
+      gold: this.gold, flags: { ...this.flags, giftTaken: this.npcs.find((n) => n.id === 'hermit')?.giftGiven, ...Object.fromEntries(this.npcs.filter((n) => n.gift).map((n) => [`gift_${n.id}`, !!n.giftGiven])) },
       playSec: Math.floor(this._elapsed()),
     };
   }
@@ -356,7 +359,7 @@ export class Engine {
     const region = regionAt(this.player.tileX, this.player.tileY);
     if (!this._lastRegion) this._lastRegion = region;
     else if (this._lastRegion !== region) { this._lastRegion = region; this._showBanner(region); }
-    const want = region === 'town' || region === 'beach' ? 'town' : region === 'dungeon' || region === 'altar' ? 'dungeon' : 'field';
+    const want = region === 'town' || region === 'beach' ? 'town' : region === 'dungeon' || region === 'altar' || region === 'swamp' ? 'dungeon' : 'field';
     if (this.audio.ctx && this.audio.currentTrack !== want) this.audio.playMusic(want);
     this.hud.renderMinimap(this.mmBase, this.camera.ox, this.camera.oy, this.player.tileX, this.player.tileY, this.flags.bossDefeated ? null : BOSS_ALTAR);
     const sig = `${region}|${this.gold}|${this.audio.muted}|${this.party.map((h) => `${Math.ceil(h.hp)}/${Math.ceil(h.mp)}/${h.level}`).join(',')}`;
@@ -1087,6 +1090,10 @@ export class Engine {
         ? { type: 'spark', x: R(0, VIEW_W), y: R(100, VIEW_H), vx: R(-12, 12), vy: R(-14, -4), t: 0, life: R(2, 4), seed: R(0, 9) }
         : { type: 'gull', x: -30, y: R(50, 150), vx: R(50, 90), vy: 0, t: 0, life: 24, seed: R(0, 9) };
       case 'town': return { type: 'dust', x: R(0, VIEW_W), y: R(0, VIEW_H), vx: R(-8, 8), vy: R(-12, -4), t: 0, life: R(3, 6), seed: R(0, 9) };
+      case 'desert': return { type: 'sand', x: -20, y: R(60, VIEW_H), vx: R(120, 220), vy: R(-8, 8), t: 0, life: 9, seed: R(0, 9) };
+      case 'swamp': return Math.random() < 0.6
+        ? { type: 'bog', x: R(0, VIEW_W), y: R(120, VIEW_H), vx: R(-10, 10), vy: R(-12, -4), t: 0, life: R(3, 6), seed: R(0, 9) }
+        : { type: 'mist', x: -120, y: R(180, 420), vx: R(16, 30), vy: 0, t: 0, life: 30, seed: R(0, 9) };
       default: return { type: 'leaf', x: R(0, VIEW_W), y: R(-20, VIEW_H), vx: R(-45, -15), vy: R(10, 30), t: 0, life: R(4, 8), seed: R(0, 9), col: ['#7dd87d', '#c9e88a', '#ff8fb3'][(Math.random() * 3) | 0] };
     }
   }
@@ -1116,6 +1123,15 @@ export class Engine {
       } else if (q.type === 'dust') {
         g.fillStyle = `rgba(255,250,220,${(0.12 + 0.12 * Math.sin(q.t * 2 + q.seed)).toFixed(2)})`;
         g.fillRect(q.x, q.y, 2, 2);
+      } else if (q.type === 'sand') {
+        g.fillStyle = `rgba(230,200,140,${(0.25 + 0.2 * Math.sin(q.t * 4 + q.seed)).toFixed(2)})`;
+        g.fillRect(q.x, q.y, 10, 2);
+      } else if (q.type === 'bog') {
+        g.fillStyle = `rgba(160,255,150,${(0.3 + 0.4 * Math.abs(Math.sin(q.t * 2.5 + q.seed))).toFixed(2)})`;
+        g.fillRect(q.x, q.y, 2, 2);
+      } else if (q.type === 'mist') {
+        g.fillStyle = 'rgba(200,220,205,.09)';
+        g.beginPath(); g.ellipse(q.x, q.y, 110, 16, 0, 0, 7); g.fill();
       } else {
         g.fillStyle = q.col || '#7dd87d';
         g.fillRect(q.x, q.y, 3, 2);

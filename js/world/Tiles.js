@@ -10,17 +10,18 @@ export const T = {
   DARK_GRASS: 15, RUIN: 16, PLAZA: 17,
   FENCE: 18, LAMP: 19, WELL: 20, SIGN: 21, CRATE: 22,
   SOIL: 23, MOUNTAIN: 24, PALM: 25, SNOW: 26,
+  CACTUS: 27, SWAMP: 28, DUNE: 29, DEAD_TREE: 30,
 };
 
 /** Tiles que bloqueiam movimento. */
 export const SOLID = new Set([T.WATER, T.TREE, T.PINE, T.STONE, T.WALL, T.ROOF, T.ALTAR, T.RUIN,
-  T.FENCE, T.LAMP, T.WELL, T.SIGN, T.CRATE, T.MOUNTAIN, T.PALM]);
+  T.FENCE, T.LAMP, T.WELL, T.SIGN, T.CRATE, T.MOUNTAIN, T.PALM, T.CACTUS, T.DEAD_TREE]);
 
-/** Grama alta / neve = zona de encontros. */
-export const isEncounterTile = (t) => t === T.TALL_GRASS || t === T.DARK_GRASS || t === T.SNOW;
+/** Grama alta / neve / pântano / duna = zona de encontros. */
+export const isEncounterTile = (t) => t === T.TALL_GRASS || t === T.DARK_GRASS || t === T.SNOW || t === T.SWAMP || t === T.DUNE;
 
 /** Terrenos "pisáveis" (para bordas de transição). */
-const GROUND = new Set([T.GRASS, T.TALL_GRASS, T.FLOWER, T.DARK_GRASS, T.PATH, T.SAND, T.FLOOR, T.PLAZA, T.SOIL, T.SNOW]);
+const GROUND = new Set([T.GRASS, T.TALL_GRASS, T.FLOWER, T.DARK_GRASS, T.PATH, T.SAND, T.FLOOR, T.PLAZA, T.SOIL, T.SNOW, T.SWAMP, T.DUNE]);
 const GRASSY = new Set([T.GRASS, T.TALL_GRASS, T.FLOWER, T.DARK_GRASS]);
 /** Caminhos que emendam entre si (trilhas de carroça). */
 const WALKWAY = new Set([T.PATH, T.PLAZA, T.FLOOR, T.BRIDGE]);
@@ -66,6 +67,10 @@ export function tileColor(t) {
     case T.MOUNTAIN: return '#9aa0ad';
     case T.PALM: return '#2e7d46';
     case T.SNOW: return '#e8f0ff';
+    case T.CACTUS: return '#3f9142';
+    case T.SWAMP: return '#2e4a38';
+    case T.DUNE: return '#d9b878';
+    case T.DEAD_TREE: return '#4a4a52';
     case T.TALL_GRASS: return '#2e7d46';
     case T.DARK_GRASS: return '#1e5b30';
     case T.FLOWER: return '#57b357';
@@ -179,6 +184,10 @@ export function drawTile(g, t, dx, dy, ts, x, y, time, nb, opts = {}) {
       }
       for (const d of ['n', 's', 'w', 'e']) if (GRASSY.has(edge(d))) strip(d, 3, '#a8845c');
       for (const d of ['n', 's', 'w', 'e']) if (edge(d) === T.SNOW) strip(d, 3, '#b9c8de');
+      for (const d of ['n', 's', 'w', 'e']) {
+        if (edge(d) === T.DUNE) strip(d, 3, '#c2a878');
+        else if (edge(d) === T.SWAMP) strip(d, 3, '#2a3d2e');
+      }
       // trilhas de carroça ao longo do caminho
       const ew = WALKWAY.has(edge('w')) || WALKWAY.has(edge('e'));
       const ns = WALKWAY.has(edge('n')) || WALKWAY.has(edge('s'));
@@ -404,6 +413,111 @@ export function drawTile(g, t, dx, dy, ts, x, y, time, nb, opts = {}) {
       g.fillRect(dx + 10, dy + 27, 4, 3); g.fillRect(dx + 17, dy + 27, 4, 3);
       if (!trunkOnly) drawCanopyTop(g, t, dx, dy, ts, x, y, time);
       else { g.fillStyle = 'rgba(60,40,20,.25)'; g.fillRect(dx + 8, dy + 18, 16, 4); }
+      break;
+    }
+    case T.DUNE: {
+      // DUNA: areia ondulada com capim seco — esconde monstros!
+      g.fillStyle = '#d9b878'; g.fillRect(dx, dy, ts, ts);
+      g.fillStyle = '#c9a86a';
+      g.beginPath(); g.ellipse(dx + 9, dy + 9, 9, 4, -0.3, 0, 7); g.fill();
+      g.beginPath(); g.ellipse(dx + 23, dy + 23, 8, 4, 0.3, 0, 7); g.fill();
+      g.fillStyle = '#e8cc8e';
+      g.beginPath(); g.ellipse(dx + 9, dy + 7, 9, 2, -0.3, 0, 7); g.fill();
+      // marquinhas do vento
+      g.fillStyle = 'rgba(160,120,70,.5)';
+      for (let i = 0; i < 3; i++) g.fillRect(dx + 4 + i * 9, dy + 14 + (i % 2) * 8, 6, 1);
+      // tufos de capim seco balançando
+      g.fillStyle = '#b8a05a';
+      for (let i = 0; i < 4; i++) {
+        const bx = dx + 4 + i * 8 + Math.sin(time * 2 + x * 2 + i * 1.7) * 1.5;
+        const bh = 7 + ((h * 31 + i * 7) | 0) % 6;
+        g.fillRect(bx, dy + 24 - bh, 2, bh);
+      }
+      g.fillStyle = '#d9c878';
+      g.fillRect(dx + 6, dy + 5, 2, 3); g.fillRect(dx + 24, dy + 12, 2, 3);
+      for (const d of ['n', 's', 'w', 'e']) if (edge(d) === T.SNOW) strip(d, 3, '#c9d8ea');
+      break;
+    }
+    case T.SWAMP: {
+      // PÂNTANO: água rasa e turva com juncos, bolhas e névoa baixa.
+      g.fillStyle = '#22392c'; g.fillRect(dx, dy, ts, ts);
+      g.fillStyle = '#2e4a38';
+      g.beginPath(); g.ellipse(dx + 11, dy + 12, 10, 6, -0.2, 0, 7); g.fill();
+      g.beginPath(); g.ellipse(dx + 22, dy + 22, 9, 5, 0.3, 0, 7); g.fill();
+      g.fillStyle = '#3d6b4a';
+      g.fillRect(dx + 5, dy + 8, 8, 2); g.fillRect(dx + 19, dy + 18, 7, 2);
+      // bolhas subindo
+      const bph = (time * 10 + h * 60) % 32;
+      g.fillStyle = 'rgba(180,230,190,.55)';
+      g.fillRect(dx + 8 + ((h2 * 16) | 0), dy + 28 - bph, 2, 2);
+      if (h > 0.5) g.fillRect(dx + 20 - ((h * 12) | 0), dy + 26 - ((bph + 14) % 32), 2, 2);
+      // juncos
+      g.fillStyle = '#1d3325';
+      g.fillRect(dx + 4, dy + 14, 2, 12); g.fillRect(dx + 27, dy + 6, 2, 12);
+      g.fillStyle = '#4a7d54';
+      g.fillRect(dx + 4, dy + 12, 2, 4); g.fillRect(dx + 27, dy + 4, 2, 4);
+      g.fillStyle = '#6e4a3a'; g.fillRect(dx + 4, dy + 10, 2, 3); // taboa
+      // névoa baixa à deriva
+      g.fillStyle = `rgba(200,220,205,${(0.1 + 0.08 * Math.sin(time * 1.5 + x + y)).toFixed(2)})`;
+      g.fillRect(dx, dy + 20 + Math.sin(time + x) * 2, ts, 6);
+      for (const d of ['n', 's', 'w', 'e']) if (edge(d) === T.WATER) strip(d, 2, 'rgba(220,235,225,.5)');
+      break;
+    }
+    case T.CACTUS: {
+      // CACTO: coluna verde com braços, espinhos e flor — marca do deserto.
+      g.fillStyle = '#e0c886'; g.fillRect(dx, dy, ts, ts);
+      g.fillStyle = '#d3ba7c';
+      g.fillRect(dx + ((h * 20) | 0), dy + ((h2 * 20) | 0), 8, 3);
+      g.fillStyle = 'rgba(0,0,0,.2)';
+      g.beginPath(); g.ellipse(dx + 16, dy + 29, 9, 2.5, 0, 0, 7); g.fill();
+      // coluna principal
+      g.fillStyle = '#1e5b20'; g.fillRect(dx + 13, dy + 6, 7, 23);
+      g.fillStyle = '#2e7d32'; g.fillRect(dx + 14, dy + 6, 5, 23);
+      g.fillStyle = '#43a047'; g.fillRect(dx + 14, dy + 6, 2, 23);
+      g.fillStyle = '#1e5b20'; g.fillRect(dx + 13, dy + 6, 7, 2);
+      // braços
+      const armY = dy + (h > 0.5 ? 14 : 17);
+      g.fillStyle = '#1e5b20';
+      g.fillRect(dx + 6, armY, 5, 9); g.fillRect(dx + 6, armY - 4, 9, 4);
+      g.fillStyle = '#2e7d32';
+      g.fillRect(dx + 7, armY, 3, 9); g.fillRect(dx + 6, armY - 4, 8, 3);
+      // espinhos + flor no topo
+      g.fillStyle = '#e8f0d0';
+      for (let i = 0; i < 4; i++) { g.fillRect(dx + 12, dy + 9 + i * 5, 1, 1); g.fillRect(dx + 20, dy + 11 + i * 5, 1, 1); }
+      if (h2 > 0.55) {
+        g.fillStyle = '#ff8fb3';
+        g.fillRect(dx + 14, dy + 2, 5, 4);
+        g.fillStyle = '#ffd75e'; g.fillRect(dx + 16, dy + 3, 1, 2);
+      }
+      break;
+    }
+    case T.DEAD_TREE: {
+      // ÁRVORE MORTA: tronco retorcido e galhos secos — marca do pântano.
+      g.fillStyle = '#22392c'; g.fillRect(dx, dy, ts, ts);
+      g.fillStyle = 'rgba(0,0,0,.3)';
+      g.beginPath(); g.ellipse(dx + 16, dy + 29, 9, 2.5, 0, 0, 7); g.fill();
+      // tronco inclinado em segmentos
+      g.fillStyle = '#3a3a42';
+      g.fillRect(dx + 13, dy + 18, 6, 11);
+      g.fillRect(dx + 11 + (h > 0.5 ? 2 : 0), dy + 10, 6, 9);
+      g.fillStyle = '#565664';
+      g.fillRect(dx + 13, dy + 18, 2, 11);
+      g.fillRect(dx + 11 + (h > 0.5 ? 2 : 0), dy + 10, 2, 9);
+      // galhos secos
+      g.strokeStyle = '#3a3a42'; g.lineWidth = 2.5; g.lineCap = 'round';
+      const sway = Math.sin(time * 1.2 + x + y) * 1;
+      g.beginPath(); g.moveTo(dx + 14, dy + 12); g.lineTo(dx + 5 + sway, dy + 4); g.stroke();
+      g.beginPath(); g.moveTo(dx + 16, dy + 14); g.lineTo(dx + 26 + sway, dy + 7); g.stroke();
+      g.beginPath(); g.moveTo(dx + 8 + sway, dy + 7); g.lineTo(dx + 5 + sway, dy + 2); g.stroke();
+      // musgo pendurado + corvo ocasional
+      g.fillStyle = '#3f9142';
+      g.fillRect(dx + 20, dy + 9, 2, 5); g.fillRect(dx + 8, dy + 6, 2, 4);
+      if (h2 > 0.8) {
+        g.fillStyle = '#101018';
+        g.fillRect(dx + 22, dy + 4, 5, 3);
+        g.fillRect(dx + 23, dy + 2, 3, 2);
+        g.fillStyle = '#ffd75e'; g.fillRect(dx + 25, dy + 4, 1, 1);
+      }
       break;
     }
     case T.STONE: {

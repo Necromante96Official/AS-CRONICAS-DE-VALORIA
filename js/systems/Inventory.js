@@ -7,6 +7,7 @@ export const ITEMS = {
   hipotion:  { name: 'Hi-Poção',   price: 150, heal: 160, desc: 'Restaura 160 HP de um aliado', battle: true },
   ether:     { name: 'Éter',       price: 120, mp: 20,    desc: 'Restaura 20 MP de um aliado', battle: true },
   antidote:  { name: 'Bomba Fumaça', price: 40, flee: true, desc: 'Garante fuga da batalha', battle: true },
+  fish:      { name: 'Peixe Fresco', price: 12, heal: 35, desc: 'Pescado! Restaura 35 HP de um aliado', battle: true },
 };
 
 /** @returns {Record<string, number>} */

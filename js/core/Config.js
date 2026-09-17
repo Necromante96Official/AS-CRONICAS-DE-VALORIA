@@ -27,4 +27,6 @@ export const LOCATIONS = {
   forest: 'Bosque Sombrio',
   dungeon: 'Ruínas do Cristal',
   altar: 'Altar do Caos',
+  beach: 'Praia do Sol',
+  snow: 'Pico Nevado',
 };

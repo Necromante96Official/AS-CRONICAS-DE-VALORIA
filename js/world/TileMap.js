@@ -47,7 +47,7 @@ export class TileMap {
     this._canopyQueue.length = 0;
     for (let ty = y0; ty <= y1; ty++) for (let tx = x0; tx <= x1; tx++) {
       const t = this.tiles[ty * this.w + tx];
-      const isTree = t === T.TREE || t === T.PINE;
+      const isTree = t === T.TREE || t === T.PINE || t === T.PALM;
       const sx = tx * TILE + ox, sy = ty * TILE + oy;
       const overlapped = isTree && actorRects.some((r) =>
         r.x < sx + TILE && r.x + r.w > sx && r.y < sy + TILE && r.y + r.h > sy);

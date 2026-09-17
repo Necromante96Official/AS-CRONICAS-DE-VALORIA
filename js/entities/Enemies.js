@@ -19,6 +19,8 @@ export function encounterTable(region) {
   switch (region) {
     case 'forest': return [['bat', 4], ['slime', 2], ['wisp', 2]];
     case 'dungeon': case 'altar': return [['golem', 4], ['wisp', 4], ['bat', 2]];
+    case 'snow': return [['wisp', 4], ['bat', 3], ['golem', 3]];
+    case 'beach': return [['slime', 5], ['bat', 3], ['golem', 1]];
     default: return [['slime', 5], ['bat', 3], ['golem', 1]];
   }
 }
@@ -41,7 +43,7 @@ export function makeEncounter(region, avgLevel) {
     return table[0][0];
   };
   const count = region === 'field' ? (Math.random() < 0.55 ? 2 : 1) : (1 + Math.floor(Math.random() * 3));
-  const scale = 1 + (avgLevel - 1) * 0.22 + (region === 'dungeon' ? 0.35 : region === 'forest' ? 0.15 : 0);
+  const scale = 1 + (avgLevel - 1) * 0.22 + (region === 'dungeon' ? 0.35 : region === 'snow' ? 0.25 : region === 'forest' ? 0.15 : 0);
   const group = [];
   for (let i = 0; i < count; i++) group.push(makeEnemy(pick(), scale));
   // encontro raro: Slime Rei na planície para grupos experientes

@@ -1,0 +1,39 @@
+# ==== CRÔNICAS DE VALORIA ====
+# Jogo estático (HTML/CSS/JS) + ferramentas Python. Sem build: index.html é o jogo.
+
+# Python (tools/*.py)
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+.env
+
+# Node (só p/ `npm run check` — tsc via JSDoc)
+node_modules/
+npm-debug.log*
+package-lock.json
+
+# Windows / macOS / Linux
+Thumbs.db
+desktop.ini
+.DS_Store
+ehthumbs.db
+
+# Editores e IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs, dumps e temporários
+*.log
+*.tmp
+*.dmp
+valoria_autotest.json
+dev.html
+
+# Perfis temporários do Chrome (screenshots/testes headless)
+valoria_shots_*/
+valoria_autotest_*/

@@ -52,6 +52,7 @@ export interface BattleResult {
   xp: number;
   gold: number;
   boss: boolean;
+  kills?: string[];
 }
 
 export interface NpcDef {

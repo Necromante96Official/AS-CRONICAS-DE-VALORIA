@@ -9,18 +9,18 @@ export const T = {
   WALL: 10, FLOOR: 11, ROOF: 12, DOOR: 13, ALTAR: 14,
   DARK_GRASS: 15, RUIN: 16, PLAZA: 17,
   FENCE: 18, LAMP: 19, WELL: 20, SIGN: 21, CRATE: 22,
-  SOIL: 23, MOUNTAIN: 24,
+  SOIL: 23, MOUNTAIN: 24, PALM: 25, SNOW: 26,
 };
 
 /** Tiles que bloqueiam movimento. */
 export const SOLID = new Set([T.WATER, T.TREE, T.PINE, T.STONE, T.WALL, T.ROOF, T.ALTAR, T.RUIN,
-  T.FENCE, T.LAMP, T.WELL, T.SIGN, T.CRATE, T.MOUNTAIN]);
+  T.FENCE, T.LAMP, T.WELL, T.SIGN, T.CRATE, T.MOUNTAIN, T.PALM]);
 
-/** Grama alta = zona de encontros. */
-export const isEncounterTile = (t) => t === T.TALL_GRASS || t === T.DARK_GRASS;
+/** Grama alta / neve = zona de encontros. */
+export const isEncounterTile = (t) => t === T.TALL_GRASS || t === T.DARK_GRASS || t === T.SNOW;
 
 /** Terrenos "pisáveis" (para bordas de transição). */
-const GROUND = new Set([T.GRASS, T.TALL_GRASS, T.FLOWER, T.DARK_GRASS, T.PATH, T.SAND, T.FLOOR, T.PLAZA, T.SOIL]);
+const GROUND = new Set([T.GRASS, T.TALL_GRASS, T.FLOWER, T.DARK_GRASS, T.PATH, T.SAND, T.FLOOR, T.PLAZA, T.SOIL, T.SNOW]);
 const GRASSY = new Set([T.GRASS, T.TALL_GRASS, T.FLOWER, T.DARK_GRASS]);
 /** Caminhos que emendam entre si (trilhas de carroça). */
 const WALKWAY = new Set([T.PATH, T.PLAZA, T.FLOOR, T.BRIDGE]);
@@ -64,6 +64,8 @@ export function tileColor(t) {
     case T.CRATE: return '#a8763e';
     case T.SOIL: return '#6b4a2f';
     case T.MOUNTAIN: return '#9aa0ad';
+    case T.PALM: return '#2e7d46';
+    case T.SNOW: return '#e8f0ff';
     case T.TALL_GRASS: return '#2e7d46';
     case T.DARK_GRASS: return '#1e5b30';
     case T.FLOWER: return '#57b357';
@@ -176,6 +178,7 @@ export function drawTile(g, t, dx, dy, ts, x, y, time, nb, opts = {}) {
         g.fillStyle = '#b8945a'; g.fillRect(dx + sx, dy + sy + 3, 7, 2);
       }
       for (const d of ['n', 's', 'w', 'e']) if (GRASSY.has(edge(d))) strip(d, 3, '#a8845c');
+      for (const d of ['n', 's', 'w', 'e']) if (edge(d) === T.SNOW) strip(d, 3, '#b9c8de');
       // trilhas de carroça ao longo do caminho
       const ew = WALKWAY.has(edge('w')) || WALKWAY.has(edge('e'));
       const ns = WALKWAY.has(edge('n')) || WALKWAY.has(edge('s'));
@@ -211,7 +214,59 @@ export function drawTile(g, t, dx, dy, ts, x, y, time, nb, opts = {}) {
         g.fillStyle = '#f2b8c6'; g.fillRect(dx + 18, dy + 20, 5, 3);
         g.fillStyle = '#fff'; g.fillRect(dx + 19, dy + 20, 2, 1);
       }
+      // estrela-do-mar rara
+      if (h2 > 0.975) {
+        const sx = dx + 8, sy = dy + 9;
+        g.fillStyle = '#e8763a';
+        g.fillRect(sx - 4, sy, 9, 2); g.fillRect(sx, sy - 4, 2, 9);
+        g.fillRect(sx - 3, sy - 3, 2, 2); g.fillRect(sx + 2, sy - 3, 2, 2);
+        g.fillRect(sx - 3, sy + 2, 2, 2); g.fillRect(sx + 2, sy + 2, 2, 2);
+        g.fillStyle = '#ffd75e'; g.fillRect(sx, sy, 1, 1);
+      }
+      // caranguejo andando de lado (praia viva!)
+      if (h2 < 0.06) {
+        const cx = dx + 16 + Math.sin(time * 3 + x * 4) * 7;
+        const cy = dy + 20;
+        g.fillStyle = '#c22a3a';
+        g.fillRect(cx - 3, cy - 2, 7, 4);
+        g.fillRect(cx - 5, cy - 4, 3, 3); g.fillRect(cx + 3, cy - 4, 3, 3); // garras
+        g.fillStyle = '#fff'; g.fillRect(cx - 1, cy - 3, 1, 1); g.fillRect(cx + 1, cy - 3, 1, 1);
+        g.fillStyle = '#8e1f2b';
+        g.fillRect(cx - 5, cy + 2, 2, 2); g.fillRect(cx + 4, cy + 2, 2, 2); // patinhas
+      }
       for (const d of ['n', 's', 'w', 'e']) if (GRASSY.has(edge(d))) strip(d, 3, '#c2a878');
+      for (const d of ['n', 's', 'w', 'e']) if (edge(d) === T.SNOW) strip(d, 3, '#c9d8ea');
+      break;
+    }
+    case T.SNOW: {
+      // NEVE fofa: base clara, ondulações, brilhos e pegadas antigas.
+      g.fillStyle = '#dfe9f7'; g.fillRect(dx, dy, ts, ts);
+      g.fillStyle = '#eef4fd';
+      g.beginPath(); g.ellipse(dx + 10, dy + 10, 9, 5, -0.3, 0, 7); g.fill();
+      g.beginPath(); g.ellipse(dx + 23, dy + 22, 8, 5, 0.3, 0, 7); g.fill();
+      g.fillStyle = '#c4d3e8';
+      g.beginPath(); g.ellipse(dx + 10, dy + 12, 9, 2, -0.3, 0, 7); g.fill();
+      g.beginPath(); g.ellipse(dx + 23, dy + 24, 8, 2, 0.3, 0, 7); g.fill();
+      // cristais cintilando
+      const tw = 0.3 + 0.5 * Math.abs(Math.sin(time * 2 + x * 2 + y));
+      g.fillStyle = `rgba(255,255,255,${tw.toFixed(2)})`;
+      g.fillRect(dx + ((h * 26) | 0) + 2, dy + ((h2 * 24) | 0) + 3, 2, 2);
+      if (h2 > 0.7) g.fillRect(dx + ((h2 * 20) | 0) + 5, dy + ((h * 20) | 0) + 8, 2, 2);
+      // pegadas antigas
+      if (h > 0.62 && h < 0.78) {
+        g.fillStyle = 'rgba(160,180,205,.7)';
+        g.fillRect(dx + 9, dy + 18, 4, 6); g.fillRect(dx + 19, dy + 10, 4, 6);
+      }
+      // congela na margem da água
+      for (const d of ['n', 's', 'w', 'e']) {
+        if (edge(d) === T.WATER) {
+          g.fillStyle = 'rgba(190,220,245,.85)';
+          if (d === 'n') g.fillRect(dx, dy, ts, 4);
+          else if (d === 's') g.fillRect(dx, dy + ts - 4, ts, 4);
+          else if (d === 'w') g.fillRect(dx, dy, 4, ts);
+          else g.fillRect(dx + ts - 4, dy, 4, ts);
+        }
+      }
       break;
     }
     case T.WATER: {
@@ -326,6 +381,29 @@ export function drawTile(g, t, dx, dy, ts, x, y, time, nb, opts = {}) {
       g.fillStyle = '#6e451f'; g.fillRect(dx + 14, dy + 22, 4, 9);
       g.fillStyle = '#8a5f30'; g.fillRect(dx + 14, dy + 22, 1, 9);
       if (!trunkOnly) drawCanopyTop(g, t, dx, dy, ts, x, y, time);
+      break;
+    }
+    case T.PALM: {
+      // PALMEIRA: tronco curvo em gomos sobre a areia (copa vai p/ overlay).
+      g.fillStyle = '#e0c886'; g.fillRect(dx, dy, ts, ts);
+      g.fillStyle = '#d3ba7c';
+      g.fillRect(dx + ((h * 20) | 0), dy + ((h2 * 20) | 0), 8, 3);
+      g.fillStyle = 'rgba(0,0,0,.22)';
+      g.beginPath(); g.ellipse(dx + 15, dy + 29, 9, 2.5, 0, 0, 7); g.fill();
+      // tronco inclinado em gomos
+      const lean = h > 0.5 ? 1 : -1;
+      for (let i = 0; i < 5; i++) {
+        const sx = dx + 13 + lean * i * 1.6;
+        const sy = dy + 26 - i * 4;
+        g.fillStyle = '#8a5a2b'; g.fillRect(sx, sy, 6, 4);
+        g.fillStyle = '#6e451f'; g.fillRect(sx, sy + 3, 6, 1);
+        g.fillStyle = '#c49a5e'; g.fillRect(sx, sy, 6, 1);
+      }
+      // base com raízes na areia
+      g.fillStyle = '#6e451f';
+      g.fillRect(dx + 10, dy + 27, 4, 3); g.fillRect(dx + 17, dy + 27, 4, 3);
+      if (!trunkOnly) drawCanopyTop(g, t, dx, dy, ts, x, y, time);
+      else { g.fillStyle = 'rgba(60,40,20,.25)'; g.fillRect(dx + 8, dy + 18, 16, 4); }
       break;
     }
     case T.STONE: {
@@ -853,5 +931,30 @@ export function drawCanopyTop(g, t, dx, dy, ts, x, y, time) {
     g.fillRect(cx - 3, dy + 6, 3, 2); g.fillRect(cx - 4, dy + 14, 3, 2);
     g.fillStyle = '#6e451f'; // pinhas
     if (h > 0.45) { g.fillRect(cx - 5, dy + 15, 3, 4); g.fillRect(cx + 3, dy + 19, 3, 4); }
+  } else if (t === T.PALM) {
+    // COPA da palmeira: 6 folhas arqueadas + cocos.
+    const lean = h > 0.5 ? 1 : -1;
+    const tx = dx + 16 + lean * 7 + sway, ty = dy + 6;
+    const frond = (ang, len, col) => {
+      g.strokeStyle = col; g.lineWidth = 4; g.lineCap = 'round';
+      const ex = tx + Math.cos(ang) * len, ey = ty + Math.sin(ang) * len * 0.45 + 4;
+      const mx = tx + Math.cos(ang) * len * 0.5, my = ty - 3;
+      g.beginPath(); g.moveTo(tx, ty); g.quadraticCurveTo(mx, my, ex, ey); g.stroke();
+    };
+    g.fillStyle = '#1e5b20';
+    g.beginPath(); g.arc(tx, ty, 13, 0, 7); g.fill();
+    frond(Math.PI * 1.05, 15, '#1e5b20'); frond(Math.PI * 1.45, 15, '#1e5b20');
+    frond(Math.PI * 1.85, 15, '#1e5b20'); frond(Math.PI * 0.15, 15, '#1e5b20');
+    frond(Math.PI * 0.85, 14, '#2e7d32'); frond(Math.PI * 1.65, 14, '#2e7d32');
+    frond(Math.PI * 0.05, 13, '#2e7d32'); frond(Math.PI * 1.25, 13, '#2e7d32');
+    g.fillStyle = '#43a047';
+    g.fillRect(tx - 6 + sway, ty - 5, 5, 2); g.fillRect(tx + 2 + sway, ty - 4, 4, 2);
+    // cocos em cacho
+    g.fillStyle = '#5e3a17';
+    g.beginPath(); g.arc(tx - 3, ty + 3, 3, 0, 7); g.fill();
+    g.beginPath(); g.arc(tx + 3, ty + 3, 3, 0, 7); g.fill();
+    g.beginPath(); g.arc(tx, ty + 6, 3, 0, 7); g.fill();
+    g.fillStyle = '#8a5a2b';
+    g.fillRect(tx - 4, ty + 2, 2, 2); g.fillRect(tx + 2, ty + 2, 2, 2);
   }
 }

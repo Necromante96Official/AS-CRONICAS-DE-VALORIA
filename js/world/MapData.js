@@ -15,6 +15,14 @@ export const BOSS_ALTAR = { x: 54, y: 6 };
 export const TOY_SPOT = { x: 32, y: 22 };
 /** Cristal restaurador nas ruínas (cura total). */
 export const HEAL_CRYSTAL = { x: 54, y: 15 };
+/** Baús do tesouro: {id, x, y, loot:{gold, items}}. Abertura é salva em flags. */
+export const CHESTS = [
+  { id: 'plain', x: 28, y: 32, loot: { gold: 80, items: { potion: 1 } } },
+  { id: 'forest', x: 5, y: 9, loot: { gold: 40, items: { ether: 1, antidote: 1 } } },
+  { id: 'ruin', x: 53, y: 11, loot: { gold: 150, items: { hipotion: 1 } } },
+];
+/** Meta da quest de caça do Guarda Cato (slimes derrotados). */
+export const HUNT_GOAL = 6;
 
 /** @returns {{tiles: Uint8Array, w: number, h: number}} */
 export function buildMap() {
@@ -118,6 +126,26 @@ export function buildMap() {
   set(2, 38, T.FENCE); set(5, 38, T.FENCE);
   set(2, 39, T.FENCE); set(5, 39, T.FENCE);
 
+  // ---- Bioma praia (sudeste): areia, conchas e palmeiras. Zona calma, ótima p/ pesca ----
+  for (let y = 44; y <= 45; y++) for (let x = 24; x <= 42; x++) {
+    if (get(x, y) === T.WATER) continue;
+    set(x, y, hash2(x * 11 + 5, y * 13) > 0.78 ? T.GRASS : T.SAND);
+  }
+  set(26, 44, T.PALM); set(32, 45, T.PALM); set(39, 44, T.PALM);
+  // ---- Bioma neve (norte): campo nevado com pinheiros. Encontros mais duros ----
+  for (let y = 2; y <= 3; y++) for (let x = 18; x <= 43; x++) {
+    if (get(x, y) === T.WATER) continue;
+    set(x, y, T.SNOW);
+  }
+  for (let x = 19; x <= 42; x += 3) { if (hash2(x, 77) > 0.35 && get(x, 2) !== T.WATER) set(x, 2, T.PINE); }
+  set(24, 3, T.PINE); set(36, 3, T.PINE);
+
+  // ---- Baús: garante chão pisável no tile e ao redor (ruína) ----
+  set(28, 32, T.GRASS);
+  set(5, 9, T.GRASS);
+  set(53, 11, T.DARK_GRASS);
+  set(52, 11, T.DARK_GRASS); set(53, 10, T.DARK_GRASS); set(53, 12, T.DARK_GRASS);
+
   // ---- Altar do Caos (norte das ruínas) ----
   rect(51, 3, 57, 8, T.FLOOR);
   set(BOSS_ALTAR.x, BOSS_ALTAR.y, T.ALTAR);
@@ -144,6 +172,8 @@ export function regionAt(tx, ty) {
   if (tx >= 47 && ty <= 15) return 'dungeon';
   if (tx <= 17 && ty <= 17) return 'forest';
   if (tx >= 7 && tx <= 22 && ty >= 32 && ty <= 44) return 'town';
+  if (ty <= 3 && tx >= 18 && tx <= 43) return 'snow';
+  if (ty >= 44 && tx >= 23 && tx <= 43) return 'beach';
   if (tx >= 20 && tx <= 46 && ty >= 14 && ty <= 34) return 'field';
   return 'field';
 }

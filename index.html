@@ -719,6 +719,8 @@ const LOCATIONS = {
   forest: 'Bosque Sombrio',
   dungeon: 'Ruínas do Cristal',
   altar: 'Altar do Caos',
+  beach: 'Praia do Sol',
+  snow: 'Pico Nevado',
 };
 
 /* ===== js\core\Input.js ===== */
@@ -982,18 +984,18 @@ const T = {
   WALL: 10, FLOOR: 11, ROOF: 12, DOOR: 13, ALTAR: 14,
   DARK_GRASS: 15, RUIN: 16, PLAZA: 17,
   FENCE: 18, LAMP: 19, WELL: 20, SIGN: 21, CRATE: 22,
-  SOIL: 23, MOUNTAIN: 24,
+  SOIL: 23, MOUNTAIN: 24, PALM: 25, SNOW: 26,
 };
 
 /** Tiles que bloqueiam movimento. */
 const SOLID = new Set([T.WATER, T.TREE, T.PINE, T.STONE, T.WALL, T.ROOF, T.ALTAR, T.RUIN,
-  T.FENCE, T.LAMP, T.WELL, T.SIGN, T.CRATE, T.MOUNTAIN]);
+  T.FENCE, T.LAMP, T.WELL, T.SIGN, T.CRATE, T.MOUNTAIN, T.PALM]);
 
-/** Grama alta = zona de encontros. */
-const isEncounterTile = (t) => t === T.TALL_GRASS || t === T.DARK_GRASS;
+/** Grama alta / neve = zona de encontros. */
+const isEncounterTile = (t) => t === T.TALL_GRASS || t === T.DARK_GRASS || t === T.SNOW;
 
 /** Terrenos "pisáveis" (para bordas de transição). */
-const GROUND = new Set([T.GRASS, T.TALL_GRASS, T.FLOWER, T.DARK_GRASS, T.PATH, T.SAND, T.FLOOR, T.PLAZA, T.SOIL]);
+const GROUND = new Set([T.GRASS, T.TALL_GRASS, T.FLOWER, T.DARK_GRASS, T.PATH, T.SAND, T.FLOOR, T.PLAZA, T.SOIL, T.SNOW]);
 const GRASSY = new Set([T.GRASS, T.TALL_GRASS, T.FLOWER, T.DARK_GRASS]);
 /** Caminhos que emendam entre si (trilhas de carroça). */
 const WALKWAY = new Set([T.PATH, T.PLAZA, T.FLOOR, T.BRIDGE]);
@@ -1037,6 +1039,8 @@ function tileColor(t) {
     case T.CRATE: return '#a8763e';
     case T.SOIL: return '#6b4a2f';
     case T.MOUNTAIN: return '#9aa0ad';
+    case T.PALM: return '#2e7d46';
+    case T.SNOW: return '#e8f0ff';
     case T.TALL_GRASS: return '#2e7d46';
     case T.DARK_GRASS: return '#1e5b30';
     case T.FLOWER: return '#57b357';
@@ -1149,6 +1153,7 @@ function drawTile(g, t, dx, dy, ts, x, y, time, nb, opts = {}) {
         g.fillStyle = '#b8945a'; g.fillRect(dx + sx, dy + sy + 3, 7, 2);
       }
       for (const d of ['n', 's', 'w', 'e']) if (GRASSY.has(edge(d))) strip(d, 3, '#a8845c');
+      for (const d of ['n', 's', 'w', 'e']) if (edge(d) === T.SNOW) strip(d, 3, '#b9c8de');
       // trilhas de carroça ao longo do caminho
       const ew = WALKWAY.has(edge('w')) || WALKWAY.has(edge('e'));
       const ns = WALKWAY.has(edge('n')) || WALKWAY.has(edge('s'));
@@ -1184,7 +1189,59 @@ function drawTile(g, t, dx, dy, ts, x, y, time, nb, opts = {}) {
         g.fillStyle = '#f2b8c6'; g.fillRect(dx + 18, dy + 20, 5, 3);
         g.fillStyle = '#fff'; g.fillRect(dx + 19, dy + 20, 2, 1);
       }
+      // estrela-do-mar rara
+      if (h2 > 0.975) {
+        const sx = dx + 8, sy = dy + 9;
+        g.fillStyle = '#e8763a';
+        g.fillRect(sx - 4, sy, 9, 2); g.fillRect(sx, sy - 4, 2, 9);
+        g.fillRect(sx - 3, sy - 3, 2, 2); g.fillRect(sx + 2, sy - 3, 2, 2);
+        g.fillRect(sx - 3, sy + 2, 2, 2); g.fillRect(sx + 2, sy + 2, 2, 2);
+        g.fillStyle = '#ffd75e'; g.fillRect(sx, sy, 1, 1);
+      }
+      // caranguejo andando de lado (praia viva!)
+      if (h2 < 0.06) {
+        const cx = dx + 16 + Math.sin(time * 3 + x * 4) * 7;
+        const cy = dy + 20;
+        g.fillStyle = '#c22a3a';
+        g.fillRect(cx - 3, cy - 2, 7, 4);
+        g.fillRect(cx - 5, cy - 4, 3, 3); g.fillRect(cx + 3, cy - 4, 3, 3); // garras
+        g.fillStyle = '#fff'; g.fillRect(cx - 1, cy - 3, 1, 1); g.fillRect(cx + 1, cy - 3, 1, 1);
+        g.fillStyle = '#8e1f2b';
+        g.fillRect(cx - 5, cy + 2, 2, 2); g.fillRect(cx + 4, cy + 2, 2, 2); // patinhas
+      }
       for (const d of ['n', 's', 'w', 'e']) if (GRASSY.has(edge(d))) strip(d, 3, '#c2a878');
+      for (const d of ['n', 's', 'w', 'e']) if (edge(d) === T.SNOW) strip(d, 3, '#c9d8ea');
+      break;
+    }
+    case T.SNOW: {
+      // NEVE fofa: base clara, ondulações, brilhos e pegadas antigas.
+      g.fillStyle = '#dfe9f7'; g.fillRect(dx, dy, ts, ts);
+      g.fillStyle = '#eef4fd';
+      g.beginPath(); g.ellipse(dx + 10, dy + 10, 9, 5, -0.3, 0, 7); g.fill();
+      g.beginPath(); g.ellipse(dx + 23, dy + 22, 8, 5, 0.3, 0, 7); g.fill();
+      g.fillStyle = '#c4d3e8';
+      g.beginPath(); g.ellipse(dx + 10, dy + 12, 9, 2, -0.3, 0, 7); g.fill();
+      g.beginPath(); g.ellipse(dx + 23, dy + 24, 8, 2, 0.3, 0, 7); g.fill();
+      // cristais cintilando
+      const tw = 0.3 + 0.5 * Math.abs(Math.sin(time * 2 + x * 2 + y));
+      g.fillStyle = `rgba(255,255,255,${tw.toFixed(2)})`;
+      g.fillRect(dx + ((h * 26) | 0) + 2, dy + ((h2 * 24) | 0) + 3, 2, 2);
+      if (h2 > 0.7) g.fillRect(dx + ((h2 * 20) | 0) + 5, dy + ((h * 20) | 0) + 8, 2, 2);
+      // pegadas antigas
+      if (h > 0.62 && h < 0.78) {
+        g.fillStyle = 'rgba(160,180,205,.7)';
+        g.fillRect(dx + 9, dy + 18, 4, 6); g.fillRect(dx + 19, dy + 10, 4, 6);
+      }
+      // congela na margem da água
+      for (const d of ['n', 's', 'w', 'e']) {
+        if (edge(d) === T.WATER) {
+          g.fillStyle = 'rgba(190,220,245,.85)';
+          if (d === 'n') g.fillRect(dx, dy, ts, 4);
+          else if (d === 's') g.fillRect(dx, dy + ts - 4, ts, 4);
+          else if (d === 'w') g.fillRect(dx, dy, 4, ts);
+          else g.fillRect(dx + ts - 4, dy, 4, ts);
+        }
+      }
       break;
     }
     case T.WATER: {
@@ -1299,6 +1356,29 @@ function drawTile(g, t, dx, dy, ts, x, y, time, nb, opts = {}) {
       g.fillStyle = '#6e451f'; g.fillRect(dx + 14, dy + 22, 4, 9);
       g.fillStyle = '#8a5f30'; g.fillRect(dx + 14, dy + 22, 1, 9);
       if (!trunkOnly) drawCanopyTop(g, t, dx, dy, ts, x, y, time);
+      break;
+    }
+    case T.PALM: {
+      // PALMEIRA: tronco curvo em gomos sobre a areia (copa vai p/ overlay).
+      g.fillStyle = '#e0c886'; g.fillRect(dx, dy, ts, ts);
+      g.fillStyle = '#d3ba7c';
+      g.fillRect(dx + ((h * 20) | 0), dy + ((h2 * 20) | 0), 8, 3);
+      g.fillStyle = 'rgba(0,0,0,.22)';
+      g.beginPath(); g.ellipse(dx + 15, dy + 29, 9, 2.5, 0, 0, 7); g.fill();
+      // tronco inclinado em gomos
+      const lean = h > 0.5 ? 1 : -1;
+      for (let i = 0; i < 5; i++) {
+        const sx = dx + 13 + lean * i * 1.6;
+        const sy = dy + 26 - i * 4;
+        g.fillStyle = '#8a5a2b'; g.fillRect(sx, sy, 6, 4);
+        g.fillStyle = '#6e451f'; g.fillRect(sx, sy + 3, 6, 1);
+        g.fillStyle = '#c49a5e'; g.fillRect(sx, sy, 6, 1);
+      }
+      // base com raízes na areia
+      g.fillStyle = '#6e451f';
+      g.fillRect(dx + 10, dy + 27, 4, 3); g.fillRect(dx + 17, dy + 27, 4, 3);
+      if (!trunkOnly) drawCanopyTop(g, t, dx, dy, ts, x, y, time);
+      else { g.fillStyle = 'rgba(60,40,20,.25)'; g.fillRect(dx + 8, dy + 18, 16, 4); }
       break;
     }
     case T.STONE: {
@@ -1826,6 +1906,31 @@ function drawCanopyTop(g, t, dx, dy, ts, x, y, time) {
     g.fillRect(cx - 3, dy + 6, 3, 2); g.fillRect(cx - 4, dy + 14, 3, 2);
     g.fillStyle = '#6e451f'; // pinhas
     if (h > 0.45) { g.fillRect(cx - 5, dy + 15, 3, 4); g.fillRect(cx + 3, dy + 19, 3, 4); }
+  } else if (t === T.PALM) {
+    // COPA da palmeira: 6 folhas arqueadas + cocos.
+    const lean = h > 0.5 ? 1 : -1;
+    const tx = dx + 16 + lean * 7 + sway, ty = dy + 6;
+    const frond = (ang, len, col) => {
+      g.strokeStyle = col; g.lineWidth = 4; g.lineCap = 'round';
+      const ex = tx + Math.cos(ang) * len, ey = ty + Math.sin(ang) * len * 0.45 + 4;
+      const mx = tx + Math.cos(ang) * len * 0.5, my = ty - 3;
+      g.beginPath(); g.moveTo(tx, ty); g.quadraticCurveTo(mx, my, ex, ey); g.stroke();
+    };
+    g.fillStyle = '#1e5b20';
+    g.beginPath(); g.arc(tx, ty, 13, 0, 7); g.fill();
+    frond(Math.PI * 1.05, 15, '#1e5b20'); frond(Math.PI * 1.45, 15, '#1e5b20');
+    frond(Math.PI * 1.85, 15, '#1e5b20'); frond(Math.PI * 0.15, 15, '#1e5b20');
+    frond(Math.PI * 0.85, 14, '#2e7d32'); frond(Math.PI * 1.65, 14, '#2e7d32');
+    frond(Math.PI * 0.05, 13, '#2e7d32'); frond(Math.PI * 1.25, 13, '#2e7d32');
+    g.fillStyle = '#43a047';
+    g.fillRect(tx - 6 + sway, ty - 5, 5, 2); g.fillRect(tx + 2 + sway, ty - 4, 4, 2);
+    // cocos em cacho
+    g.fillStyle = '#5e3a17';
+    g.beginPath(); g.arc(tx - 3, ty + 3, 3, 0, 7); g.fill();
+    g.beginPath(); g.arc(tx + 3, ty + 3, 3, 0, 7); g.fill();
+    g.beginPath(); g.arc(tx, ty + 6, 3, 0, 7); g.fill();
+    g.fillStyle = '#8a5a2b';
+    g.fillRect(tx - 4, ty + 2, 2, 2); g.fillRect(tx + 2, ty + 2, 2, 2);
   }
 }
 
@@ -1877,7 +1982,7 @@ class TileMap {
     this._canopyQueue.length = 0;
     for (let ty = y0; ty <= y1; ty++) for (let tx = x0; tx <= x1; tx++) {
       const t = this.tiles[ty * this.w + tx];
-      const isTree = t === T.TREE || t === T.PINE;
+      const isTree = t === T.TREE || t === T.PINE || t === T.PALM;
       const sx = tx * TILE + ox, sy = ty * TILE + oy;
       const overlapped = isTree && actorRects.some((r) =>
         r.x < sx + TILE && r.x + r.w > sx && r.y < sy + TILE && r.y + r.h > sy);
@@ -1911,6 +2016,14 @@ const BOSS_ALTAR = { x: 54, y: 6 };
 const TOY_SPOT = { x: 32, y: 22 };
 /** Cristal restaurador nas ruínas (cura total). */
 const HEAL_CRYSTAL = { x: 54, y: 15 };
+/** Baús do tesouro: {id, x, y, loot:{gold, items}}. Abertura é salva em flags. */
+const CHESTS = [
+  { id: 'plain', x: 28, y: 32, loot: { gold: 80, items: { potion: 1 } } },
+  { id: 'forest', x: 5, y: 9, loot: { gold: 40, items: { ether: 1, antidote: 1 } } },
+  { id: 'ruin', x: 53, y: 11, loot: { gold: 150, items: { hipotion: 1 } } },
+];
+/** Meta da quest de caça do Guarda Cato (slimes derrotados). */
+const HUNT_GOAL = 6;
 
 /** @returns {{tiles: Uint8Array, w: number, h: number}} */
 function buildMap() {
@@ -2014,6 +2127,26 @@ function buildMap() {
   set(2, 38, T.FENCE); set(5, 38, T.FENCE);
   set(2, 39, T.FENCE); set(5, 39, T.FENCE);
 
+  // ---- Bioma praia (sudeste): areia, conchas e palmeiras. Zona calma, ótima p/ pesca ----
+  for (let y = 44; y <= 45; y++) for (let x = 24; x <= 42; x++) {
+    if (get(x, y) === T.WATER) continue;
+    set(x, y, hash2(x * 11 + 5, y * 13) > 0.78 ? T.GRASS : T.SAND);
+  }
+  set(26, 44, T.PALM); set(32, 45, T.PALM); set(39, 44, T.PALM);
+  // ---- Bioma neve (norte): campo nevado com pinheiros. Encontros mais duros ----
+  for (let y = 2; y <= 3; y++) for (let x = 18; x <= 43; x++) {
+    if (get(x, y) === T.WATER) continue;
+    set(x, y, T.SNOW);
+  }
+  for (let x = 19; x <= 42; x += 3) { if (hash2(x, 77) > 0.35 && get(x, 2) !== T.WATER) set(x, 2, T.PINE); }
+  set(24, 3, T.PINE); set(36, 3, T.PINE);
+
+  // ---- Baús: garante chão pisável no tile e ao redor (ruína) ----
+  set(28, 32, T.GRASS);
+  set(5, 9, T.GRASS);
+  set(53, 11, T.DARK_GRASS);
+  set(52, 11, T.DARK_GRASS); set(53, 10, T.DARK_GRASS); set(53, 12, T.DARK_GRASS);
+
   // ---- Altar do Caos (norte das ruínas) ----
   rect(51, 3, 57, 8, T.FLOOR);
   set(BOSS_ALTAR.x, BOSS_ALTAR.y, T.ALTAR);
@@ -2040,6 +2173,8 @@ function regionAt(tx, ty) {
   if (tx >= 47 && ty <= 15) return 'dungeon';
   if (tx <= 17 && ty <= 17) return 'forest';
   if (tx >= 7 && tx <= 22 && ty >= 32 && ty <= 44) return 'town';
+  if (ty <= 3 && tx >= 18 && tx <= 43) return 'snow';
+  if (ty >= 44 && tx >= 23 && tx <= 43) return 'beach';
   if (tx >= 20 && tx <= 46 && ty >= 14 && ty <= 34) return 'field';
   return 'field';
 }
@@ -2301,6 +2436,8 @@ function encounterTable(region) {
   switch (region) {
     case 'forest': return [['bat', 4], ['slime', 2], ['wisp', 2]];
     case 'dungeon': case 'altar': return [['golem', 4], ['wisp', 4], ['bat', 2]];
+    case 'snow': return [['wisp', 4], ['bat', 3], ['golem', 3]];
+    case 'beach': return [['slime', 5], ['bat', 3], ['golem', 1]];
     default: return [['slime', 5], ['bat', 3], ['golem', 1]];
   }
 }
@@ -2323,7 +2460,7 @@ function makeEncounter(region, avgLevel) {
     return table[0][0];
   };
   const count = region === 'field' ? (Math.random() < 0.55 ? 2 : 1) : (1 + Math.floor(Math.random() * 3));
-  const scale = 1 + (avgLevel - 1) * 0.22 + (region === 'dungeon' ? 0.35 : region === 'forest' ? 0.15 : 0);
+  const scale = 1 + (avgLevel - 1) * 0.22 + (region === 'dungeon' ? 0.35 : region === 'snow' ? 0.25 : region === 'forest' ? 0.15 : 0);
   const group = [];
   for (let i = 0; i < count; i++) group.push(makeEnemy(pick(), scale));
   // encontro raro: Slime Rei na planície para grupos experientes
@@ -2344,6 +2481,7 @@ const ITEMS = {
   hipotion:  { name: 'Hi-Poção',   price: 150, heal: 160, desc: 'Restaura 160 HP de um aliado', battle: true },
   ether:     { name: 'Éter',       price: 120, mp: 20,    desc: 'Restaura 20 MP de um aliado', battle: true },
   antidote:  { name: 'Bomba Fumaça', price: 40, flee: true, desc: 'Garante fuga da batalha', battle: true },
+  fish:      { name: 'Peixe Fresco', price: 12, heal: 35, desc: 'Pescado! Restaura 35 HP de um aliado', battle: true },
 };
 
 /** @returns {Record<string, number>} */
@@ -3771,6 +3909,8 @@ const SCENERY = {
   dungeon: { sky: ['#0d0a1e', '#241a4e', '#33206b'], sun: '#bff3ff', far: '#1a1440', near: '#241c58', ground: '#3a3f5e', groundD: '#2a2e46', deco: 'torch', night: true },
   altar:   { sky: ['#0d0a1e', '#241a4e', '#33206b'], sun: '#bff3ff', far: '#1a1440', near: '#241c58', ground: '#3a3f5e', groundD: '#2a2e46', deco: 'torch', night: true },
   boss:    { sky: ['#1e060a', '#5e1020', '#a02838'], sun: '#ff9b5b', far: '#3a0a12', near: '#521420', ground: '#4a2028', groundD: '#33141c', deco: 'embers', night: true },
+  beach:   { sky: ['#3d7ac8', '#7ec8ff', '#cfeaff'], sun: '#fff8dc', far: '#2b6fd6', near: '#e0c886', ground: '#e0c886', groundD: '#b8945a', deco: 'shells', night: false },
+  snow:    { sky: ['#8aa4c4', '#c9d8ea', '#eef4fd'], sun: '#ffffff', far: '#7d8aa0', near: '#a8b8cc', ground: '#e8f0ff', groundD: '#b9c8de', deco: 'snowfall', night: false },
 };
 
 class BattleSystem {
@@ -4496,14 +4636,14 @@ class BattleSystem {
       }
       this._banner('✦ VITÓRIA! ✦', `+${xp} XP · +${gold} G`);
       this._log(`✦ Vitória! +${xp} XP · +${gold} G${lvMsgs.length ? '<br/>' + lvMsgs.join('<br/>') : ''}`);
-      this.endResult = { victory: true, fled: false, xp, gold, boss: this.isBoss };
+      this.endResult = { victory: true, fled: false, xp, gold, boss: this.isBoss, kills: this.enemies.map((e) => e.id) };
     } else if (fled) {
-      this.endResult = { victory: false, fled: true, xp: 0, gold: 0, boss: this.isBoss };
+      this.endResult = { victory: false, fled: true, xp: 0, gold: 0, boss: this.isBoss, kills: [] };
     } else {
       this.audio.sfx('die');
       this.flashT = 0.5; this.flashColor = '120,0,10';
       this._log('O grupo tombou...');
-      this.endResult = { victory: false, fled: false, xp: 0, gold: 0, boss: this.isBoss };
+      this.endResult = { victory: false, fled: false, xp: 0, gold: 0, boss: this.isBoss, kills: [] };
     }
     this._renderAll();
   }
@@ -4690,6 +4830,35 @@ class BattleSystem {
         g.fillStyle = `rgba(255,${120 + (i % 3) * 40},40,${0.5 + 0.3 * Math.sin(this.time * 4 + i)})`;
         g.fillRect(x, y, 3, 3);
       }
+    } else if (sc.deco === 'shells') {
+      // conchas e estrelas-do-mar espalhadas na areia
+      for (let i = 0; i < 10; i++) {
+        const x = (i * 293 + 40) % 920 + 20, y = 272 + ((i * 71) % 52);
+        if (i % 3 === 0) {
+          g.fillStyle = '#f2b8c6'; g.fillRect(x, y, 7, 4);
+          g.fillStyle = '#fff'; g.fillRect(x + 1, y, 3, 1);
+        } else if (i % 3 === 1) {
+          g.fillStyle = '#fff'; g.fillRect(x, y, 2, 2);
+          g.fillStyle = '#e8763a'; g.fillRect(x - 3, y - 1, 8, 2); g.fillRect(x - 1, y - 3, 2, 7);
+        } else {
+          g.fillStyle = '#b8945a'; g.fillRect(x, y, 4, 2);
+        }
+      }
+      // reflexos d'água na beira
+      g.fillStyle = `rgba(255,255,255,${0.25 + 0.2 * Math.sin(this.time * 2)})`;
+      g.fillRect(40, 262, 880, 2);
+    } else if (sc.deco === 'snowfall') {
+      // flocos caindo sobre a neve
+      for (let i = 0; i < 40; i++) {
+        const x = (i * 173 + this.time * (12 + (i % 5) * 4) * (i % 2 ? 1 : -1) * 0.4 + 960) % 960;
+        const y = 180 + ((this.time * (24 + (i % 4) * 8) + i * 61) % 150);
+        const s = i % 4 === 0 ? 3 : 2;
+        g.fillStyle = `rgba(255,255,255,${0.5 + 0.4 * Math.sin(this.time * 3 + i)})`;
+        g.fillRect(x, y, s, s);
+      }
+      // brilho do gelo no chão
+      g.fillStyle = `rgba(180,220,255,${0.2 + 0.15 * Math.sin(this.time * 2)})`;
+      g.beginPath(); g.ellipse(480, 296, 380, 30, 0, 0, 7); g.fill();
     }
   }
 
@@ -5005,6 +5174,9 @@ class Engine {
     this.dialog.speed = cfg.speed || 'normal';
     this.playSec = 0;
     this._playT0 = null;
+    // clima/ambiente por bioma + cooldown da pesca
+    this._wx = [];
+    this._fishCd = 0;
   }
 
   init() {
@@ -5049,8 +5221,8 @@ class Engine {
   _showBanner(region) {
     const el = document.getElementById('region-banner');
     if (!el) return;
-    const names = { town: 'Vila Lumen', field: 'Planície Verdejante', forest: 'Bosque Sombrio', dungeon: 'Ruínas do Cristal', altar: 'Altar do Caos' };
-    const subs = { town: 'povoado pacato', field: 'cuidado com a grama alta', forest: 'feras entre as árvores', dungeon: 'o cristal o aguarda', altar: 'NÃO HÁ VOLTA' };
+    const names = { town: 'Vila Lumen', field: 'Planície Verdejante', forest: 'Bosque Sombrio', dungeon: 'Ruínas do Cristal', altar: 'Altar do Caos', beach: 'Praia do Sol', snow: 'Pico Nevado' };
+    const subs = { town: 'povoado pacato', field: 'cuidado com a grama alta', forest: 'feras entre as árvores', dungeon: 'o cristal o aguarda', altar: 'NÃO HÁ VOLTA', beach: 'águas calmas — bom p/ pescar', snow: 'o frio morde — feras fortes' };
     el.innerHTML = `${names[region] || region}<small>${subs[region] || ''}</small>`;
     el.classList.remove('hidden');
     void el.offsetWidth;
@@ -5183,19 +5355,24 @@ class Engine {
       return;
     }
 
-    // falar / altar do boss / cristal / brinquedo
+    // falar / altar do boss / cristal / brinquedo / baú / pesca
     if (inp.pressed.confirm) {
       if (this._tryBossInteract()) return;
       if (this._tryHealCrystal()) return;
       if (this._tryToyPickup()) return;
+      if (this._tryChest()) return;
       const npc = this._facingNpc();
       if (npc) { this._talk(npc); return; }
+      if (this._tryFish()) return;
     }
 
     // movimento (Shift = correr)
     const blockers = this.npcs.map((n) => ({ x: n.x, y: n.y }));
     // dragão bloqueia o altar até ser derrotado
     if (!this.flags.bossDefeated) blockers.push({ x: BOSS_ALTAR.x * TILE, y: BOSS_ALTAR.y * TILE });
+    // baús são sólidos (abertos ou não)
+    for (const c of CHESTS) blockers.push({ x: c.x * TILE, y: c.y * TILE });
+    if (this._fishCd > 0) this._fishCd -= dt;
     const ax = inp.axis;
     this.player.update(ax, dt, this.map, blockers, inp.held.run);
     // sons de passo / trombada
@@ -5209,6 +5386,8 @@ class Engine {
     for (const n of this.npcs) n.update(dt, this.map);
     this.camera.follow(this.player.cx, this.player.cy, dt);
     this.camera.update(dt);
+    // clima/ambiente do bioma atual (só visual, sem gameplay)
+    this._wxTick(dt, regionAt(this.player.tileX, this.player.tileY));
 
     // encontros aleatórios na grama
     const steps = this.player.consumeSteps();
@@ -5225,7 +5404,7 @@ class Engine {
     const region = regionAt(this.player.tileX, this.player.tileY);
     if (!this._lastRegion) this._lastRegion = region;
     else if (this._lastRegion !== region) { this._lastRegion = region; this._showBanner(region); }
-    const want = region === 'town' ? 'town' : region === 'dungeon' || region === 'altar' ? 'dungeon' : 'field';
+    const want = region === 'town' || region === 'beach' ? 'town' : region === 'dungeon' || region === 'altar' ? 'dungeon' : 'field';
     if (this.audio.ctx && this.audio.currentTrack !== want) this.audio.playMusic(want);
     this.hud.renderMinimap(this.mmBase, this.camera.ox, this.camera.oy, this.player.tileX, this.player.tileY, this.flags.bossDefeated ? null : BOSS_ALTAR);
     const sig = `${region}|${this.gold}|${this.audio.muted}|${this.party.map((h) => `${Math.ceil(h.hp)}/${Math.ceil(h.mp)}/${h.level}`).join(',')}`;
@@ -5294,6 +5473,7 @@ class Engine {
     if (npc.shop) return this._openShop(npc);
     if (npc.inn) return this._openInn(npc);
     if (npc.id === 'kid') return this._talkPip(npc);
+    if (npc.id === 'guard') return this._talkGuard(npc);
     const lines = [{ name: npc.name, text: npc.nextLine() }];
     if (npc.gift && !npc.giftGiven) {
       npc.giftGiven = true;
@@ -5341,6 +5521,105 @@ class Engine {
     this.dialog.say([
       { name: npc.name, text: 'Procure algo BRILHANDO na grama alta, a leste da vila. Por favor!' },
     ]);
+  }
+
+  /** Quest de caça: Guarda Cato paga por slimes derrotados. */
+  _talkGuard(npc) {
+    const f = this.flags;
+    const count = f.huntCount || 0;
+    if (f.huntRewarded) {
+      this.dialog.say([
+        { name: npc.name, text: 'A ponte segue segura graças a você. As Ruínas ao nordeste ainda precisam de um herói...' },
+      ]);
+      return;
+    }
+    if (!f.huntQuest) {
+      f.huntQuest = true;
+      this.audio.sfx('confirm');
+      this.dialog.say([
+        { name: npc.name, text: `Alto lá! Os SLIMES estão se multiplicando na planície e no bosque.` },
+        { name: 'Guarda Cato', text: `Derrote ${HUNT_GOAL} slimes e volte aqui: pago 200G e um ÉTER. Caça boa!` },
+      ]);
+      toast(`Nova quest: cace ${HUNT_GOAL} slimes!`);
+      return;
+    }
+    if (count >= HUNT_GOAL) {
+      f.huntRewarded = true;
+      this.gold += 200;
+      this.inv.ether = (this.inv.ether || 0) + 1;
+      this.audio.sfx('levelup');
+      this.dialog.say([
+        { name: npc.name, text: 'Contei os restos de gosma... trabalho limpo!' },
+        { name: 'Guarda Cato', text: 'Aqui estão 200G e um ÉTER. A ponte é sua, herói!' },
+      ]);
+      toast('+200G · +1 Éter!');
+      return;
+    }
+    this.dialog.say([
+      { name: npc.name, text: `Faltam ${HUNT_GOAL - count} slimes. Procure na grama alta da planície! (${count}/${HUNT_GOAL})` },
+    ]);
+  }
+
+  /** Baú ao alcance do jogador (para o E e para a dica visual). */
+  _nearChest() {
+    return CHESTS.find((k) =>
+      Math.hypot(this.player.cx - (k.x * TILE + 16), this.player.cy - (k.y * TILE + 16)) < TILE * 1.6) || null;
+  }
+
+  /** Baú do tesouro: E por perto abre uma única vez. */
+  _tryChest() {
+    const c = this._nearChest();
+    if (!c) return false;
+    if (this.flags[`chest_${c.id}`]) {
+      this.audio.sfx('bump');
+      toast('Baú vazio.');
+      return true;
+    }
+    this.flags[`chest_${c.id}`] = true;
+    const parts = [];
+    if (c.loot.gold) { this.gold += c.loot.gold; parts.push(`+${c.loot.gold}G`); }
+    for (const [id, q] of Object.entries(c.loot.items || {})) {
+      this.inv[id] = (this.inv[id] || 0) + q;
+      parts.push(`+${q} ${ITEMS[id].name}`);
+    }
+    this.audio.sfx(c.loot.items && c.loot.items.hipotion ? 'levelup' : 'item');
+    this.dialog.say([
+      { name: '', text: `(Você abre um baú esquecido...)` },
+      { name: 'Baú', text: `${parts.join(' · ')}!` },
+    ]);
+    toast(parts.join(' · ') + '!');
+    return true;
+  }
+
+  /** Pesca: E encarando a água. Na praia, chance maior de pérola. */
+  _tryFish() {
+    if (this._fishCd > 0) return false;
+    const ft = this.player.facingTile();
+    if (this.map.tile(ft.x, ft.y) !== T.WATER) return false;
+    this._fishCd = 1.5;
+    const beach = regionAt(this.player.tileX, this.player.tileY) === 'beach';
+    const r = Math.random();
+    if (r < 0.5) {
+      this.inv.fish = (this.inv.fish || 0) + 1;
+      this.audio.sfx('item');
+      toast('🐟 Peixe Fresco pescado! (+1)');
+    } else if (r < 0.66) {
+      this.gold += 4;
+      this.audio.sfx('bump');
+      toast('🥾 Uma Bota Velha... (+4G de sucata)');
+    } else if (r < (beach ? 0.8 : 0.86)) {
+      this.audio.sfx('bump');
+      toast('...só algas. Tente de novo!');
+    } else {
+      const v = beach ? 60 : 40;
+      this.gold += v;
+      this.audio.sfx('levelup');
+      this.dialog.say([
+        { name: '', text: `(Algo brilha na ponta da linha... uma PÉROLA!)` },
+      ]);
+      toast(`🪙 Pérola vendida! (+${v}G)`);
+    }
+    return true;
   }
 
   /** Cristal restaurador: E por perto = cura total. */
@@ -5475,6 +5754,20 @@ class Engine {
     if (result.victory) {
       this.gold += result.gold;
       toast(`+${result.xp} XP · +${result.gold} G`);
+      // quest de caça: conta slimes da família derrotados
+      if (this.flags.huntQuest && !this.flags.huntRewarded && result.kills) {
+        const n = result.kills.filter((id) => id === 'slime' || id === 'king').length;
+        if (n > 0) {
+          this.flags.huntCount = (this.flags.huntCount || 0) + n;
+          const c = this.flags.huntCount;
+          if (c >= HUNT_GOAL) {
+            this.audio.sfx('levelup');
+            toast(`Caça completa! (${c}/${HUNT_GOAL}) Volte ao Guarda Cato!`);
+          } else {
+            toast(`Caça: ${c}/${HUNT_GOAL} slimes`);
+          }
+        }
+      }
       if (result.boss) {
         this.flags.bossDefeated = true;
         this.state = 'FIELD';
@@ -5600,6 +5893,9 @@ class Engine {
       g.fillRect(sx - 4, sy - 7, 8, 2);
     }
 
+    // baús do tesouro (fechado brilha; aberto mostra a tampa erguida)
+    for (const c of CHESTS) this._drawChest(g, ox, oy, c);
+
     // entidades ordenadas por Y (Pip é criança: desenhado menor)
     /** @type {{y:number, draw:()=>void}[]} */
     const ents = [];
@@ -5611,9 +5907,21 @@ class Engine {
     ents.sort((a, b) => a.y - b.y).forEach((e) => e.draw());
     // copas por cima de quem está atrás das árvores
     this.map.drawCanopy(g, ox, oy, this.time);
+    // clima/ambiente do bioma (chuva, neve, brasas, folhas, gaivotas...)
+    this._drawWeather(g);
 
     // balão "▼ E" quando há NPC falável à frente (prioridade sobre o "!" da quest)
     const npc = this._facingNpc();
+    // balão "▼ E" sobre o baú próximo (só se não há NPC na frente — mesma prioridade do E)
+    const chest = !npc ? this._nearChest() : null;
+    if (chest && this.state === 'FIELD' && !this.dialog.active) {
+      g.fillStyle = '#ffd75e';
+      g.font = 'bold 20px monospace';
+      g.strokeStyle = '#000'; g.lineWidth = 4;
+      const cx = chest.x * TILE + ox + 16, cy = chest.y * TILE + oy - 26 + Math.sin(this.time * 5) * 2;
+      g.strokeText('▼ E', cx - 14, cy);
+      g.fillText('▼ E', cx - 14, cy);
+    }
     // balão "!" dourado sobre o Pip quando a quest está pendente
     const pip = this.flags.toyQuest && !this.flags.toyRewarded ? this.npcs.find((n) => n.id === 'kid') : null;
     if (pip && pip !== npc && this.state === 'FIELD' && !this.dialog.active) {
@@ -5633,6 +5941,104 @@ class Engine {
       const bx = npc.x + ox + 8, by = npc.y + oy - 22 + Math.sin(this.time * 5) * 2;
       g.strokeText('▼ E', bx - 8, by);
       g.fillText('▼ E', bx - 8, by);
+    }
+  }
+
+  /** Desenha um baú: fechado com cadeado (e brilho) ou aberto com a tampa erguida. */
+  _drawChest(g, ox, oy, c) {
+    const opened = !!this.flags[`chest_${c.id}`];
+    const bx = c.x * TILE + ox, by = c.y * TILE + oy;
+    g.fillStyle = 'rgba(0,0,0,.28)';
+    g.beginPath(); g.ellipse(bx + 16, by + 28, 13, 3, 0, 0, 7); g.fill();
+    // corpo: madeira com cintas douradas
+    g.fillStyle = '#4a2f14'; g.fillRect(bx + 3, by + 12, 26, 15);
+    g.fillStyle = '#8a5a2b'; g.fillRect(bx + 4, by + 13, 24, 13);
+    g.fillStyle = '#6e451f';
+    g.fillRect(bx + 4, by + 18, 24, 2);
+    for (let i = 0; i < 3; i++) g.fillRect(bx + 5 + i * 8, by + 13, 1, 13);
+    g.fillStyle = '#ffd75e'; g.fillRect(bx + 3, by + 13, 2, 13); g.fillRect(bx + 27, by + 13, 2, 13);
+    if (!opened) {
+      // tampa fechada + cadeado
+      g.fillStyle = '#5e3a17'; g.fillRect(bx + 3, by + 6, 26, 8);
+      g.fillStyle = '#a8763e'; g.fillRect(bx + 3, by + 6, 26, 3);
+      g.fillStyle = '#ffd75e'; g.fillRect(bx + 14, by + 11, 4, 5);
+      g.fillStyle = '#4a2f14'; g.fillRect(bx + 15, by + 12, 2, 3);
+      // brilho "tem tesouro aqui"
+      const tw = 0.5 + 0.4 * Math.sin(this.time * 4 + c.x + c.y);
+      g.fillStyle = `rgba(255,233,79,${tw.toFixed(2)})`;
+      const sx = bx + 16, sy = by - 2 + Math.sin(this.time * 4) * 2;
+      g.fillRect(sx - 1, sy - 6, 2, 12); g.fillRect(sx - 5, sy - 2, 10, 2);
+    } else {
+      // boca escura + tampa erguida atrás
+      g.fillStyle = '#1d120a'; g.fillRect(bx + 5, by + 11, 22, 4);
+      g.fillStyle = '#5e3a17'; g.fillRect(bx + 3, by - 6, 26, 10);
+      g.fillStyle = '#a8763e'; g.fillRect(bx + 3, by - 6, 26, 3);
+      g.fillStyle = '#ffd75e'; g.fillRect(bx + 3, by + 1, 2, 5); g.fillRect(bx + 27, by + 1, 2, 5);
+    }
+  }
+
+  /** Acumula partículas de clima do bioma. @param {number} dt @param {string} region */
+  _wxTick(dt, region) {
+    const cap = region === 'forest' || region === 'snow' ? 80 : 50;
+    this._wxAcc = (this._wxAcc || 0) + dt;
+    const rate = region === 'town' ? 4 : region === 'beach' ? 5 : 14;
+    let guard = 0;
+    while (this._wxAcc > 1 / rate && guard++ < 8) {
+      this._wxAcc -= 1 / rate;
+      if (this._wx.length < cap) this._wx.push(this._wxSpawn(region));
+    }
+    for (const q of this._wx) {
+      q.x += q.vx * dt; q.y += q.vy * dt; q.t += dt;
+      if (q.type === 'snow') q.x += Math.sin(q.t * 3 + q.seed) * 22 * dt;
+      if (q.type === 'leaf') q.x += Math.sin(q.t * 2 + q.seed) * 32 * dt;
+    }
+    this._wx = this._wx.filter((q) => q.y < VIEW_H + 20 && q.x > -30 && q.x < VIEW_W + 30 && q.t < q.life);
+  }
+
+  /** Cria uma partícula de clima do bioma. @param {string} region */
+  _wxSpawn(region) {
+    const R = (a, b) => a + Math.random() * (b - a);
+    switch (region) {
+      case 'forest': return { type: 'rain', x: R(0, VIEW_W), y: -10, vx: -60, vy: 520, t: 0, life: 3, seed: R(0, 9) };
+      case 'snow': return { type: 'snow', x: R(0, VIEW_W), y: -10, vx: -15, vy: R(40, 90), t: 0, life: 16, seed: R(0, 9), s: Math.random() < 0.25 ? 3 : 2 };
+      case 'dungeon': case 'altar': return { type: 'ember', x: R(0, VIEW_W), y: VIEW_H + 6, vx: R(-15, 15), vy: R(-70, -35), t: 0, life: 7, seed: R(0, 9) };
+      case 'beach': return Math.random() < 0.85
+        ? { type: 'spark', x: R(0, VIEW_W), y: R(100, VIEW_H), vx: R(-12, 12), vy: R(-14, -4), t: 0, life: R(2, 4), seed: R(0, 9) }
+        : { type: 'gull', x: -30, y: R(50, 150), vx: R(50, 90), vy: 0, t: 0, life: 24, seed: R(0, 9) };
+      case 'town': return { type: 'dust', x: R(0, VIEW_W), y: R(0, VIEW_H), vx: R(-8, 8), vy: R(-12, -4), t: 0, life: R(3, 6), seed: R(0, 9) };
+      default: return { type: 'leaf', x: R(0, VIEW_W), y: R(-20, VIEW_H), vx: R(-45, -15), vy: R(10, 30), t: 0, life: R(4, 8), seed: R(0, 9), col: ['#7dd87d', '#c9e88a', '#ff8fb3'][(Math.random() * 3) | 0] };
+    }
+  }
+
+  /** Desenha o clima (espaço de tela, sobre o mundo). @param {CanvasRenderingContext2D} g */
+  _drawWeather(g) {
+    for (const q of this._wx) {
+      if (q.type === 'rain') {
+        g.fillStyle = 'rgba(150,200,255,.5)';
+        g.fillRect(q.x, q.y, 1.5, 9);
+      } else if (q.type === 'snow') {
+        g.fillStyle = `rgba(255,255,255,${(0.5 + 0.4 * Math.sin(q.t * 3 + q.seed)).toFixed(2)})`;
+        g.fillRect(q.x, q.y, q.s || 2, q.s || 2);
+      } else if (q.type === 'ember') {
+        g.fillStyle = `rgba(255,${120 + ((q.seed * 40) | 0)},40,${Math.max(0, 1 - q.t / q.life).toFixed(2)})`;
+        g.fillRect(q.x, q.y, 3, 3);
+      } else if (q.type === 'spark') {
+        g.fillStyle = `rgba(255,240,150,${(0.3 + 0.5 * Math.abs(Math.sin(q.t * 3 + q.seed))).toFixed(2)})`;
+        g.fillRect(q.x, q.y, 2, 2);
+      } else if (q.type === 'gull') {
+        g.strokeStyle = 'rgba(40,50,70,.8)'; g.lineWidth = 2; g.lineCap = 'round';
+        const w = 5 + Math.sin(q.t * 8) * 2;
+        g.beginPath();
+        g.moveTo(q.x - 7, q.y); g.quadraticCurveTo(q.x - 3, q.y - w, q.x, q.y);
+        g.quadraticCurveTo(q.x + 3, q.y - w, q.x + 7, q.y);
+        g.stroke();
+      } else if (q.type === 'dust') {
+        g.fillStyle = `rgba(255,250,220,${(0.12 + 0.12 * Math.sin(q.t * 2 + q.seed)).toFixed(2)})`;
+        g.fillRect(q.x, q.y, 2, 2);
+      } else {
+        g.fillStyle = q.col || '#7dd87d';
+        g.fillRect(q.x, q.y, 3, 2);
+      }
     }
   }
 

@@ -6,8 +6,9 @@
  * @module test/AutoTest
  */
 import { SaveSystem } from '../systems/SaveSystem.js';
-import { makeEncounter } from '../entities/Enemies.js';
+import { makeEncounter, encounterTable } from '../entities/Enemies.js';
 import { TILE } from '../core/Config.js';
+import { regionAt } from '../world/MapData.js';
 
 /** @param {import('../core/Engine.js').Engine} game */
 export async function runAutoTest(game) {
@@ -403,6 +404,47 @@ export async function runAutoTest(game) {
     }
     log(await autoWin(240000), 'boss-vitoria');
     log(await waitFor(() => game.state === 'ENDING' && !document.getElementById('ending').classList.contains('hidden') && game.flags.bossDefeated, 20000), 'ending');
+
+    // ---- 12. novas mecânicas: biomas, baú, pesca e caça ----
+    await game._onTitlePick('new');
+    await dismissDialog();
+    log(regionAt(33, 44) === 'beach', 'bioma-praia');
+    log(regionAt(30, 2) === 'snow', 'bioma-neve');
+    log(encounterTable('snow').length > 0 && encounterTable('beach').length > 0, 'encontros-biomas');
+    // baú da planície abre uma vez e dá o loot
+    {
+      const g0 = game.gold;
+      teleport(28, 31, 'down');
+      await frames(3);
+      log(game._tryChest() === true, 'bau-abre');
+      log(await dismissDialog(), 'bau-fecha');
+      log(game.flags.chest_plain === true && game.gold === g0 + 80 && (game.inv.potion || 0) >= 1, 'bau-loot');
+      log(game._tryChest() === true && game.flags.chest_plain === true, 'bau-vazio-reabre');
+    }
+    // pesca: de frente para a água pesca; com cooldown bloqueia em seguida
+    {
+      teleport(43, 35, 'right');
+      await frames(3);
+      game._fishCd = 0;
+      const fish0 = game.inv.fish || 0, gold0 = game.gold;
+      log(game._tryFish() === true, 'pesca-funciona');
+      log(game._tryFish() === false, 'pesca-cooldown');
+      log((game.inv.fish || 0) >= fish0 && game.gold >= gold0, 'pesca-recompensa');
+      await dismissDialog(); // limpa possível diálogo de pérola
+    }
+    // quest de caça do Guarda Cato: aceita, conta 6 slimes, recompensa
+    {
+      const guard = game.npcs.find((n) => n.id === 'guard');
+      game._talk(guard);
+      log(await dismissDialog(), 'caca-aceita');
+      log(game.flags.huntQuest === true, 'caca-quest-ativa');
+      const g0 = game.gold, e0 = game.inv.ether || 0;
+      await game._afterBattle({ victory: true, fled: false, xp: 0, gold: 0, boss: false, kills: ['slime', 'slime', 'slime', 'slime', 'slime', 'slime'] }, 'field');
+      log((game.flags.huntCount || 0) >= 6, 'caca-conta-slimes');
+      game._talk(guard);
+      log(await dismissDialog(), 'caca-entrega');
+      log(game.flags.huntRewarded === true && game.gold === g0 + 200 && (game.inv.ether || 0) === e0 + 1, 'caca-recompensa');
+    }
   } catch (e) {
     console.log(`[AUTOTEST] FAIL excecao ${e && e.stack ? e.stack : e}`);
     details.push(`excecao: ${e && e.stack ? e.stack : e}`);

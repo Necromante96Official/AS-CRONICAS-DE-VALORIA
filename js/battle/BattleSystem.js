@@ -34,6 +34,8 @@ const SCENERY = {
   dungeon: { sky: ['#0d0a1e', '#241a4e', '#33206b'], sun: '#bff3ff', far: '#1a1440', near: '#241c58', ground: '#3a3f5e', groundD: '#2a2e46', deco: 'torch', night: true },
   altar:   { sky: ['#0d0a1e', '#241a4e', '#33206b'], sun: '#bff3ff', far: '#1a1440', near: '#241c58', ground: '#3a3f5e', groundD: '#2a2e46', deco: 'torch', night: true },
   boss:    { sky: ['#1e060a', '#5e1020', '#a02838'], sun: '#ff9b5b', far: '#3a0a12', near: '#521420', ground: '#4a2028', groundD: '#33141c', deco: 'embers', night: true },
+  beach:   { sky: ['#3d7ac8', '#7ec8ff', '#cfeaff'], sun: '#fff8dc', far: '#2b6fd6', near: '#e0c886', ground: '#e0c886', groundD: '#b8945a', deco: 'shells', night: false },
+  snow:    { sky: ['#8aa4c4', '#c9d8ea', '#eef4fd'], sun: '#ffffff', far: '#7d8aa0', near: '#a8b8cc', ground: '#e8f0ff', groundD: '#b9c8de', deco: 'snowfall', night: false },
 };
 
 export class BattleSystem {
@@ -759,14 +761,14 @@ export class BattleSystem {
       }
       this._banner('✦ VITÓRIA! ✦', `+${xp} XP · +${gold} G`);
       this._log(`✦ Vitória! +${xp} XP · +${gold} G${lvMsgs.length ? '<br/>' + lvMsgs.join('<br/>') : ''}`);
-      this.endResult = { victory: true, fled: false, xp, gold, boss: this.isBoss };
+      this.endResult = { victory: true, fled: false, xp, gold, boss: this.isBoss, kills: this.enemies.map((e) => e.id) };
     } else if (fled) {
-      this.endResult = { victory: false, fled: true, xp: 0, gold: 0, boss: this.isBoss };
+      this.endResult = { victory: false, fled: true, xp: 0, gold: 0, boss: this.isBoss, kills: [] };
     } else {
       this.audio.sfx('die');
       this.flashT = 0.5; this.flashColor = '120,0,10';
       this._log('O grupo tombou...');
-      this.endResult = { victory: false, fled: false, xp: 0, gold: 0, boss: this.isBoss };
+      this.endResult = { victory: false, fled: false, xp: 0, gold: 0, boss: this.isBoss, kills: [] };
     }
     this._renderAll();
   }
@@ -953,6 +955,35 @@ export class BattleSystem {
         g.fillStyle = `rgba(255,${120 + (i % 3) * 40},40,${0.5 + 0.3 * Math.sin(this.time * 4 + i)})`;
         g.fillRect(x, y, 3, 3);
       }
+    } else if (sc.deco === 'shells') {
+      // conchas e estrelas-do-mar espalhadas na areia
+      for (let i = 0; i < 10; i++) {
+        const x = (i * 293 + 40) % 920 + 20, y = 272 + ((i * 71) % 52);
+        if (i % 3 === 0) {
+          g.fillStyle = '#f2b8c6'; g.fillRect(x, y, 7, 4);
+          g.fillStyle = '#fff'; g.fillRect(x + 1, y, 3, 1);
+        } else if (i % 3 === 1) {
+          g.fillStyle = '#fff'; g.fillRect(x, y, 2, 2);
+          g.fillStyle = '#e8763a'; g.fillRect(x - 3, y - 1, 8, 2); g.fillRect(x - 1, y - 3, 2, 7);
+        } else {
+          g.fillStyle = '#b8945a'; g.fillRect(x, y, 4, 2);
+        }
+      }
+      // reflexos d'água na beira
+      g.fillStyle = `rgba(255,255,255,${0.25 + 0.2 * Math.sin(this.time * 2)})`;
+      g.fillRect(40, 262, 880, 2);
+    } else if (sc.deco === 'snowfall') {
+      // flocos caindo sobre a neve
+      for (let i = 0; i < 40; i++) {
+        const x = (i * 173 + this.time * (12 + (i % 5) * 4) * (i % 2 ? 1 : -1) * 0.4 + 960) % 960;
+        const y = 180 + ((this.time * (24 + (i % 4) * 8) + i * 61) % 150);
+        const s = i % 4 === 0 ? 3 : 2;
+        g.fillStyle = `rgba(255,255,255,${0.5 + 0.4 * Math.sin(this.time * 3 + i)})`;
+        g.fillRect(x, y, s, s);
+      }
+      // brilho do gelo no chão
+      g.fillStyle = `rgba(180,220,255,${0.2 + 0.15 * Math.sin(this.time * 2)})`;
+      g.beginPath(); g.ellipse(480, 296, 380, 30, 0, 0, 7); g.fill();
     }
   }
 

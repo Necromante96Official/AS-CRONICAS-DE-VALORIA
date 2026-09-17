@@ -31,13 +31,13 @@
 }
 @keyframes star-twinkle { 50% { opacity: .55; } }
 #battle-bottom {
-  flex: 1;
+  flex: none;
   display: flex;
   gap: 6px;
-  padding: 6px 8px 8px;
+  padding: 4px 8px 6px;
   min-height: 0;
 }
-#battle-menu { flex: 1; padding: 6px 10px; overflow: hidden; }
+#battle-menu { flex: 1; padding: 3px 10px; overflow: hidden; }
 /* log interno (alimenta testes/logic) mas fora do layout */
 #battle-msg { display: none; }
 /* listas do topo: inimigos à esq, party à dir */
@@ -106,10 +106,12 @@
 #battle-party .bbar.mp > div { background: linear-gradient(90deg, #6bb8ff, #2456e0); }
 /* comandos em faixa horizontal */
 #battle-menu { overflow-x: auto; overflow-y: hidden; }
-#battle-cmds { display: flex; align-items: center; gap: 4px; min-height: 100%; }
-#battle-cmds .cmd-title { color: var(--ff-yellow); font-weight: bold; letter-spacing: 1px; font-size: .92em; flex: none; margin-right: 4px; }
-#battle-cmds .opt { padding: 6px 10px; border-radius: 16px; font-size: clamp(12px, 1.9vw, 16px); border: 1px solid transparent; transition: background .12s; white-space: nowrap; flex: none; }
+#battle-cmds { display: flex; align-items: center; gap: 3px; }
+#battle-cmds .cmd-title { color: var(--ff-yellow); font-weight: bold; letter-spacing: 1px; font-size: .85em; flex: none; margin-right: 2px; }
+#battle-cmds .opt { padding: 4px 9px; border-radius: 14px; font-size: clamp(11px, 1.8vw, 15px); border: 1px solid transparent; transition: background .12s; white-space: nowrap; flex: none; }
 #battle-cmds .opt.sel { background: #ffffff16; color: var(--ff-yellow); border-color: #ffd75e66; }
+#battle-cmds .opt.nomp { opacity: .4; }
+#battle-party .bchar.dead { opacity: .45; }
 #battle-cmds .opt .cost { color: var(--ff-mp); font-size: .8em; margin-left: 6px; }
 #battle-cmds .opt .count { color: var(--ff-yellow); font-size: .8em; margin-left: 6px; }
 #battle-cmds .opt .row-sub { display: none; }

@@ -53,6 +53,7 @@ export class BattleSystem {
     this.msgEl = document.getElementById('battle-msg');
     this.partyEl = document.getElementById('battle-party');
     this.foesEl = document.getElementById('battle-foes');
+    this.bottomEl = document.getElementById('battle-bottom');
     this.cmdEl = document.getElementById('battle-cmds');
     this.bossBar = document.getElementById('boss-bar');
     this.bossName = document.getElementById('boss-name');
@@ -119,7 +120,7 @@ export class BattleSystem {
     this.phase = 'intro';
     this.phaseT = 0;
     this.heroIdx = 0;
-    this.menu = 'main'; this.sel = 0;
+    this.menu = 'main'; this.sel = 0; this._mainSel = null;
     this.actions = [];
     this.queue = [];
     this.turnCount = 0;
@@ -195,7 +196,7 @@ export class BattleSystem {
       const low = h.hp > 0 && h.hp < h.maxHp * 0.3;
       const tags = `${h.guard ? '<span class="btag guard">🛡</span>' : ''}${low ? '<span class="btag low">!</span>' : ''}`;
       return `
-      <div class="bchar ${this.phase === 'command' && i === this.heroIdx ? 'active' : ''} ${low ? 'lowhp' : ''}">
+      <div class="bchar ${this.phase === 'command' && i === this.heroIdx ? 'active' : ''} ${low ? 'lowhp' : ''} ${h.hp <= 0 ? 'dead' : ''}">
         <img class="bface" src="${this.heroIcons[h.sprite] || this.heroIcons.hero || ''}" alt="" />
         <div class="bchar-info">
           <div class="brow"><span class="bnm">${h.hp <= 0 ? '✝' : '●'} ${h.name}</span><span class="blv">Nv${h.level}</span>${tags}<span class="bnums">HP ${Math.max(0, Math.ceil(h.hp))}/${h.maxHp} · MP ${Math.max(0, Math.ceil(h.mp))}/${h.maxMp}</span></div>
@@ -234,11 +235,16 @@ export class BattleSystem {
   }
 
   _renderCmds() {
-    if (this.phase !== 'command') { this.cmdEl.innerHTML = '<div class="opt">…</div>'; return; }
+    // fora da escolha (animação/execução): esconde a barra — sem janela vazia
+    if (this.bottomEl) this.bottomEl.style.display = this.phase === 'command' ? '' : 'none';
+    if (this.phase !== 'command') return;
     const h = this.party[this.heroIdx];
     let opts = [];
     if (this.menu === 'main') opts = ['⚔ Atacar', '✨ Magia', '🎒 Item', '🔍 Analisar', '🏃 Fugir', '🛡 Defender'];
-    else if (this.menu === 'magic') opts = [...h.spells.map((s) => `${SPELLS[s].name}<span class="cost">${SPELLS[s].mp}MP</span><span class="row-sub"> — ${SPELLS[s].desc}</span>`), '« Voltar'];
+    else if (this.menu === 'magic') opts = [...h.spells.map((s) => ({
+      html: `${SPELLS[s].name}<span class="cost">${SPELLS[s].mp}MP</span><span class="row-sub"> — ${SPELLS[s].desc}</span>`,
+      cls: h.mp < SPELLS[s].mp ? ' nomp' : '',
+    })), { html: '« Voltar', cls: '' }];
     else if (this.menu === 'item') opts = [...Object.keys(ITEMS).filter((id) => (this.inv[id] || 0) > 0 && ITEMS[id].battle).map((id) => `${ITEMS[id].name}<span class="count">×${this.inv[id]}</span>`), '« Voltar'];
     else if (this.menu === 'targetE') {
       // Derrotados somem da seleção: lista só os vivos + « Voltar.
@@ -251,7 +257,11 @@ export class BattleSystem {
     }
     else if (this.menu === 'targetA') opts = [...this.party.map((a) => `${a.hp <= 0 ? '✝ ' : ''}${a.guard ? '🛡' : ''}${a.name}<span class="foe-hp">${Math.max(0, Math.ceil(a.hp))}/${a.maxHp}</span>`), '« Voltar'];
     this.cmdEl.innerHTML = `<div class="cmd-title">${h.name} ❯</div>` +
-      opts.map((o, i) => `<div class="opt ${i === this.sel ? 'sel' : ''}">${o}</div>`).join('');
+      opts.map((o, i) => {
+        const html = typeof o === 'string' ? o : o.html;
+        const cls = typeof o === 'string' ? '' : o.cls;
+        return `<div class="opt${cls} ${i === this.sel ? 'sel' : ''}">${html}</div>`;
+      }).join('');
     this.optCount = opts.length;
     this.cmdEl.scrollTop = 9999;
   }
@@ -287,10 +297,10 @@ export class BattleSystem {
     this.audio.sfx('confirm');
     if (this.menu === 'main') {
       const c = ['attack', 'magic', 'item', 'scan', 'flee', 'guard'][this.sel];
-      if (c === 'attack') { this.pending = { type: 'attack' }; this.menu = 'targetE'; this.sel = 0; }
-      else if (c === 'magic') { this.menu = 'magic'; this.sel = 0; }
-      else if (c === 'item') { this.menu = 'item'; this.sel = 0; }
-      else if (c === 'scan') { this.pending = { type: 'scan' }; this.menu = 'targetE'; this.sel = 0; }
+      if (c === 'attack') { this._mainSel = this.sel; this.pending = { type: 'attack' }; this.menu = 'targetE'; this.sel = 0; }
+      else if (c === 'magic') { this._mainSel = this.sel; this.menu = 'magic'; this.sel = 0; }
+      else if (c === 'item') { this._mainSel = this.sel; this.menu = 'item'; this.sel = 0; }
+      else if (c === 'scan') { this._mainSel = this.sel; this.pending = { type: 'scan' }; this.menu = 'targetE'; this.sel = 0; }
       else if (c === 'guard') { this._act(this.heroIdx, { type: 'guard' }); return true; }
       else if (c === 'flee') { this._act(this.heroIdx, { type: 'flee' }); return true; }
     } else if (this.menu === 'magic') {
@@ -356,7 +366,7 @@ export class BattleSystem {
       this.actions[this.heroIdx] = { type: 'skip' };
       this.heroIdx++;
     }
-    this.menu = 'main'; this.sel = 0; this.pending = null;
+    this.menu = 'main'; this.sel = this._mainSel ?? 0; this.pending = null;
     if (this.heroIdx >= this.party.length) this._beginExec();
     else { this._log(`O que ${this.party[this.heroIdx].name} fará?`); this._renderAll(); }
   }
@@ -364,6 +374,7 @@ export class BattleSystem {
   // ---------- execução dos turnos ----------
   _beginExec() {
     this.phase = 'exec';
+    this._mainSel = null; // nova rodada: cursor volta ao Atacar
     this.turnCount++;
     this.queue = [];
     this.party.forEach((h, i) => {
@@ -410,7 +421,7 @@ export class BattleSystem {
 
     if (this.phase === 'intro') {
       this.phaseT += dt;
-      if (this.phaseT > 1.1) {
+      if (this.phaseT > 0.9) {
         this.phase = 'command'; this.heroIdx = 0;
         this.actions = new Array(this.party.length).fill(null);
         while (this.heroIdx < this.party.length && this.party[this.heroIdx].hp <= 0) { this.actions[this.heroIdx] = { type: 'skip' }; this.heroIdx++; }
@@ -474,7 +485,7 @@ export class BattleSystem {
         }
       }
     }
-    this.phaseT = 0.75;
+    this.phaseT = 0.65;
   }
 
   /** Alvo inimigo válido: mantém o escolhido ou redireciona ao primeiro vivo. @returns {number} índice ou -1 */

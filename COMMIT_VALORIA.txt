@@ -1,0 +1,23 @@
+visuais: casas, inimigos e objetos inconfundiveis + alvo so nos vivos
+
+- Batalha: inimigo derrotado some da lista de alvos (lista so vivos +
+  "Voltar"); cursor/anel/dim apenas no alvo valido; cura/item redireciona
+  se o aliado cair no meio do turno.
+- Visuais 2a passada: ponte de madeira com corrimão de corda e pregos;
+  pedregulho arredondado com facetas; canteiro com fileiras de mudinhas;
+  pinheiro em 3 andares com pinhas; copa com reentrancias e macas com
+  brilho; Pip criança (0.78x); halo no cristal de cura; boneco da quest
+  desenhado como boneco de pano com estrela pulsante.
+- Bundle index.html regenerado (tools/build_single.py).
+- Validação: build.py OK, check_dist.py PASS, run_autotest.py 73/73 PASS,
+  screenshots em shots/ conferidas.
+
+Como enviar (opção 1 — automático):
+  duplo clique em EnviarCommit.bat e confirme.
+
+Como enviar (opção 2 — manual):
+  git remote add origin https://github.com/Necromante96Official/AS-CRONICAS-DE-VALORIA.git
+  git add -A
+  git commit -F COMMIT_VALORIA.txt
+  git branch -M main
+  git push -u origin main

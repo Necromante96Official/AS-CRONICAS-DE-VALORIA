@@ -1,0 +1,153 @@
+/* ============ BASE — layout, canvas, caixas estilo FF ============ */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --ff-blue: #101c5c;
+  --ff-blue2: #1b2f9e;
+  --ff-border: #e8ecff;
+  --ff-text: #f2f4ff;
+  --ff-yellow: #ffd75e;
+  --ff-red: #ff6b6b;
+  --ff-green: #37e08b;
+  --ff-mp: #6bb8ff;
+  --ff-dim: #9fb2ff;
+  --px: 'Courier New', ui-monospace, monospace;
+}
+
+html, body {
+  height: 100%;
+  background: #05060f radial-gradient(circle at 50% 20%, #141b45 0%, #05060f 65%);
+  color: var(--ff-text);
+  font-family: var(--px);
+  overflow: hidden;
+}
+
+#stage {
+  height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+}
+
+#game-wrap {
+  position: relative;
+  width: min(96vw, 960px);
+  aspect-ratio: 16 / 9;
+  background: #000;
+  border: 3px solid #2a3570;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 0 60px #2a357055, 0 20px 60px #000c;
+}
+
+/* vinheta retrô + scanlines sutis sobre o mundo (abaixo da UI) */
+#game-wrap::before {
+  content: ''; position: absolute; inset: 0; z-index: 5; pointer-events: none;
+  background: repeating-linear-gradient(0deg, rgba(0,0,0,.07) 0 1px, transparent 1px 3px);
+}
+#game-wrap::after {
+  content: ''; position: absolute; inset: 0; z-index: 5; pointer-events: none;
+  background: radial-gradient(ellipse at center, transparent 58%, rgba(0,0,12,.42) 100%);
+}
+
+#game, #battle-canvas { width: 100%; display: block; image-rendering: pixelated; }
+#battle-canvas { height: 63%; }
+
+.hidden { display: none !important; }
+
+/* Entrada fluida de painéis (diálogo, menu, batalha, telas finais) */
+@keyframes panel-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes panel-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
+
+/* Caixa de diálogo/menu clássica: azul degradê + borda branca dupla */
+.ff-box {
+  background: linear-gradient(160deg, var(--ff-blue2), var(--ff-blue) 70%);
+  border: 3px solid var(--ff-border);
+  border-radius: 8px;
+  box-shadow: 0 0 0 3px #0a1030, 0 8px 24px #000a;
+  padding: 12px 14px;
+}
+
+.ff-btn {
+  font-family: var(--px);
+  font-size: 16px;
+  font-weight: bold;
+  color: var(--ff-text);
+  background: linear-gradient(160deg, var(--ff-blue2), var(--ff-blue));
+  border: 3px solid var(--ff-border);
+  border-radius: 8px;
+  padding: 10px 22px;
+  cursor: pointer;
+}
+.ff-btn:hover { background: linear-gradient(160deg, #2b44c4, #16247c); }
+
+/* Transição de tela (fade / flash) */
+#transition {
+  position: absolute; inset: 0;
+  background: #000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .25s linear;
+  z-index: 60;
+}
+#transition.flash { background: #fff; }
+#transition.swirl { background: radial-gradient(circle, #fff 0%, #7fd4ff 30%, #101c5c 70%, #000 100%); }
+
+/* Toast de itens / XP */
+#toast {
+  position: absolute;
+  top: 64px; left: 50%;
+  transform: translateX(-50%);
+  background: #0a1030ee;
+  border: 2px solid var(--ff-yellow);
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-weight: bold;
+  color: var(--ff-yellow);
+  z-index: 55;
+  max-width: 88%;
+  text-align: center;
+  text-wrap: balance;
+  animation: toast-in .25s ease-out;
+}
+@keyframes toast-in { from { transform: translate(-50%, -10px); opacity: 0; } }
+
+/* Controles touch */
+#touch {
+  position: absolute; inset: auto 0 0 0;
+  display: flex; justify-content: space-between;
+  padding: 10px 14px 14px;
+  z-index: 40;
+  pointer-events: none;
+}
+#dpad {
+  display: grid;
+  grid-template-columns: repeat(3, 44px);
+  grid-template-rows: repeat(3, 44px);
+  pointer-events: auto;
+}
+#dpad button:nth-child(1) { grid-column: 2; }
+#dpad button:nth-child(2) { grid-column: 1; grid-row: 2; }
+#dpad button:nth-child(3) { grid-column: 2; grid-row: 2; }
+#dpad button:nth-child(4) { grid-column: 3; grid-row: 2; }
+#touch button {
+  font-size: 18px;
+  color: #fff;
+  background: #ffffff22;
+  border: 2px solid #ffffff88;
+  border-radius: 10px;
+  backdrop-filter: blur(2px);
+  touch-action: none;
+}
+#tbtns { display: flex; gap: 10px; align-items: flex-end; pointer-events: auto; }
+#tbtns button { width: 56px; height: 56px; border-radius: 50%; font-weight: bold; }

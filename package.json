@@ -1,0 +1,14 @@
+{
+  "name": "cronicas-de-valoria",
+  "version": "1.0.0",
+  "description": "JRPG topdown estilo Final Fantasy — HTML + CSS + JS modular com checagem TypeScript",
+  "type": "module",
+  "scripts": {
+    "serve": "python tools/server.py",
+    "check": "tsc --noEmit",
+    "build": "python tools/build.py"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.0"
+  }
+}

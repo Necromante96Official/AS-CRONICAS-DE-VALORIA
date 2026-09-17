@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>CRÔNICAS DE VALORIA — JRPG Topdown</title>
+  <link rel="stylesheet" href="css/base.css" />
+  <link rel="stylesheet" href="css/ui.css" />
+  <link rel="stylesheet" href="css/battle.css" />
+  <script>
+    // Diagnóstico de boot: se os módulos JS não carregarem (ex.: abriu este
+    // arquivo com duplo clique em vez do servidor), explica como rodar.
+    window.__valoriaBootTimer = setTimeout(function () {
+      if (window.__valoriaBooted) return;
+      var d = document.createElement('div');
+      d.style.cssText = 'position:absolute;inset:0;z-index:99;display:flex;align-items:center;justify-content:center;background:rgba(0,0,8,.94);padding:24px;font-family:monospace;text-align:left;';
+      d.innerHTML = '<div style="max-width:560px;line-height:1.8;color:#f2f4ff;">'
+        + '<h2 style="color:#ffd75e;margin-bottom:10px;">O jogo não carregou</h2>'
+        + '<p>O navegador bloqueou os módulos JavaScript. Use o servidor de desenvolvimento:</p>'
+        + '<p style="margin-top:10px;">Na pasta do jogo, rode<br/><code style="color:#7fd4ff;">python tools/server.py</code><br/>e abra <code style="color:#7fd4ff;">http://localhost:8080/dev.html</code></p>'
+        + '<p style="margin-top:10px;">Ou abra o <code style="color:#7fd4ff;">index.html</code> (versão de arquivo único) com duplo clique.</p>'
+        + '</div>';
+      document.getElementById('game-wrap').appendChild(d);
+    }, 5000);
+  </script>
+</head>
+<body>
+  <div id="stage">
+    <div id="game-wrap">
+      <canvas id="game" width="960" height="540"></canvas>
+
+      <!-- HUD de exploração -->
+      <div id="hud" class="hidden">
+        <div id="hud-party"></div>
+        <div id="hud-right">
+          <div id="hud-location">Valoria</div>
+          <div id="hud-gold">💰 0 G</div>
+          <canvas id="minimap" width="128" height="96"></canvas>
+        </div>
+      </div>
+
+      <div id="toast" class="hidden"></div>
+      <div id="region-banner" class="hidden"></div>
+
+      <!-- Caixa de diálogo estilo FF -->
+      <div id="dialog" class="ff-box hidden">
+        <canvas id="dialog-face" width="52" height="52"></canvas>
+        <div id="dialog-main">
+          <div id="dialog-name"></div>
+          <div id="dialog-text"></div>
+        </div>
+        <div id="dialog-hint">▼</div>
+      </div>
+
+      <!-- Menu de pausa com abas -->
+      <div id="menu" class="ff-box hidden">
+        <h2>◆ MENU</h2>
+        <div id="menu-tabs"></div>
+        <div id="menu-body">
+          <div id="menu-list"></div>
+          <div id="menu-detail"></div>
+        </div>
+        <div id="menu-foot"></div>
+      </div>
+
+      <!-- Batalha por turnos -->
+      <div id="battle" class="hidden">
+        <div id="boss-bar" class="hidden">
+          <div id="boss-name"></div>
+          <div class="bbar hp big"><div id="boss-fill"></div></div>
+        </div>
+        <canvas id="battle-canvas" width="960" height="340"></canvas>
+        <div id="battle-bottom">
+          <div id="battle-msg" class="ff-box"></div>
+          <div id="battle-party" class="ff-box"></div>
+          <div id="battle-menu" class="ff-box">
+            <div id="battle-cmds"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tela de título -->
+      <div id="title">
+        <div class="title-crystal"></div>
+        <h1>CRÔNICAS<br />DE VALORIA</h1>
+        <p class="subtitle">— um JRPG topdown em HTML —</p>
+        <div id="title-list" class="ff-box"></div>
+        <p class="controls-hint">Setas / WASD mover · Shift correr · <b>E</b> confirmar · <b>Q</b> menu · <b>M</b> som · Encontros na grama alta!</p>
+        <p class="version">v2.0 · edição arquivo único — jogue offline 💎</p>
+      </div>
+
+      <!-- Game Over / Ending -->
+      <div id="gameover" class="hidden end-screen">
+        <h1>GAME OVER</h1>
+        <div class="ornament">✦ ─── ✦ ─── ✦</div>
+        <p>O cristal se apagou... mas a lenda continua.</p>
+        <p id="gameover-tip" class="tip"></p>
+        <button id="btn-retry" class="ff-btn">Voltar ao título</button>
+      </div>
+      <div id="ending" class="hidden end-screen">
+        <h1>✦ O CRISTAL RENASCE ✦</h1>
+        <div class="ornament">✦ ─── ✦ ─── ✦</div>
+        <p id="ending-text"></p>
+        <button id="btn-ending" class="ff-btn">Voltar ao título</button>
+      </div>
+
+      <!-- Transição / fade -->
+      <div id="transition"></div>
+
+      <!-- Controles touch -->
+      <div id="touch" class="hidden">
+        <div id="dpad">
+          <button data-k="up">▲</button>
+          <button data-k="left">◀</button>
+          <button data-k="down">▼</button>
+          <button data-k="right">▶</button>
+        </div>
+        <div id="tbtns">
+          <button data-k="cancel">B</button>
+          <button data-k="confirm">A</button>
+          <button data-k="menu">≡</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

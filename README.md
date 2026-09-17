@@ -8,6 +8,8 @@ Sem dependências de runtime, sem assets externos: tudo é procedural.
 
 **Controles:** Setas/WASD movem · **E**/Enter confirma e fala · **Q**/Esc abre o
 menu · mouse também funciona (clique nas opções) · no celular aparecem botões touch.
+**Celular:** toque na tela para andar sozinho (e interagir ao chegar) · 🏃 correr ·
+segure os botões para movê-los (2 toques restaura) · NPCs não bloqueiam a passagem.
 
 **Roteiro:** fale com o Ancião na Vila Lumen → treine na grama alta →
 compre poções com a Mira → descanse na estalagem → atravesse a ponte a leste →

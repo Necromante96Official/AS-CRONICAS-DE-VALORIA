@@ -101,6 +101,24 @@ export class Engine {
     // clima/ambiente por bioma + cooldown da pesca
     this._wx = [];
     this._fishCd = 0;
+    // toque-para-andar: caminho ativo, intenção ao chegar e marca visual
+    this._path = null;
+    this._pathRun = false;
+    this._tapAct = null;
+    this._tapMark = null;
+    this._tapDown = null;
+    this.cv.addEventListener('pointerdown', (e) => {
+      this._tapDown = { x: e.clientX, y: e.clientY, t: performance.now(), id: e.pointerId };
+    });
+    this.cv.addEventListener('pointerup', (e) => {
+      const d = this._tapDown;
+      this._tapDown = null;
+      if (!d || e.pointerId !== d.id) return;
+      if (performance.now() - d.t > 500) return;
+      if (Math.hypot(e.clientX - d.x, e.clientY - d.y) > 14) return;
+      this._handleTap(e.clientX, e.clientY);
+    });
+    this.cv.addEventListener('pointercancel', () => { this._tapDown = null; });
   }
 
   init() {
@@ -275,12 +293,14 @@ export class Engine {
 
     if (inp.pressed.menu || inp.pressed.cancel) {
       this.audio.unlock(); this.audio.sfx('confirm');
+      this._path = null; this._tapAct = null;
       this.menu.show({ party: this.party, inv: this.inv, gold: this.gold, time: this._fmtTime() }, (m) => toast(m), this._menuActions());
       return;
     }
 
     // falar / altar do boss / cristal / brinquedo / baú / pesca
     if (inp.pressed.confirm) {
+      this._path = null; this._tapAct = null;
       if (this._tryBossInteract()) return;
       if (this._tryHealCrystal()) return;
       if (this._tryToyPickup()) return;
@@ -291,14 +311,22 @@ export class Engine {
     }
 
     // movimento (Shift = correr)
-    const blockers = this.npcs.map((n) => ({ x: n.x, y: n.y }));
+    // NPCs NÃO bloqueiam: dá para atravessar sem travar (falar continua pelo E)
+    const blockers = [];
     // dragão bloqueia o altar até ser derrotado
     if (!this.flags.bossDefeated) blockers.push({ x: BOSS_ALTAR.x * TILE, y: BOSS_ALTAR.y * TILE });
     // baús são sólidos (abertos ou não)
     for (const c of CHESTS) blockers.push({ x: c.x * TILE, y: c.y * TILE });
     if (this._fishCd > 0) this._fishCd -= dt;
-    const ax = inp.axis;
-    this.player.update(ax, dt, this.map, blockers, inp.held.run);
+    // toque-para-andar: input manual cancela a rota; sem input, a rota guia
+    let ax = inp.axis;
+    if (ax.x !== 0 || ax.y !== 0) { this._path = null; this._tapAct = null; }
+    else if (this._path && this._path.length) {
+      ax = this._pathAxis();
+      this._pathStuck = (this._pathStuck || 0) + dt;
+      if (this._pathStuck > 1.5) { this._path = null; this._tapAct = null; } // segurança anti-trava
+    }
+    this.player.update(ax, dt, this.map, blockers, inp.held.run || (this._pathRun && !!this._path && !!this._path.length));
     // sons de passo / trombada
     if (this.player.moving) {
       this._stepT = (this._stepT || 0) + dt * (this.player.running ? 1.5 : 1);
@@ -383,6 +411,122 @@ export class Engine {
       },
     };
   }
+  // ---------- toque-para-andar ----------
+  /** Toque/clique no mundo: anda até o local (BFS) e interage ao chegar. */
+  _handleTap(clientX, clientY) {
+    if (this.state !== 'FIELD' || this._busy) return;
+    if (this.dialog.active || this.menu.active) return;
+    const r = this.cv.getBoundingClientRect();
+    if (!r || r.width <= 0 || r.height <= 0) return;
+    const sx = ((clientX - r.left) / r.width) * VIEW_W;
+    const sy = ((clientY - r.top) / r.height) * VIEW_H;
+    this._tapWorld(sx - this.camera.ox, sy - this.camera.oy);
+  }
+
+  /** Rota BFS até o ponto (ou o pisável alcançável mais próximo). */
+  _tapWorld(wx, wy) {
+    const tx = Math.floor(wx / TILE), ty = Math.floor(wy / TILE);
+    const sx = this.player.tileX, sy = this.player.tileY;
+    const blocked = (x, y) => {
+      if (x < 1 || y < 1 || x >= this.map.w - 1 || y >= this.map.h - 1) return true;
+      if (this.map.solid(x, y)) return true;
+      if (!this.flags.bossDefeated && x === BOSS_ALTAR.x && y === BOSS_ALTAR.y) return true;
+      if (CHESTS.some((c) => c.x === x && c.y === y)) return true;
+      return false;
+    };
+    const key = (x, y) => y * this.map.w + x;
+    const prev = new Map();
+    const seen = new Set([key(sx, sy)]);
+    const q = [[sx, sy]];
+    while (q.length) {
+      const [cx, cy] = q.shift();
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const nx = cx + dx, ny = cy + dy, k = key(nx, ny);
+        if (seen.has(k) || blocked(nx, ny)) continue;
+        seen.add(k); prev.set(k, [cx, cy]); q.push([nx, ny]);
+      }
+    }
+    let goal = null;
+    if (!blocked(tx, ty) && seen.has(key(tx, ty))) goal = [tx, ty];
+    else {
+      let bd = 1e9;
+      for (const k of seen) {
+        const x = k % this.map.w, y = (k / this.map.w) | 0;
+        const d = Math.abs(x - tx) + Math.abs(y - ty);
+        if (d < bd) { bd = d; goal = [x, y]; }
+      }
+    }
+    const tiles = [];
+    let cur = goal;
+    while (cur && !(cur[0] === sx && cur[1] === sy)) {
+      tiles.push(cur);
+      cur = prev.get(key(cur[0], cur[1]));
+    }
+    tiles.reverse();
+    this._path = tiles.map(([x, y]) => ({ x: x * TILE + 16, y: y * TILE + 16 }));
+    this._pathRun = tiles.length > 10;
+    this._pathStuck = 0;
+    this._tapAct = this._tapIntent(tx, ty);
+    this._tapMark = { x: wx, y: wy, t: this.time };
+    this.audio.sfx('cursor');
+    if (!this._path.length) this._arriveTap();
+  }
+
+  /** O que há no tile tocado (p/ interagir ao chegar). */
+  _tapIntent(tx, ty) {
+    const npc = this.npcs.find((n) =>
+      Math.floor((n.x + 12) / TILE) === tx && Math.floor((n.y + 12) / TILE) === ty);
+    if (npc) return { kind: 'npc', npc };
+    if (CHESTS.some((c) => c.x === tx && c.y === ty)) return { kind: 'chest' };
+    if (tx === BOSS_ALTAR.x && ty === BOSS_ALTAR.y) return { kind: 'spot', which: 'boss' };
+    if (tx === HEAL_CRYSTAL.x && ty === HEAL_CRYSTAL.y) return { kind: 'spot', which: 'crystal' };
+    if (tx === TOY_SPOT.x && ty === TOY_SPOT.y) return { kind: 'spot', which: 'toy' };
+    if (this.map.tile(tx, ty) === T.WATER) return { kind: 'fish', tx, ty };
+    return null;
+  }
+
+  /** Vira o jogador para um ponto do mundo. */
+  _faceToward(wx, wy) {
+    const dx = wx - this.player.cx, dy = wy - this.player.cy;
+    this.player.dir = Math.abs(dx) >= Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up');
+  }
+
+  /** Chegou ao destino do toque: executa a interação (se ainda ao alcance). */
+  _arriveTap() {
+    const act = this._tapAct;
+    this._tapAct = null;
+    if (!act || this.state !== 'FIELD' || this.dialog.active || this.menu.active) return;
+    if (act.kind === 'npc') {
+      const nx = act.npc.x + 12, ny = act.npc.y + 12;
+      if (Math.hypot(nx - this.player.cx, ny - this.player.cy) > TILE * 1.8) return;
+      this._faceToward(nx, ny);
+      this._talk(act.npc);
+    } else if (act.kind === 'chest') {
+      this._tryChest();
+    } else if (act.kind === 'fish') {
+      this._faceToward(act.tx * TILE + 16, act.ty * TILE + 16);
+      this._tryFish();
+    } else if (act.kind === 'spot') {
+      if (act.which === 'boss') this._tryBossInteract();
+      else if (act.which === 'crystal') this._tryHealCrystal();
+      else this._tryToyPickup();
+    }
+  }
+
+  /** Próximo passo da rota (4 direções, estilo JRPG). */
+  _pathAxis() {
+    if (!this._path || !this._path.length) return { x: 0, y: 0 };
+    const w = this._path[0];
+    const dx = w.x - this.player.cx, dy = w.y - this.player.cy;
+    if (Math.hypot(dx, dy) < 5) {
+      this._path.shift();
+      this._pathStuck = 0;
+      if (!this._path.length) { this._arriveTap(); return { x: 0, y: 0 }; }
+      return this._pathAxis();
+    }
+    return Math.abs(dx) >= Math.abs(dy) ? { x: Math.sign(dx), y: 0 } : { x: 0, y: Math.sign(dy) };
+  }
+
   // ---------- interação ----------
   _facingNpc() {
     const ft = this.player.facingTile();
@@ -632,6 +776,7 @@ export class Engine {
   // ---------- batalhas ----------
   async _startWildBattle(region) {
     if (this._busy) return;
+    this._path = null; this._tapAct = null; this._tapMark = null;
     this._busy = true;
     try {
       this.audio.sfx('encounter');
@@ -652,6 +797,7 @@ export class Engine {
 
   async _startBossBattle() {
     if (this._busy) return;
+    this._path = null; this._tapAct = null; this._tapMark = null;
     this._busy = true;
     try {
       this.audio.playMusic('boss');
@@ -833,6 +979,17 @@ export class Engine {
     this.map.drawCanopy(g, ox, oy, this.time);
     // clima/ambiente do bioma (chuva, neve, brasas, folhas, gaivotas...)
     this._drawWeather(g);
+    // marca do toque (para onde o jogador está indo)
+    if (this._tapMark && this.time - this._tapMark.t < 0.6) {
+      const k = (this.time - this._tapMark.t) / 0.6;
+      const mx = this._tapMark.x + ox, my = this._tapMark.y + oy;
+      g.globalAlpha = 1 - k;
+      g.strokeStyle = '#ffd75e'; g.lineWidth = 3;
+      g.beginPath(); g.ellipse(mx, my, 6 + k * 14, (6 + k * 14) * 0.6, 0, 0, 7); g.stroke();
+      g.fillStyle = '#ffd75e';
+      g.fillRect(mx - 1.5, my - 1.5, 3, 3);
+      g.globalAlpha = 1;
+    }
 
     // balão "▼ E" quando há NPC falável à frente (prioridade sobre o "!" da quest)
     const npc = this._facingNpc();

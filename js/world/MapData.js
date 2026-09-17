@@ -115,10 +115,12 @@ export function buildMap() {
   // cerca viva do portal + placa indicativa
   set(11, 32, T.FENCE); set(12, 32, T.FENCE);
   set(16, 32, T.FENCE); set(17, 32, T.SIGN);
-  // praça: poço a oeste, postes nos cantos e caixas da loja
-  set(13, 38, T.WELL);
+  // praça: postes nos cantos e caixas da loja (o poço saiu do centro → leste da vila)
+  set(13, 38, T.PLAZA);
   set(12, 39, T.LAMP); set(17, 39, T.LAMP);
   set(19, 38, T.CRATE); set(19, 39, T.CRATE);
+  // poço realocado: leste da vila, fora da praça central
+  set(21, 41, T.WELL);
   // fazenda a oeste (solo arado cercado, com entrada ao sul)
   rect(3, 37, 4, 38, T.SOIL);
   for (let x = 2; x <= 5; x++) set(x, 36, T.FENCE);

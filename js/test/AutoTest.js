@@ -9,6 +9,7 @@ import { SaveSystem } from '../systems/SaveSystem.js';
 import { makeEncounter, encounterTable } from '../entities/Enemies.js';
 import { TILE } from '../core/Config.js';
 import { regionAt } from '../world/MapData.js';
+import { T } from '../world/Tiles.js';
 
 /** @param {import('../core/Engine.js').Engine} game */
 export async function runAutoTest(game) {
@@ -444,6 +445,49 @@ export async function runAutoTest(game) {
       game._talk(guard);
       log(await dismissDialog(), 'caca-entrega');
       log(game.flags.huntRewarded === true && game.gold === g0 + 200 && (game.inv.ether || 0) === e0 + 1, 'caca-recompensa');
+    }
+
+    // ---- 13. mobile/colisão: atravessa NPC, tap-to-move e poço realocado ----
+    log(game.map.tile(13, 38) !== T.WELL && game.map.tile(21, 41) === T.WELL, 'poco-realocado');
+    // atravessa o Ancião (14,36) andando para baixo sem travar
+    {
+      teleport(14, 35, 'down');
+      await frames(3);
+      window.dispatchEvent(new KeyboardEvent('keydown', { code: 'ArrowDown' }));
+      await frames(15);
+      window.dispatchEvent(new KeyboardEvent('keyup', { code: 'ArrowDown' }));
+      await frames(3);
+      log(game.player.tileY >= 36, 'npc-atravessa', `tileY ${game.player.tileY}`);
+    }
+    // tap-to-move: rota até (25,30) e anda sozinho sem teclas
+    {
+      teleport(20, 30, 'right');
+      await frames(3);
+      game._tapWorld(25 * TILE + 16, 30 * TILE + 16);
+      log((game._path?.length || 0) > 0, 'tap-rota-criada');
+      const tx0 = game.player.x;
+      await frames(50);
+      log(game.player.x > tx0 + 40, 'tap-anda-sozinho', `x ${tx0.toFixed(0)}→${game.player.x.toFixed(0)}`);
+      game._path = null; game._tapAct = null;
+    }
+    // tap através do rio usa a ponte (todos os passos pisáveis)
+    {
+      teleport(40, 30, 'right');
+      await frames(3);
+      game._tapWorld(50 * TILE + 16, 29 * TILE + 16);
+      const ok = (game._path?.length || 0) > 0 &&
+        game._path.every((w) => !game.map.solid(Math.floor(w.x / TILE), Math.floor(w.y / TILE)));
+      log(ok, 'tap-usa-ponte', `${(game._path?.length || 0)} passos`);
+      game._path = null; game._tapAct = null;
+    }
+    // toque na água: mira o pisável vizinho e prepara a pesca
+    {
+      teleport(43, 35, 'right');
+      await frames(3);
+      game._fishCd = 0;
+      game._tapWorld(44 * TILE + 16, 35 * TILE + 16);
+      log(game._fishCd > 0, 'tap-pesca-chegou');
+      await dismissDialog();
     }
   } catch (e) {
     console.log(`[AUTOTEST] FAIL excecao ${e && e.stack ? e.stack : e}`);

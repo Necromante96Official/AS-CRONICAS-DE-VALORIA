@@ -52,6 +52,7 @@ html, body {
 }
 
 #game, #battle-canvas { width: 100%; display: block; image-rendering: pixelated; }
+#game { touch-action: none; }
 #battle-canvas { height: 63%; }
 
 .hidden { display: none !important; }
@@ -151,3 +152,8 @@ html, body {
 }
 #tbtns { display: flex; gap: 10px; align-items: flex-end; pointer-events: auto; }
 #tbtns button { width: 56px; height: 56px; border-radius: 50%; font-weight: bold; }
+/* correr (alternador) + arrasto dos blocos */
+#dpad, #tbtns { touch-action: none; }
+#dpad.moving, #tbtns.moving { opacity: .65; }
+#dpad.moving button, #tbtns.moving button { border-style: dashed; }
+#tbtns button.on { background: #ffd75e55; border-color: var(--ff-yellow); color: var(--ff-yellow); }

@@ -60,13 +60,13 @@ export class Input {
     if ('ontouchstart' in window) document.getElementById('touch')?.classList.remove('hidden');
   }
 
-  /** Posição personalizada dos blocos touch (segurar p/ arrastar, 2 toques p/ resetar). */
+  /** Posição personalizada do bloco touch (segurar p/ arrastar, 2 toques p/ resetar). */
   _loadTouchLayout() {
     try {
       const raw = localStorage.getItem('valoria_touch');
-      if (raw) return { dpad: { x: 0, y: 0 }, tbtns: { x: 0, y: 0 }, ...JSON.parse(raw) };
+      if (raw) return { tbtns: { x: 0, y: 0 }, ...JSON.parse(raw) };
     } catch { /* armazenamento indisponível */ }
-    return { dpad: { x: 0, y: 0 }, tbtns: { x: 0, y: 0 } };
+    return { tbtns: { x: 0, y: 0 } };
   }
 
   _initTouchDrag() {
@@ -81,7 +81,7 @@ export class Input {
     const releaseTouch = () => {
       for (const k of ['up', 'down', 'left', 'right', 'confirm', 'cancel', 'menu']) this.held[k] = false;
     };
-    for (const id of ['dpad', 'tbtns']) {
+    for (const id of ['tbtns']) {
       const el = document.getElementById(id);
       if (!el) continue;
       apply(el, this._touchPos[id]);

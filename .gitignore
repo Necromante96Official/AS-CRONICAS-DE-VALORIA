@@ -32,9 +32,12 @@ ehthumbs.db
 *.tmp
 *.dmp
 valoria_autotest.json
-dev.html
-EnviarCommit.bat
 
 # Perfis temporários do Chrome (screenshots/testes headless)
 valoria_shots_*/
 valoria_autotest_*/
+
+# Locais: ferramentas de dev e arquivos de commit (não versionar)
+/tools/
+COMMIT_VALORIA.txt
+EnviarCommit.bat

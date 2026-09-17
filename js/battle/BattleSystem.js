@@ -180,19 +180,17 @@ export class BattleSystem {
   }
 
   _renderAll() {
-    // status da party com turno e mini-barras
+    // status da party: linha única enquadrada (nome · Nv · números) + 2 barras finas
     const turn = Math.max(1, this.turnCount);
-    const order = this.phase === 'command' ? `<div class="border-order">⇄ ${this._orderPreview()}</div>` : '';
-    this.partyEl.innerHTML = `<div class="bturn">— TURNO ${turn} ${this.isBoss ? '· CHEFE ' : ''}—</div>${order}` + this.party.map((h, i) => {
+    const order = this.phase === 'command' ? `<div class="border-order">${this._orderPreview()}</div>` : '';
+    this.partyEl.innerHTML = `<div class="bturn">TURNO ${turn}${this.isBoss ? ' · CHEFE' : ''}</div>${order}` + this.party.map((h, i) => {
       const low = h.hp > 0 && h.hp < h.maxHp * 0.3;
       const tags = `${h.guard ? '<span class="btag guard">🛡</span>' : ''}${low ? '<span class="btag low">!</span>' : ''}`;
       return `
       <div class="bchar ${this.phase === 'command' && i === this.heroIdx ? 'active' : ''} ${low ? 'lowhp' : ''}">
-        <span class="bnm">${h.hp <= 0 ? '✝' : '●'} ${h.name}</span> Nv${h.level} ${tags}
+        <div class="brow"><span class="bnm">${h.hp <= 0 ? '✝' : '●'} ${h.name}</span><span class="blv">Nv${h.level}</span>${tags}<span class="bnums">HP ${Math.max(0, Math.ceil(h.hp))}/${h.maxHp} · MP ${Math.max(0, Math.ceil(h.mp))}/${h.maxMp}</span></div>
         <div class="bbar hp"><div style="width:${(100 * Math.max(0, h.hp) / h.maxHp).toFixed(0)}%"></div></div>
-        <div style="font-size:.82em">HP ${Math.max(0, Math.ceil(h.hp))}/${h.maxHp}</div>
         <div class="bbar mp"><div style="width:${(100 * Math.max(0, h.mp) / h.maxMp).toFixed(0)}%"></div></div>
-        <div style="font-size:.82em">MP ${Math.max(0, Math.ceil(h.mp))}/${h.maxMp}</div>
       </div>`;
     }).join('');
     if (this.isBoss && this.enemies[0] && this.bossFill) {
@@ -1105,18 +1103,21 @@ export class BattleSystem {
       if (e.burn > 0 && Math.random() < 0.4) {
         this.particles.push({ x: p.x + (Math.random() - 0.5) * 30, y: p.y + 10, vx: 0, vy: -50, life: 0.4, maxLife: 0.4, color: '#ff7b2e', size: 3, grav: -20 });
       }
-      // barra de HP suave (verde → vermelha) + fantasma de dano recente
-      const bw = this.isBoss ? 0 : 52; // chefe usa a barra DOM no topo
+      // barra de HP minimalista ACIMA do monstro (verde → vermelha) + fantasma de dano
+      const bw = this.isBoss ? 0 : 46; // chefe usa a barra DOM no topo
       if (bw) {
         const frac = Math.max(0, e.hp / e.maxHp);
         const shown = Math.max(0, (e._showHp ?? e.hp) / e.maxHp);
-        g.fillStyle = '#000'; g.fillRect(p.x - 26, p.y + hgt / 2 + 6, 52, 6);
-        g.fillStyle = 'rgba(255,255,255,.75)'; g.fillRect(p.x - 25, p.y + hgt / 2 + 7, 50 * shown, 4);
+        const by = p.y - hgt / 2 + bob - 13;
+        g.fillStyle = 'rgba(0,0,0,.65)'; g.fillRect(p.x - 23, by, 46, 5);
+        g.fillStyle = 'rgba(255,255,255,.7)'; g.fillRect(p.x - 22, by + 1, 44 * shown, 3);
         g.fillStyle = frac < 0.3 ? '#ff6b6b' : '#37e08b';
-        g.fillRect(p.x - 25, p.y + hgt / 2 + 7, 50 * frac, 4);
+        g.fillRect(p.x - 22, by + 1, 44 * frac, 3);
+        g.strokeStyle = 'rgba(255,255,255,.35)'; g.lineWidth = 1;
+        g.strokeRect(p.x - 23 + 0.5, by + 0.5, 45, 4);
       }
-      // marcadores de status
-      let my = p.y - hgt / 2 - 14 + Math.sin(this.time * 4 + i) * 2;
+      // marcadores de status (acima da barra)
+      let my = p.y - hgt / 2 + bob - 21 + Math.sin(this.time * 4 + i) * 2;
       g.font = 'bold 13px monospace'; g.textAlign = 'center';
       if (e.burn > 0) { g.fillText('🔥', p.x - 10, my); }
       if (e.stun) { g.fillText('💫', p.x + 10, my); }

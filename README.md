@@ -26,7 +26,8 @@ vença o **Dragão do Caos** nas Ruínas ao nordeste.
 - **Baús do tesouro**, **pesca** (E encarando a água) e **quest de caça** do Guarda Cato
 - Encontros aleatórios por região (planície, bosque, ruínas, neve), **Slime Rei raro** na planície + boss final com IA própria, **enrage** e **barra de chefe**
 - Batalha por turnos: **Atacar / Magia / Item / Analisar / Fugir**, com **cenários por região**,
-  críticos, animações, partículas, números de dano flutuantes, cursor de alvo
+  críticos, animações, partículas, números de dano flutuantes, cursor de alvo e
+  **barra de HP acima de cada monstro**; UI minimalista (menu em abas, painéis enquadrados)
 - Party de 3 heróis (Guerreiro, Maga, Clérigo) com XP, níveis e magias por nível
 - Loja, estalagem (cura), **cristal restaurador nas ruínas**, itens consumíveis (Bomba só em batalha), ouro
 - **Quest secundária**: o boneco perdido do Pip (com marcador "!")

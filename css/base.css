@@ -70,13 +70,13 @@ html, body {
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
 }
 
-/* Caixa de diálogo/menu clássica: azul degradê + borda branca dupla */
+/* Caixa de diálogo/menu clássica: azul degradê + moldura fina */
 .ff-box {
-  background: linear-gradient(160deg, var(--ff-blue2), var(--ff-blue) 70%);
-  border: 3px solid var(--ff-border);
+  background: linear-gradient(160deg, #16236bf2, #0d1449f2);
+  border: 2px solid #cdd6ff;
   border-radius: 8px;
-  box-shadow: 0 0 0 3px #0a1030, 0 8px 24px #000a;
-  padding: 12px 14px;
+  box-shadow: 0 0 0 2px #0a1030, 0 6px 18px #000a;
+  padding: 10px 12px;
 }
 
 .ff-btn {

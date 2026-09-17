@@ -14,6 +14,7 @@ export class Player {
     this.moving = false;
     this.animT = 0;
     this.stepAcc = 0; // acumulador de passos (encontros)
+    this.slideX = 0; this.slideY = 0; // velocidade residual p/ parada suave
   }
 
   get cx() { return this.x + this.w / 2; }
@@ -38,6 +39,8 @@ export class Player {
     else if (axis.y < 0) { dy = -1; this.dir = 'up'; }
 
     if (dx !== 0 || dy !== 0) {
+      // saída instantânea (resposta imediata); guarda a direção p/ deslizar ao soltar
+      this.slideX = dx * spd; this.slideY = dy * spd;
       const nx = this.x + dx * spd * dt;
       if (!map.collides(nx, this.y, this.w, this.h) && !this._hitsBlockers(nx, this.y, blockers)) {
         this.x = nx; this.moving = true;
@@ -50,7 +53,18 @@ export class Player {
         this.animT += dt;
         this.stepAcc += Math.hypot(dx, dy) * spd * dt;
       }
+    } else if (Math.hypot(this.slideX, this.slideY) > 12) {
+      // parada suave: desliza decaying (sem atravessar parede)
+      const k = Math.max(0, 1 - 14 * dt);
+      const sx = this.slideX * k * dt, sy = this.slideY * k * dt;
+      this.slideX *= k; this.slideY *= k;
+      if (!map.collides(this.x + sx, this.y, this.w, this.h) && !this._hitsBlockers(this.x + sx, this.y, blockers)) this.x += sx;
+      if (!map.collides(this.x, this.y + sy, this.w, this.h) && !this._hitsBlockers(this.x, this.y + sy, blockers)) this.y += sy;
+      this.moving = true;
+      this.animT += dt;
+      this.stepAcc += Math.hypot(sx, sy);
     } else {
+      this.slideX = 0; this.slideY = 0;
       this.animT = 0;
     }
     // mantém dentro do mapa

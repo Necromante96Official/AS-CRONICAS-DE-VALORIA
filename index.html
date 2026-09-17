@@ -2519,21 +2519,41 @@ class NPC {
     this.gift = def.gift || null;
     this.giftGiven = false;
     this.wt = Math.random() * 2; // timer de patrulha
+    this.moving = false; // deslizando até o tile vizinho?
+    this.tx = this.x; this.ty = this.y; // destino em px
+    this.animT = 0; // alimenta os frames de passo
   }
 
   /** @param {number} dt @param {import('./TileMap.js').TileMap} map */
   update(dt, map) {
-    if (!this.wander) return;
+    if (!this.wander) { this.moving = false; return; }
+    // desliza até o destino (em vez de teleportar)
+    if (this.moving) {
+      const spd = 55 * dt;
+      const dx = this.tx - this.x, dy = this.ty - this.y;
+      const d = Math.hypot(dx, dy);
+      if (d <= spd) {
+        this.x = this.tx; this.y = this.ty;
+        this.moving = false; this.animT = 0;
+      } else {
+        this.x += (dx / d) * spd;
+        this.y += (dy / d) * spd;
+        this.animT += dt;
+      }
+      return;
+    }
     this.wt -= dt;
     if (this.wt <= 0) {
       this.wt = 2 + Math.random() * 3;
       const dirs = [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]];
       const [dx, dy] = dirs[Math.floor(Math.random() * dirs.length)];
       const nx = this.x + dx * TILE, ny = this.y + dy * TILE;
-      const tx = Math.floor((nx + 12) / TILE), ty = Math.floor((ny + 12) / TILE);
       const distHome = Math.hypot(nx - this.homeX, ny - this.homeY);
       if (distHome < TILE * 2.5 && !map.collides(nx + 2, ny + 6, 20, 14)) {
-        this.x = nx; this.y = ny;
+        if (dx !== 0 || dy !== 0) {
+          this.tx = nx; this.ty = ny;
+          this.moving = true; this.animT = 0.01;
+        }
         if (dx > 0) this.dir = 'right'; else if (dx < 0) this.dir = 'left';
         else if (dy > 0) this.dir = 'down'; else if (dy < 0) this.dir = 'up';
       }
@@ -2564,6 +2584,7 @@ class Player {
     this.moving = false;
     this.animT = 0;
     this.stepAcc = 0; // acumulador de passos (encontros)
+    this.slideX = 0; this.slideY = 0; // velocidade residual p/ parada suave
   }
 
   get cx() { return this.x + this.w / 2; }
@@ -2588,6 +2609,8 @@ class Player {
     else if (axis.y < 0) { dy = -1; this.dir = 'up'; }
 
     if (dx !== 0 || dy !== 0) {
+      // saída instantânea (resposta imediata); guarda a direção p/ deslizar ao soltar
+      this.slideX = dx * spd; this.slideY = dy * spd;
       const nx = this.x + dx * spd * dt;
       if (!map.collides(nx, this.y, this.w, this.h) && !this._hitsBlockers(nx, this.y, blockers)) {
         this.x = nx; this.moving = true;
@@ -2600,7 +2623,18 @@ class Player {
         this.animT += dt;
         this.stepAcc += Math.hypot(dx, dy) * spd * dt;
       }
+    } else if (Math.hypot(this.slideX, this.slideY) > 12) {
+      // parada suave: desliza decaying (sem atravessar parede)
+      const k = Math.max(0, 1 - 14 * dt);
+      const sx = this.slideX * k * dt, sy = this.slideY * k * dt;
+      this.slideX *= k; this.slideY *= k;
+      if (!map.collides(this.x + sx, this.y, this.w, this.h) && !this._hitsBlockers(this.x + sx, this.y, blockers)) this.x += sx;
+      if (!map.collides(this.x, this.y + sy, this.w, this.h) && !this._hitsBlockers(this.x, this.y + sy, blockers)) this.y += sy;
+      this.moving = true;
+      this.animT += dt;
+      this.stepAcc += Math.hypot(sx, sy);
     } else {
+      this.slideX = 0; this.slideY = 0;
       this.animT = 0;
     }
     // mantém dentro do mapa
@@ -3534,21 +3568,25 @@ const S = 2; // escala do pixel interno (16x20 -> 32x40)
  * @typedef {{skin:string,hair:string,tunic:string,pants:string,cape?:string}} Palette
  */
 
-/** Desenha um humanoide 16x20 num canvas. Direções: down/up/left/right.
+/** Desenha um humanoide 16x20 em 2 frames de andar por direção.
  * @param {Palette} pal
  * @param {{kind?:string}} [opts] kind diferencia heróis e NPCs (hero/mage/cleric/elder/merchant/innkeep/kid/guard/hermit)
+ * @returns {Record<string, HTMLCanvasElement[]>} [frame parado, frame passo]
  */
 function makeHumanoid(pal, opts = {}) {
   const W = 16, H = 20;
   const kind = opts.kind || pal.role || '';
-  /** @type {Record<string, HTMLCanvasElement>} */
+  /** @type {Record<string, HTMLCanvasElement[]>} */
   const out = {};
   for (const dir of ['down', 'up', 'left', 'right']) {
+    out[dir] = [];
+    for (const f of [0, 1]) {
     const c = document.createElement('canvas');
     c.width = W * S; c.height = H * S;
     const g = c.getContext('2d');
     g.imageSmoothingEnabled = false;
     const px = (x, y, w, h, col) => { g.fillStyle = col; g.fillRect(x * S, y * S, w * S, h * S); };
+    const step = f === 1; // frame de passo: perna esq. levantada + braços balançando
 
     // sombra
     g.fillStyle = 'rgba(0,0,0,.3)';
@@ -3568,29 +3606,45 @@ function makeHumanoid(pal, opts = {}) {
     // botas + pernas (túnica longa vira manto até o chão)
     if (isRobe) {
       px(5, 15, 2, 3, shade(pal.tunic, -35)); px(9, 15, 2, 3, shade(pal.tunic, -35));
-      px(5, 18, 2, 1, '#2a1f16'); px(9, 18, 2, 1, '#2a1f16');
+      if (step) { px(5, 17, 2, 1, '#2a1f16'); px(9, 18, 2, 1, '#2a1f16'); }
+      else { px(5, 18, 2, 1, '#2a1f16'); px(9, 18, 2, 1, '#2a1f16'); }
       px(4, 9, 8, 7, pal.tunic);
       px(4, 9, 8, 1, shade(pal.tunic, 28));
-      // bainha do manto + fenda frontal
+      // bainha do manto + fenda frontal (balança no passo)
       px(4, 15, 8, 1, shade(pal.tunic, -25));
+      if (step) px(4, 16, 8, 1, shade(pal.tunic, -12));
       if (dir !== 'up') px(7, 13, 2, 3, shade(pal.tunic, -30));
-    } else {
+    } else if (!step) {
       px(5, 15, 2, 3, pal.pants); px(9, 15, 2, 3, pal.pants);
       px(5, 18, 2, 1, '#2e2118'); px(9, 18, 2, 1, '#2e2118');
       px(6, 18, 1, 1, '#57432e'); px(10, 18, 1, 1, '#57432e'); // bico da bota
       px(4, 9, 8, 6, pal.tunic);
       px(4, 9, 8, 1, shade(pal.tunic, 28));
       px(4, 14, 8, 1, shade(pal.tunic, -18)); // sombra da cintura
+    } else {
+      // passo: perna esq. levantada, dir. plantada
+      px(5, 15, 2, 2, pal.pants); px(9, 15, 2, 3, pal.pants);
+      px(5, 17, 2, 1, '#2e2118'); px(9, 18, 2, 1, '#2e2118');
+      px(10, 18, 1, 1, '#57432e');
+      px(4, 9, 8, 6, pal.tunic);
+      px(4, 9, 8, 1, shade(pal.tunic, 28));
+      px(4, 14, 8, 1, shade(pal.tunic, -18));
     }
     // cinto com fivela (não para mantos longos de mago/clérigo)
     if (!isRobe || kind === 'hero') { px(4, 12, 8, 1, '#3a2a1a'); px(7, 12, 2, 1, '#ffd75e'); }
 
-    // braços + mãos
+    // braços + mãos (balançam opostos no passo)
     const sleeveL = kind === 'guard' ? '#9aa0ad' : pal.tunic;
     const sleeveR = sleeveL;
-    px(2, 10, 2, 4, sleeveL); px(12, 10, 2, 4, sleeveR);
-    px(2, 10, 2, 1, shade(sleeveL, 22)); px(12, 10, 2, 1, shade(sleeveR, 22));
-    px(2, 14, 2, 1, pal.skin); px(12, 14, 2, 1, pal.skin);
+    if (!step) {
+      px(2, 10, 2, 4, sleeveL); px(12, 10, 2, 4, sleeveR);
+      px(2, 10, 2, 1, shade(sleeveL, 22)); px(12, 10, 2, 1, shade(sleeveR, 22));
+      px(2, 14, 2, 1, pal.skin); px(12, 14, 2, 1, pal.skin);
+    } else {
+      px(2, 9, 2, 4, sleeveL); px(12, 10, 2, 4, sleeveR);
+      px(2, 9, 2, 1, shade(sleeveL, 22)); px(12, 10, 2, 1, shade(sleeveR, 22));
+      px(2, 13, 2, 1, pal.skin); px(12, 14, 2, 1, pal.skin);
+    }
 
     // ombreiras do guerreiro / guarda
     if (kind === 'hero') { px(2, 9, 3, 1, '#c9c9d4'); px(11, 9, 3, 1, '#c9c9d4'); }
@@ -3688,7 +3742,8 @@ function makeHumanoid(pal, opts = {}) {
       px(4, 3, 8, 1, '#c22a3a'); // faixa vermelha
       if (dir === 'up' || dir === 'left') { px(10, 6, 2, 6, '#5e3a17'); px(9, 5, 4, 2, '#c9c9d4'); }
     }
-    out[dir] = c;
+    out[dir].push(c);
+    }
   }
   return out;
 }
@@ -4287,7 +4342,12 @@ function makePortrait(src, sx, sy, sw, sh) {
 }
 
 /** Rosto de um humanoide 32x40 (vista de frente). @param {{down:HTMLCanvasElement}} art */
-const humanoidFace = (art) => makePortrait(art.down || art, 5, 0, 22, 21);
+/** Rosto de um humanoide (sempre o frame parado). @param {{down:HTMLCanvasElement|HTMLCanvasElement[]}} art */
+const humanoidFace = (art) => {
+  const down = Array.isArray(art.down) ? art.down[0] : (art.down || art);
+  const src = (down && down.width ? down : art);
+  return makePortrait(src, 5, 0, 22, 21);
+};
 /** Focinho do dragão 136x100. @param {HTMLCanvasElement} art */
 const dragonFace = (art) => makePortrait(art, 44, 0, 48, 38);
 
@@ -4354,7 +4414,10 @@ class BattleSystem {
     for (const [k, p] of Object.entries(PALETTES)) this.heroArt[k] = makeHumanoid(p, { kind: k });
     this.heroIcons = {};
     for (const k of Object.keys(this.heroArt)) {
-      try { this.heroIcons[k] = this.heroArt[k].down.toDataURL(); } catch { this.heroIcons[k] = ''; }
+      try {
+        const d = this.heroArt[k].down;
+        this.heroIcons[k] = (Array.isArray(d) ? d[0] : d).toDataURL();
+      } catch { this.heroIcons[k] = ''; }
     }
     this._resetFx();
     // mouse: passar por cima seleciona
@@ -5397,6 +5460,18 @@ class BattleSystem {
       const w = baseW * Math.max(0.2, spawnK);
       const hgt = w * (img.height / img.width);
       const breathe = 1 + Math.sin(this.time * 3 + i) * 0.02;
+      // idle próprio de cada espécie: gosmas esmagam, voadores flutuam, caranguejo anda de lado
+      const idle = Math.sin(this.time * 3 + i * 1.3);
+      let dw = w, dh = hgt * breathe, dy = bob;
+      if (e.sprite === 'slime' || e.sprite === 'king') {
+        dw = w * (1 - idle * 0.045); dh = hgt * breathe * (1 + idle * 0.06);
+      } else if (e.sprite === 'bat' || e.sprite === 'wisp' || e.sprite === 'shroom') {
+        dy = bob + idle * 3;
+      } else if (e.sprite === 'crab') {
+        ox += Math.sin(this.time * 5 + i) * 3;
+      } else if (e.sprite === 'scorpion') {
+        dy = bob + Math.max(0, idle) * 2;
+      }
       const cursorFoe = targeting && this.menu === 'targetE' ? this._foeAtCursor() : -2;
       const dim = targeting && this.menu === 'targetE' && cursorFoe !== i ? 0.45 : 1;
       g.save();
@@ -5404,11 +5479,13 @@ class BattleSystem {
       if (e.hitT > 0) { try { g.filter = 'brightness(2.6) saturate(.4)'; } catch { /* sem filtro */ } }
       if (e.charge) {
         g.shadowColor = '#7fd4ff'; g.shadowBlur = 18 + 10 * Math.sin(this.time * 8);
+      } else if (e.sprite === 'wisp') {
+        g.shadowColor = '#4fc3ff'; g.shadowBlur = 6 + 4 * Math.sin(this.time * 5 + i);
       }
       if (e.burn > 0) {
         g.shadowColor = '#ff7b2e'; g.shadowBlur = 14;
       }
-      g.drawImage(img, p.x - w / 2 + ox, p.y - hgt / 2 + bob - (1 - spawnK) * 30, w, hgt * breathe);
+      g.drawImage(img, p.x - dw / 2 + ox, p.y - dh / 2 + dy - (1 - spawnK) * 30, dw, dh);
       try { g.filter = 'none'; } catch { /* sem filtro */ }
       g.shadowBlur = 0;
       g.restore();
@@ -5444,7 +5521,8 @@ class BattleSystem {
       const bob = (h.hp > 0 ? Math.sin(this.time * 4 + i * 2) * 2 : 0) + victoryJump;
       let ox = 0;
       if (this.anim?.who === 'hero' && this.anim.idx === i) ox = -30 * Math.sin((0.35 - this.anim.t) / 0.35 * Math.PI);
-      const img = this.heroArt[h.sprite]?.down || this.heroArt.hero.down;
+      const heroSet = this.heroArt[h.sprite]?.down || this.heroArt.hero.down;
+      const img = Array.isArray(heroSet) ? heroSet[0] : heroSet;
       const s = this.heroScale(i);
       const dim = targeting && this.menu === 'targetA' && this.sel !== i ? 0.45 : 1;
       g.save();
@@ -5913,6 +5991,20 @@ class Engine {
     if (this.player.moving) {
       this._stepT = (this._stepT || 0) + dt * (this.player.running ? 1.5 : 1);
       if (this._stepT > 0.27) { this._stepT = 0; this.audio.sfx('step'); }
+      // poeira nos pés ao correr
+      if (this.player.running) {
+        this._poofT = (this._poofT || 0) + dt;
+        if (this._poofT > 0.16 && this._wx.length < 90) {
+          this._poofT = 0;
+          this._wx.push({
+            type: 'poof',
+            x: this.player.cx + this.camera.ox + (Math.random() - 0.5) * 10,
+            y: this.player.cy + this.camera.oy + 12,
+            vx: (Math.random() - 0.5) * 24, vy: -28 - Math.random() * 20,
+            t: 0, life: 0.55, seed: Math.random() * 9,
+          });
+        }
+      } else { this._poofT = 0; }
     } else if (ax.x !== 0 || ax.y !== 0) {
       this._bumpT = (this._bumpT || 0) + dt;
       if (this._bumpT > 0.35) { this._bumpT = 0; this.audio.sfx('bump'); }
@@ -6553,7 +6645,7 @@ class Engine {
     const ents = [];
     for (const n of this.npcs) {
       const sc = n.id === 'kid' ? 0.78 : 1;
-      ents.push({ y: n.y, draw: () => this._drawActor(n.x + ox, n.y + oy, this.npcArt[n.kind] || this.npcArt.elder, n.dir, 0, sc) });
+      ents.push({ y: n.y, draw: () => this._drawActor(n.x + ox, n.y + oy, this.npcArt[n.kind] || this.npcArt.elder, n.dir, n.moving ? n.animT : 0, sc) });
     }
     ents.push({ y: p.y, draw: () => this._drawActor(p.x + ox - 4, p.y + oy - 12, this.heroArt, p.dir, p.moving ? p.animT : 0, 1) });
     ents.sort((a, b) => a.y - b.y).forEach((e) => e.draw());
@@ -6711,6 +6803,10 @@ class Engine {
       } else if (q.type === 'mist') {
         g.fillStyle = 'rgba(200,220,205,.09)';
         g.beginPath(); g.ellipse(q.x, q.y, 110, 16, 0, 0, 7); g.fill();
+      } else if (q.type === 'poof') {
+        const k = Math.min(1, q.t / q.life);
+        g.fillStyle = `rgba(210,200,180,${(0.4 * (1 - k)).toFixed(2)})`;
+        g.beginPath(); g.arc(q.x, q.y, 2 + k * 5, 0, 7); g.fill();
       } else {
         g.fillStyle = q.col || '#7dd87d';
         g.fillRect(q.x, q.y, 3, 2);
@@ -6719,7 +6815,10 @@ class Engine {
   }
 
   _drawActor(x, y, art, dir, animT, scale = 1) {
-    const img = art[dir] || art.down;
+    const set = art[dir] || art.down;
+    const frames = Array.isArray(set) ? set : [set];
+    // andando: alterna os 2 frames de passo; parado: frame 0
+    const img = animT > 0 ? frames[Math.floor(animT * 8) % frames.length] : frames[0];
     const bob = animT > 0 ? Math.abs(Math.sin(animT * 10)) * -3 : 0;
     const squash = animT > 0 ? 1 + Math.sin(animT * 10) * 0.02 : 1;
     const w = 32 * squash * scale, h = 40 * scale;

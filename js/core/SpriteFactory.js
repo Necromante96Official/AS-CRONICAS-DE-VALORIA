@@ -10,21 +10,25 @@ const S = 2; // escala do pixel interno (16x20 -> 32x40)
  * @typedef {{skin:string,hair:string,tunic:string,pants:string,cape?:string}} Palette
  */
 
-/** Desenha um humanoide 16x20 num canvas. Direções: down/up/left/right.
+/** Desenha um humanoide 16x20 em 2 frames de andar por direção.
  * @param {Palette} pal
  * @param {{kind?:string}} [opts] kind diferencia heróis e NPCs (hero/mage/cleric/elder/merchant/innkeep/kid/guard/hermit)
+ * @returns {Record<string, HTMLCanvasElement[]>} [frame parado, frame passo]
  */
 export function makeHumanoid(pal, opts = {}) {
   const W = 16, H = 20;
   const kind = opts.kind || pal.role || '';
-  /** @type {Record<string, HTMLCanvasElement>} */
+  /** @type {Record<string, HTMLCanvasElement[]>} */
   const out = {};
   for (const dir of ['down', 'up', 'left', 'right']) {
+    out[dir] = [];
+    for (const f of [0, 1]) {
     const c = document.createElement('canvas');
     c.width = W * S; c.height = H * S;
     const g = c.getContext('2d');
     g.imageSmoothingEnabled = false;
     const px = (x, y, w, h, col) => { g.fillStyle = col; g.fillRect(x * S, y * S, w * S, h * S); };
+    const step = f === 1; // frame de passo: perna esq. levantada + braços balançando
 
     // sombra
     g.fillStyle = 'rgba(0,0,0,.3)';
@@ -44,29 +48,45 @@ export function makeHumanoid(pal, opts = {}) {
     // botas + pernas (túnica longa vira manto até o chão)
     if (isRobe) {
       px(5, 15, 2, 3, shade(pal.tunic, -35)); px(9, 15, 2, 3, shade(pal.tunic, -35));
-      px(5, 18, 2, 1, '#2a1f16'); px(9, 18, 2, 1, '#2a1f16');
+      if (step) { px(5, 17, 2, 1, '#2a1f16'); px(9, 18, 2, 1, '#2a1f16'); }
+      else { px(5, 18, 2, 1, '#2a1f16'); px(9, 18, 2, 1, '#2a1f16'); }
       px(4, 9, 8, 7, pal.tunic);
       px(4, 9, 8, 1, shade(pal.tunic, 28));
-      // bainha do manto + fenda frontal
+      // bainha do manto + fenda frontal (balança no passo)
       px(4, 15, 8, 1, shade(pal.tunic, -25));
+      if (step) px(4, 16, 8, 1, shade(pal.tunic, -12));
       if (dir !== 'up') px(7, 13, 2, 3, shade(pal.tunic, -30));
-    } else {
+    } else if (!step) {
       px(5, 15, 2, 3, pal.pants); px(9, 15, 2, 3, pal.pants);
       px(5, 18, 2, 1, '#2e2118'); px(9, 18, 2, 1, '#2e2118');
       px(6, 18, 1, 1, '#57432e'); px(10, 18, 1, 1, '#57432e'); // bico da bota
       px(4, 9, 8, 6, pal.tunic);
       px(4, 9, 8, 1, shade(pal.tunic, 28));
       px(4, 14, 8, 1, shade(pal.tunic, -18)); // sombra da cintura
+    } else {
+      // passo: perna esq. levantada, dir. plantada
+      px(5, 15, 2, 2, pal.pants); px(9, 15, 2, 3, pal.pants);
+      px(5, 17, 2, 1, '#2e2118'); px(9, 18, 2, 1, '#2e2118');
+      px(10, 18, 1, 1, '#57432e');
+      px(4, 9, 8, 6, pal.tunic);
+      px(4, 9, 8, 1, shade(pal.tunic, 28));
+      px(4, 14, 8, 1, shade(pal.tunic, -18));
     }
     // cinto com fivela (não para mantos longos de mago/clérigo)
     if (!isRobe || kind === 'hero') { px(4, 12, 8, 1, '#3a2a1a'); px(7, 12, 2, 1, '#ffd75e'); }
 
-    // braços + mãos
+    // braços + mãos (balançam opostos no passo)
     const sleeveL = kind === 'guard' ? '#9aa0ad' : pal.tunic;
     const sleeveR = sleeveL;
-    px(2, 10, 2, 4, sleeveL); px(12, 10, 2, 4, sleeveR);
-    px(2, 10, 2, 1, shade(sleeveL, 22)); px(12, 10, 2, 1, shade(sleeveR, 22));
-    px(2, 14, 2, 1, pal.skin); px(12, 14, 2, 1, pal.skin);
+    if (!step) {
+      px(2, 10, 2, 4, sleeveL); px(12, 10, 2, 4, sleeveR);
+      px(2, 10, 2, 1, shade(sleeveL, 22)); px(12, 10, 2, 1, shade(sleeveR, 22));
+      px(2, 14, 2, 1, pal.skin); px(12, 14, 2, 1, pal.skin);
+    } else {
+      px(2, 9, 2, 4, sleeveL); px(12, 10, 2, 4, sleeveR);
+      px(2, 9, 2, 1, shade(sleeveL, 22)); px(12, 10, 2, 1, shade(sleeveR, 22));
+      px(2, 13, 2, 1, pal.skin); px(12, 14, 2, 1, pal.skin);
+    }
 
     // ombreiras do guerreiro / guarda
     if (kind === 'hero') { px(2, 9, 3, 1, '#c9c9d4'); px(11, 9, 3, 1, '#c9c9d4'); }
@@ -164,7 +184,8 @@ export function makeHumanoid(pal, opts = {}) {
       px(4, 3, 8, 1, '#c22a3a'); // faixa vermelha
       if (dir === 'up' || dir === 'left') { px(10, 6, 2, 6, '#5e3a17'); px(9, 5, 4, 2, '#c9c9d4'); }
     }
-    out[dir] = c;
+    out[dir].push(c);
+    }
   }
   return out;
 }
@@ -763,6 +784,11 @@ export function makePortrait(src, sx, sy, sw, sh) {
 }
 
 /** Rosto de um humanoide 32x40 (vista de frente). @param {{down:HTMLCanvasElement}} art */
-export const humanoidFace = (art) => makePortrait(art.down || art, 5, 0, 22, 21);
+/** Rosto de um humanoide (sempre o frame parado). @param {{down:HTMLCanvasElement|HTMLCanvasElement[]}} art */
+export const humanoidFace = (art) => {
+  const down = Array.isArray(art.down) ? art.down[0] : (art.down || art);
+  const src = (down && down.width ? down : art);
+  return makePortrait(src, 5, 0, 22, 21);
+};
 /** Focinho do dragão 136x100. @param {HTMLCanvasElement} art */
 export const dragonFace = (art) => makePortrait(art, 44, 0, 48, 38);

@@ -63,7 +63,10 @@ export class BattleSystem {
     for (const [k, p] of Object.entries(PALETTES)) this.heroArt[k] = makeHumanoid(p, { kind: k });
     this.heroIcons = {};
     for (const k of Object.keys(this.heroArt)) {
-      try { this.heroIcons[k] = this.heroArt[k].down.toDataURL(); } catch { this.heroIcons[k] = ''; }
+      try {
+        const d = this.heroArt[k].down;
+        this.heroIcons[k] = (Array.isArray(d) ? d[0] : d).toDataURL();
+      } catch { this.heroIcons[k] = ''; }
     }
     this._resetFx();
     // mouse: passar por cima seleciona
@@ -1106,6 +1109,18 @@ export class BattleSystem {
       const w = baseW * Math.max(0.2, spawnK);
       const hgt = w * (img.height / img.width);
       const breathe = 1 + Math.sin(this.time * 3 + i) * 0.02;
+      // idle próprio de cada espécie: gosmas esmagam, voadores flutuam, caranguejo anda de lado
+      const idle = Math.sin(this.time * 3 + i * 1.3);
+      let dw = w, dh = hgt * breathe, dy = bob;
+      if (e.sprite === 'slime' || e.sprite === 'king') {
+        dw = w * (1 - idle * 0.045); dh = hgt * breathe * (1 + idle * 0.06);
+      } else if (e.sprite === 'bat' || e.sprite === 'wisp' || e.sprite === 'shroom') {
+        dy = bob + idle * 3;
+      } else if (e.sprite === 'crab') {
+        ox += Math.sin(this.time * 5 + i) * 3;
+      } else if (e.sprite === 'scorpion') {
+        dy = bob + Math.max(0, idle) * 2;
+      }
       const cursorFoe = targeting && this.menu === 'targetE' ? this._foeAtCursor() : -2;
       const dim = targeting && this.menu === 'targetE' && cursorFoe !== i ? 0.45 : 1;
       g.save();
@@ -1113,11 +1128,13 @@ export class BattleSystem {
       if (e.hitT > 0) { try { g.filter = 'brightness(2.6) saturate(.4)'; } catch { /* sem filtro */ } }
       if (e.charge) {
         g.shadowColor = '#7fd4ff'; g.shadowBlur = 18 + 10 * Math.sin(this.time * 8);
+      } else if (e.sprite === 'wisp') {
+        g.shadowColor = '#4fc3ff'; g.shadowBlur = 6 + 4 * Math.sin(this.time * 5 + i);
       }
       if (e.burn > 0) {
         g.shadowColor = '#ff7b2e'; g.shadowBlur = 14;
       }
-      g.drawImage(img, p.x - w / 2 + ox, p.y - hgt / 2 + bob - (1 - spawnK) * 30, w, hgt * breathe);
+      g.drawImage(img, p.x - dw / 2 + ox, p.y - dh / 2 + dy - (1 - spawnK) * 30, dw, dh);
       try { g.filter = 'none'; } catch { /* sem filtro */ }
       g.shadowBlur = 0;
       g.restore();
@@ -1153,7 +1170,8 @@ export class BattleSystem {
       const bob = (h.hp > 0 ? Math.sin(this.time * 4 + i * 2) * 2 : 0) + victoryJump;
       let ox = 0;
       if (this.anim?.who === 'hero' && this.anim.idx === i) ox = -30 * Math.sin((0.35 - this.anim.t) / 0.35 * Math.PI);
-      const img = this.heroArt[h.sprite]?.down || this.heroArt.hero.down;
+      const heroSet = this.heroArt[h.sprite]?.down || this.heroArt.hero.down;
+      const img = Array.isArray(heroSet) ? heroSet[0] : heroSet;
       const s = this.heroScale(i);
       const dim = targeting && this.menu === 'targetA' && this.sel !== i ? 0.45 : 1;
       g.save();

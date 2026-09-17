@@ -334,6 +334,20 @@ export class Engine {
     if (this.player.moving) {
       this._stepT = (this._stepT || 0) + dt * (this.player.running ? 1.5 : 1);
       if (this._stepT > 0.27) { this._stepT = 0; this.audio.sfx('step'); }
+      // poeira nos pés ao correr
+      if (this.player.running) {
+        this._poofT = (this._poofT || 0) + dt;
+        if (this._poofT > 0.16 && this._wx.length < 90) {
+          this._poofT = 0;
+          this._wx.push({
+            type: 'poof',
+            x: this.player.cx + this.camera.ox + (Math.random() - 0.5) * 10,
+            y: this.player.cy + this.camera.oy + 12,
+            vx: (Math.random() - 0.5) * 24, vy: -28 - Math.random() * 20,
+            t: 0, life: 0.55, seed: Math.random() * 9,
+          });
+        }
+      } else { this._poofT = 0; }
     } else if (ax.x !== 0 || ax.y !== 0) {
       this._bumpT = (this._bumpT || 0) + dt;
       if (this._bumpT > 0.35) { this._bumpT = 0; this.audio.sfx('bump'); }
@@ -974,7 +988,7 @@ export class Engine {
     const ents = [];
     for (const n of this.npcs) {
       const sc = n.id === 'kid' ? 0.78 : 1;
-      ents.push({ y: n.y, draw: () => this._drawActor(n.x + ox, n.y + oy, this.npcArt[n.kind] || this.npcArt.elder, n.dir, 0, sc) });
+      ents.push({ y: n.y, draw: () => this._drawActor(n.x + ox, n.y + oy, this.npcArt[n.kind] || this.npcArt.elder, n.dir, n.moving ? n.animT : 0, sc) });
     }
     ents.push({ y: p.y, draw: () => this._drawActor(p.x + ox - 4, p.y + oy - 12, this.heroArt, p.dir, p.moving ? p.animT : 0, 1) });
     ents.sort((a, b) => a.y - b.y).forEach((e) => e.draw());
@@ -1132,6 +1146,10 @@ export class Engine {
       } else if (q.type === 'mist') {
         g.fillStyle = 'rgba(200,220,205,.09)';
         g.beginPath(); g.ellipse(q.x, q.y, 110, 16, 0, 0, 7); g.fill();
+      } else if (q.type === 'poof') {
+        const k = Math.min(1, q.t / q.life);
+        g.fillStyle = `rgba(210,200,180,${(0.4 * (1 - k)).toFixed(2)})`;
+        g.beginPath(); g.arc(q.x, q.y, 2 + k * 5, 0, 7); g.fill();
       } else {
         g.fillStyle = q.col || '#7dd87d';
         g.fillRect(q.x, q.y, 3, 2);
@@ -1140,7 +1158,10 @@ export class Engine {
   }
 
   _drawActor(x, y, art, dir, animT, scale = 1) {
-    const img = art[dir] || art.down;
+    const set = art[dir] || art.down;
+    const frames = Array.isArray(set) ? set : [set];
+    // andando: alterna os 2 frames de passo; parado: frame 0
+    const img = animT > 0 ? frames[Math.floor(animT * 8) % frames.length] : frames[0];
     const bob = animT > 0 ? Math.abs(Math.sin(animT * 10)) * -3 : 0;
     const squash = animT > 0 ? 1 + Math.sin(animT * 10) * 0.02 : 1;
     const w = 32 * squash * scale, h = 40 * scale;

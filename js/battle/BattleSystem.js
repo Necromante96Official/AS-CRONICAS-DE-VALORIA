@@ -1130,7 +1130,7 @@ export class BattleSystem {
       if (bw) {
         const frac = Math.max(0, e.hp / e.maxHp);
         const shown = Math.max(0, (e._showHp ?? e.hp) / e.maxHp);
-        const by = p.y - hgt / 2 + bob - 13;
+        const by = p.y - hgt / 2 + bob - 10;
         g.fillStyle = 'rgba(0,0,0,.65)'; g.fillRect(p.x - 23, by, 46, 5);
         g.fillStyle = 'rgba(255,255,255,.7)'; g.fillRect(p.x - 22, by + 1, 44 * shown, 3);
         g.fillStyle = frac < 0.3 ? '#ff6b6b' : '#37e08b';
@@ -1139,7 +1139,7 @@ export class BattleSystem {
         g.strokeRect(p.x - 23 + 0.5, by + 0.5, 45, 4);
       }
       // marcadores de status (acima da barra)
-      let my = p.y - hgt / 2 + bob - 21 + Math.sin(this.time * 4 + i) * 2;
+      let my = p.y - hgt / 2 + bob - 18 + Math.sin(this.time * 4 + i) * 2;
       g.font = 'bold 13px monospace'; g.textAlign = 'center';
       if (e.burn > 0) { g.fillText('🔥', p.x - 10, my); }
       if (e.stun) { g.fillText('💫', p.x + 10, my); }

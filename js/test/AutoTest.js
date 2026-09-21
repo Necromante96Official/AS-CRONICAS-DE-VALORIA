@@ -601,6 +601,26 @@ export async function runAutoTest(game) {
       log(await dismissDialog(), 'pescador-fala');
       log((game.inv.fish || 0) === f0 + 1, 'pescador-presente');
     }
+    // NPCs vivos e detalhados: artes por profissão + olham ao redor + rastros
+    {
+      const arts = ['fisher', 'nomad', 'hunter'].map((k) => game.npcArt[k]);
+      log(arts.every((a) => a && a.down && a.down.length === 2), 'npc-artes-profissao');
+      const guard = game.npcs.find((n) => n.id === 'guard');
+      guard.wt = 0;
+      guard.update(0.05, game.map);
+      log(['down', 'left', 'right', 'up'].includes(guard.dir), 'npc-olha-ao-redor');
+      const w0 = game._wx.length;
+      game.player.moving = true; game.player.running = true;
+      game._poofT = 1; game._smokeT = 1; game._ghostT = 1;
+      game._emitTrail(0.3);
+      log(game._wx.length > w0, 'rastro-corrida');
+      game.player.running = false;
+      game._walkT = 1;
+      const w1 = game._wx.length;
+      game._emitTrail(0.4);
+      log(game._wx.length > w1, 'rastro-caminhada');
+      game.player.moving = false; game.player.running = false;
+    }
     // avanço: herói corre até o alvo ao atacar; inimigo avança ao golpear
     {
       game.battle.start(game.party, game.inv, [makeEnemy('slime', 1)], { region: 'field', onEnd: () => {} });

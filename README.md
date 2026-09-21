@@ -17,7 +17,7 @@ vença o **Dragão do Caos** nas Ruínas ao nordeste.
 
 ## ✨ Sistemas implementados
 
-- Exploração topdown com câmera, colisão, **corrida (Shift)**, sons de passo, **animação de andar em 2 frames**, parada suave, poeira ao correr e NPCs com patrulha deslizante/diálogo typewriter com retratos
+- Exploração topdown com câmera, colisão, **corrida (Shift)**, sons de passo, **animação de andar em 2 frames**, parada suave, **rastros de corrida (poeira + fumaça + afterimage) e poeira de caminhada na cor do terreno**, NPCs vivos (respiração, olham ao redor, patrulha com poeirinha, visuais por profissão com luz e profundidade) e diálogo typewriter com retratos
 - **Minimapa** ao vivo + **banners de região** ao entrar em locais novos
 - Mundo com transições de terreno (espuma, trilhas, fumaça nas chaminés, braseiros, lagoa, portal da vila) e oclusão das copas
 - Tiles 16-bit (casas Tudor, cercas, poço, postes, fazenda, montanhas, **palmeiras, neve**) inspirados em `assets/tile-reference.png`

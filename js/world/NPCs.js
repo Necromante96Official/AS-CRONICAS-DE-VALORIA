@@ -30,7 +30,17 @@ export class NPC {
 
   /** @param {number} dt @param {import('./TileMap.js').TileMap} map */
   update(dt, map) {
-    if (!this.wander) { this.moving = false; return; }
+    if (!this.wander) {
+      this.moving = false;
+      // parado mas vivo: olha ao redor de tempos em tempos
+      this.wt -= dt;
+      if (this.wt <= 0) {
+        this.wt = 2.5 + Math.random() * 4;
+        const dirs = ['down', 'down', 'left', 'right', 'up'];
+        this.dir = dirs[Math.floor(Math.random() * dirs.length)];
+      }
+      return;
+    }
     // desliza até o destino (em vez de teleportar)
     if (this.moving) {
       const spd = this.spd * dt;

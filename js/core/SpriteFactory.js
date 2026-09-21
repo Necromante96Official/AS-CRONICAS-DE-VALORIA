@@ -184,6 +184,45 @@ export function makeHumanoid(pal, opts = {}) {
       px(4, 3, 8, 1, '#c22a3a'); // faixa vermelha
       if (dir === 'up' || dir === 'left') { px(10, 6, 2, 6, '#5e3a17'); px(9, 5, 4, 2, '#c9c9d4'); }
     }
+    // PESCADOR: chapéu de palha + colete + mangas arregaçadas + vara na mão
+    if (kind === 'fisher') {
+      px(5, 0, 6, 2, '#c2a05e'); px(2, 2, 12, 2, '#d9b878'); // copa + aba
+      px(2, 2, 12, 1, '#e8cf92'); px(5, 1, 6, 1, '#c23b3b'); // luz da aba + fita
+      px(4, 9, 2, 6, shade(pal.tunic, -22)); px(10, 9, 2, 6, shade(pal.tunic, -22)); // colete
+      px(7, 10, 2, 1, '#ffd75e'); // botão do colete
+      px(2, 12, 2, 2, pal.skin); px(12, 12, 2, 2, pal.skin); // antebraços
+      px(4, 14, 8, 1, '#3a2a1a'); // botas de borracha (cano alto)
+      px(13, 4, 1, 12, '#8a5a2b'); // vara
+      px(13, 3, 1, 1, '#e8b878'); px(13, 7, 1, 1, '#5e3a17'); // ponteira + enrolamento
+      px(12, 9, 2, 2, '#c0c6d0'); px(12, 9, 1, 1, '#ffffff'); // molinete
+    }
+    // NÔMADE: turbante com joia + cachecol + roupa com vivos dourados + sacola
+    if (kind === 'nomad') {
+      px(4, 1, 8, 2, '#e8e4da'); px(4, 2, 8, 1, '#c9b896'); // turbante
+      px(7, 1, 2, 1, '#4fc3ff'); px(7, 1, 1, 1, '#ffffff'); // joia com brilho
+      if (dir !== 'left') px(11, 3, 1, 3, '#e8e4da'); else px(4, 3, 1, 3, '#e8e4da'); // cauda
+      if (dir !== 'up') { px(5, 7, 6, 2, '#a03a4c'); px(9, 7, 2, 2, '#7a1f2b'); } // cachecol
+      px(4, 14, 8, 1, '#ffd75e'); // vivo dourado
+      px(4, 9, 8, 1, '#3a2a1a'); px(11, 11, 3, 3, '#5e3a17'); // tiracolo + sacola
+      px(12, 12, 1, 1, '#ffd75e'); // fecho
+    }
+    // CAÇADORA: murça de pele + trança + arco e aljava
+    if (kind === 'hunter') {
+      px(2, 9, 12, 2, '#e8e8e8'); px(2, 10, 12, 1, '#ffffff'); // murça + pelo
+      if (dir === 'down') px(11, 4, 1, 4, '#e8e8e8'); // trança lateral
+      if (dir === 'up') { px(3, 1, 10, 2, '#d5d5d5'); px(3, 1, 10, 1, '#ffffff'); } // capuz arriado
+      if (dir === 'left') { px(2, 6, 1, 9, '#6e451f'); px(3, 7, 1, 7, '#e8ecff'); }
+      else if (dir === 'right') { px(13, 6, 1, 9, '#6e451f'); px(12, 7, 1, 7, '#e8ecff'); }
+      else if (dir === 'up') { px(3, 6, 1, 9, '#6e451f'); px(11, 8, 2, 5, '#8a5a2b'); px(11, 6, 2, 2, '#e8ecff'); }
+      else { px(11, 9, 2, 5, '#8a5a2b'); px(11, 7, 2, 2, '#e8ecff'); } // aljava + flechas
+      px(5, 17, 2, 1, '#e8e8e8'); px(9, 17, 2, 1, '#e8e8e8'); // pelo nas botas
+    }
+    // ---- luz e profundidade globais: rim à esquerda, oclusão à direita ----
+    px(4, 9, 1, 6, 'rgba(255,255,255,.20)');
+    px(5, 3, 1, 5, 'rgba(255,255,255,.13)');
+    px(11, 9, 1, 6, 'rgba(0,0,10,.20)');
+    px(10, 4, 1, 4, 'rgba(0,0,10,.15)');
+    px(5, 18, 1, 1, 'rgba(255,255,255,.28)'); px(9, 18, 1, 1, 'rgba(255,255,255,.28)');
     out[dir].push(c);
     }
   }

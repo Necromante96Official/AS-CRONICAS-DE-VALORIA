@@ -374,25 +374,24 @@ export class Engine {
     if (this.player.moving) {
       this._stepT = (this._stepT || 0) + dt * (this.player.running ? 1.5 : 1);
       if (this._stepT > 0.27) { this._stepT = 0; this.audio.sfx('step'); }
-      // poeira nos pés ao correr
-      if (this.player.running) {
-        this._poofT = (this._poofT || 0) + dt;
-        if (this._poofT > 0.16 && this._wx.length < 90) {
-          this._poofT = 0;
-          this._wx.push({
-            type: 'poof',
-            x: this.player.cx + this.camera.ox + (Math.random() - 0.5) * 10,
-            y: this.player.cy + this.camera.oy + 12,
-            vx: (Math.random() - 0.5) * 24, vy: -28 - Math.random() * 20,
-            t: 0, life: 0.55, seed: Math.random() * 9,
-          });
-        }
-      } else { this._poofT = 0; }
+      this._emitTrail(dt);
     } else if (ax.x !== 0 || ax.y !== 0) {
       this._bumpT = (this._bumpT || 0) + dt;
       if (this._bumpT > 0.35) { this._bumpT = 0; this.audio.sfx('bump'); }
-    } else { this._stepT = 0; this._bumpT = 0; }
-    for (const n of this.npcs) n.update(dt, this.map);
+    } else { this._stepT = 0; this._bumpT = 0; this._poofT = 0; this._smokeT = 0; this._ghostT = 0; this._walkT = 0; }
+    for (const n of this.npcs) {
+      n.update(dt, this.map);
+      // patrulha levanta poeirinha atrás dos pés (fora do sprite)
+      if (n.moving && Math.random() < dt * 5 && this._wx.length < 110) {
+        const b = this._behind(n.x + 16 + this.camera.ox, n.y + 20 + this.camera.oy, n.dir, 3);
+        this._wx.push({
+          type: 'stepdust',
+          x: b.x, y: b.y,
+          vx: -b.dx * 14 + (Math.random() - 0.5) * 10, vy: -b.dy * 8 - 12 - Math.random() * 8,
+          t: 0, life: 0.4, seed: Math.random() * 9, col: '210,200,180',
+        });
+      }
+    }
     this.camera.follow(this.player.cx, this.player.cy, dt);
     this.camera.update(dt);
     // clima/ambiente do bioma atual (só visual, sem gameplay)
@@ -750,6 +749,8 @@ export class Engine {
       if (this.map.tile(tx, ty) !== T.WATER) return false;
     }
     this._path = null; this._tapAct = null;
+    this.player.moving = false; this.player.animT = 0;
+    this.player.slideX = 0; this.player.slideY = 0;
     const catch_ = this._pickCatch();
     const spec = catch_.kind === 'fish' ? catch_.spec
       : catch_.kind === 'boot' ? { ...FISH_DEX[0], name: 'Bota Velha', icon: '🥾' }
@@ -1260,9 +1261,10 @@ export class Engine {
     const ents = [];
     for (const n of this.npcs) {
       const sc = n.id === 'kid' ? 0.78 : 1;
-      ents.push({ y: n.y, draw: () => this._drawActor(n.x + ox, n.y + oy, this.npcArt[n.kind] || this.npcArt.elder, n.dir, n.moving ? n.animT : 0, sc) });
+      const seed = (n.x * 0.07 + n.y * 0.13) % 6.28;
+      ents.push({ y: n.y, draw: () => this._drawActor(n.x + ox, n.y + oy, this.npcArt[n.kind] || this.npcArt.elder, n.dir, n.moving ? n.animT : 0, sc, seed) });
     }
-    ents.push({ y: p.y, draw: () => this._drawActor(p.x + ox - 4, p.y + oy - 12, this.heroArt, p.dir, p.moving ? p.animT : 0, 1) });
+    ents.push({ y: p.y, draw: () => this._drawActor(p.x + ox - 4, p.y + oy - 12, this.heroArt, p.dir, p.moving ? p.animT : 0, 1, 0.7) });
     ents.sort((a, b) => a.y - b.y).forEach((e) => e.draw());
     // vara de pescar por cima do jogador + linha e bóia
     if (this._fishing) this._drawFishing(g, ox, oy);
@@ -1907,8 +1909,30 @@ export class Engine {
         g.beginPath(); g.ellipse(q.x, q.y, 110, 16, 0, 0, 7); g.fill();
       } else if (q.type === 'poof') {
         const k = Math.min(1, q.t / q.life);
-        g.fillStyle = `rgba(210,200,180,${(0.4 * (1 - k)).toFixed(2)})`;
-        g.beginPath(); g.arc(q.x, q.y, 2 + k * 5, 0, 7); g.fill();
+        const col = q.col || '210,200,180';
+        const r0 = q.big ? 3 : 2, gr = q.big ? 8 : 5;
+        g.fillStyle = `rgba(${col},${(0.42 * (1 - k)).toFixed(2)})`;
+        g.beginPath(); g.arc(q.x, q.y, r0 + k * gr, 0, 7); g.fill();
+        // miolo claro = volume
+        g.fillStyle = `rgba(255,250,235,${(0.25 * (1 - k)).toFixed(2)})`;
+        g.beginPath(); g.arc(q.x - 1, q.y - 1, (r0 + k * gr) * 0.45, 0, 7); g.fill();
+      } else if (q.type === 'stepdust') {
+        const k = Math.min(1, q.t / q.life);
+        g.fillStyle = `rgba(${q.col || '210,200,180'},${(0.3 * (1 - k)).toFixed(2)})`;
+        g.fillRect(q.x, q.y, 2, 2);
+      } else if (q.type === 'smoke') {
+        const k = Math.min(1, q.t / q.life);
+        const r = 3 + k * 9;
+        g.fillStyle = `rgba(120,120,132,${(0.34 * (1 - k)).toFixed(2)})`;
+        g.beginPath(); g.arc(q.x, q.y, r, 0, 7); g.fill();
+        g.fillStyle = `rgba(205,205,215,${(0.22 * (1 - k)).toFixed(2)})`;
+        g.beginPath(); g.arc(q.x - r * 0.25, q.y - r * 0.25, r * 0.5, 0, 7); g.fill();
+      } else if (q.type === 'ghost') {
+        const k = Math.min(1, q.t / q.life);
+        g.save();
+        g.globalAlpha = 0.3 * (1 - k);
+        g.drawImage(q.img, q.x, q.y, q.w, q.h);
+        g.restore();
       } else if (q.type === 'splash') {
         const k = Math.min(1, q.t / q.life);
         g.fillStyle = `rgba(190,225,255,${(0.9 * (1 - k)).toFixed(2)})`;
@@ -1929,13 +1953,108 @@ export class Engine {
     }
   }
 
-  _drawActor(x, y, art, dir, animT, scale = 1) {
+  /** Cor da poeira conforme o terreno pisado (rastro com leitura do chão). @returns {string} "r,g,b" */
+  _trailTint() {
+    const t = this.map.tile(this.player.tileX, this.player.tileY);
+    if (t === T.SNOW) return '245,248,255';
+    if (t === T.SAND || t === T.DUNE || t === T.PATH || t === T.SOIL) return '216,190,140';
+    if (t === T.BRIDGE || t === T.FLOOR) return '175,145,105';
+    if (t === T.SWAMP || t === T.DARK_GRASS) return '125,165,110';
+    if (t === T.TALL_GRASS) return '140,190,120';
+    return '210,200,180';
+  }
+
+  /** Ponto de emissão ATRÁS do ator (nunca em cima do sprite): centro - direção*26. */
+  _behind(cx, cy, dir, jitter = 4) {
+    const d = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] }[dir] || [0, 1];
+    // jitter lateral (perpendicular) + pequeno ao longo do eixo (sem invadir o sprite)
+    const jx = (Math.random() - 0.5) * jitter * 2;
+    const jz = (Math.random() - 0.5) * 6;
+    return {
+      x: cx - d[0] * (26 + jz) + -d[1] * jx,
+      y: cy - d[1] * (26 + jz) + d[0] * jx,
+      dx: d[0], dy: d[1],
+    };
+  }
+
+  /** Rastros do jogador: corrida solta poeira + fumaça + afterimage; caminhada, poeira leve. */
+  _emitTrail(dt) {
+    // centro do sprite (não da caixa de colisão) + offset da câmera
+    const sx = this.player.cx + this.camera.ox;
+    const sy = this.player.cy + this.camera.oy - 2;
+    const tint = this._trailTint();
+    if (this.player.running) {
+      // poeira grossa chutada para trás
+      this._poofT = (this._poofT || 0) + dt;
+      if (this._poofT > 0.09 && this._wx.length < 110) {
+        this._poofT = 0;
+        const b = this._behind(sx, sy, this.player.dir);
+        this._wx.push({
+          type: 'poof',
+          x: b.x, y: b.y,
+          vx: -b.dx * 26 + (Math.random() - 0.5) * 22, vy: -b.dy * 14 - 26 - Math.random() * 22,
+          t: 0, life: 0.6, seed: Math.random() * 9, col: tint, big: true,
+        });
+      }
+      // fumaça cinza subindo atrás (esforço da corrida)
+      this._smokeT = (this._smokeT || 0) + dt;
+      if (this._smokeT > 0.22 && this._wx.length < 110) {
+        this._smokeT = 0;
+        const b = this._behind(sx, sy, this.player.dir);
+        this._wx.push({
+          type: 'smoke',
+          x: b.x, y: b.y - 4,
+          vx: -b.dx * 12 + (Math.random() - 0.5) * 10, vy: -b.dy * 10 - 44 - Math.random() * 18,
+          t: 0, life: 0.9, seed: Math.random() * 9,
+        });
+      }
+      // afterimage: rastro do corpo
+      this._ghostT = (this._ghostT || 0) + dt;
+      if (this._ghostT > 0.12 && this._wx.length < 110) {
+        this._ghostT = 0;
+        const set = this.heroArt[this.player.dir] || this.heroArt.down;
+        const frames = Array.isArray(set) ? set : [set];
+        const img = this.player.animT > 0 ? frames[Math.floor(this.player.animT * 8) % frames.length] : frames[0];
+        this._wx.push({
+          type: 'ghost', img,
+          x: this.player.x + this.camera.ox - 4, y: this.player.y + this.camera.oy - 12,
+          w: 32, h: 40, vx: 0, vy: 0, t: 0, life: 0.32, seed: 0,
+        });
+      }
+      this._walkT = 0;
+    } else {
+      // caminhada: poeirinha leve e espaçada, sempre atrás dos pés
+      this._walkT = (this._walkT || 0) + dt;
+      if (this._walkT > 0.3 && this._wx.length < 110) {
+        this._walkT = 0;
+        const b = this._behind(sx, sy, this.player.dir, 3);
+        this._wx.push({
+          type: 'stepdust',
+          x: b.x, y: b.y,
+          vx: -b.dx * 14 + (Math.random() - 0.5) * 10, vy: -b.dy * 8 - 14 - Math.random() * 8,
+          t: 0, life: 0.42, seed: Math.random() * 9, col: tint,
+        });
+      }
+      this._poofT = 0; this._smokeT = 0; this._ghostT = 0;
+    }
+  }
+
+  _drawActor(x, y, art, dir, animT, scale = 1, seed = 0) {
     const set = art[dir] || art.down;
     const frames = Array.isArray(set) ? set : [set];
-    // andando: alterna os 2 frames de passo; parado: frame 0
-    const img = animT > 0 ? frames[Math.floor(animT * 8) % frames.length] : frames[0];
-    const bob = animT > 0 ? Math.abs(Math.sin(animT * 10)) * -3 : 0;
-    const squash = animT > 0 ? 1 + Math.sin(animT * 10) * 0.02 : 1;
+    let img, bob, squash;
+    if (animT > 0) {
+      // andando: alterna os 2 frames de passo
+      img = frames[Math.floor(animT * 8) % frames.length];
+      bob = Math.abs(Math.sin(animT * 10)) * -3;
+      squash = 1 + Math.sin(animT * 10) * 0.02;
+    } else {
+      // parado mas vivo: respiração (sobe/desce 1px, peito estufa de leve)
+      img = frames[0];
+      const br = this.time * 2.2 + seed;
+      bob = Math.sin(br) * -1.1;
+      squash = 1 + Math.sin(br) * 0.008;
+    }
     const w = 32 * squash * scale, h = 40 * scale;
     // ancora pelos pés para o menor (criança) não flutuar
     this.g.drawImage(img, x + (32 - w) / 2, y + (40 - h) + bob * scale, w, h);

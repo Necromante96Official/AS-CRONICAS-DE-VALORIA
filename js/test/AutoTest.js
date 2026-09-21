@@ -427,18 +427,23 @@ export async function runAutoTest(game) {
       teleport(43, 35, 'right');
       await frames(3);
       game._fishCd = 0; game._fishing = null;
-      const fish0 = game.inv.fish || 0, gold0 = game.gold;
+      const fishCount = () => ['fish', 'lambari', 'royal', 'goldfish'].reduce((s, id) => s + (game.inv[id] || 0), 0);
+      const fish0 = fishCount(), gold0 = game.gold;
       log(game._tryFish() === true, 'pesca-funciona');
       log(!!game._fishing, 'pesca-vara-visivel');
+      log(!!game._fishing && !!game._fishing.spec && !!game._fishing.catch, 'pesca-especie-sorteada');
       log(game._tryFish() === false, 'pesca-cooldown');
-      // simula a mordida e a fisgada com E
+      // simula a mordida e a fisgada com E (força peixe comum p/ recompensa determinística)
       game._fishing.phase = 'bite'; game._fishing.biteLeft = 0.9;
       game._fishPress();
       log(!!game._fishing && game._fishing.phase === 'reel', 'pesca-minigame');
+      log(game._fishing.zoneW > 0 && game._fishing.zoneW <= 0.34, 'pesca-zona-valida');
+      game._fishing.catch = { kind: 'fish', spec: game._fishing.spec };
+      if (!game._fishing.spec.item) game._fishing.spec = { ...game._fishing.spec, item: 'fish', name: 'Peixe Fresco', icon: '🐟' };
       // trava o cursor no centro da zona verde
       game._fishing.cursor = game._fishing.zoneX + game._fishing.zoneW / 2;
       game._fishPress();
-      log((game.inv.fish || 0) >= fish0 && game.gold >= gold0, 'pesca-recompensa');
+      log(fishCount() >= fish0 && game.gold >= gold0, 'pesca-recompensa');
       log(!!game._fishing && game._fishing.phase === 'caught', 'pesca-peixe-fisgado');
       game._endFish();
       log(!game._fishing && game._fishCd > 0, 'pesca-encerra');

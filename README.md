@@ -23,7 +23,7 @@ vença o **Dragão do Caos** nas Ruínas ao nordeste.
 - Tiles 16-bit (casas Tudor, cercas, poço, postes, fazenda, montanhas, **palmeiras, neve**) inspirados em `assets/tile-reference.png`
 - **Biomas**: Praia do Sol (pesca, sem monstros), Pico Nevado, **Deserto Dourado** (oásis + baú) e **Pântano Sombrio**, com **clima dinâmico** (chuva, neve, brasas, folhas, gaivotas, areia, névoa) — mundo 80x60
 - **Inimigos novos**: Caranguejo (pinça esmagadora), Escorpião (ferrão fura-defesa) e Cogumelo (esporos curativos), cada um com cenário de batalha próprio
-- **Baús do tesouro**, **pesca** (E encarando a água) e **quest de caça** do Guarda Cato
+- **Baús do tesouro**, **pesca com vara + mini-game por espécie** (E encarando a água: Lambari, Peixe Fresco, Peixe Real e Dourado Lendário — cada um com velocidade e zona próprias) e **quest de caça** do Guarda Cato
 - Encontros aleatórios por região (planície, bosque, ruínas, neve), **Slime Rei raro** na planície + boss final com IA própria, **enrage** e **barra de chefe**
 - Batalha por turnos: **Atacar / Magia / Item / Analisar / Fugir**, com **cenários por região**,
   críticos, animações, partículas, números de dano flutuantes, cursor de alvo e

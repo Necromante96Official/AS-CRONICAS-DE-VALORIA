@@ -8,11 +8,14 @@ export const ITEMS = {
   ether:     { name: 'Éter',       price: 120, mp: 20,    desc: 'Restaura 20 MP de um aliado', battle: true },
   antidote:  { name: 'Bomba Fumaça', price: 40, flee: true, desc: 'Garante fuga da batalha', battle: true },
   fish:      { name: 'Peixe Fresco', price: 12, heal: 35, desc: 'Pescado! Restaura 35 HP de um aliado', battle: true },
+  lambari:   { name: 'Lambari Prateado', price: 8, heal: 25, desc: 'Pequeno e rápido. Restaura 25 HP', battle: true },
+  royal:     { name: 'Peixe Real', price: 30, heal: 70, desc: 'Escamas azuis. Restaura 70 HP', battle: true },
+  goldfish:  { name: 'Dourado Lendário', price: 90, heal: 140, desc: 'Lenda da Praia do Sol. Restaura 140 HP', battle: true },
   phoenix:   { name: 'Pena de Fênix', price: 200, revive: 0.5, desc: 'Revive um aliado caído com 50% do HP', battle: true },
 };
 
 /** @returns {Record<string, number>} */
-export const newInventory = () => ({ potion: 3, hipotion: 0, ether: 1, antidote: 0, phoenix: 0 });
+export const newInventory = () => ({ potion: 3, hipotion: 0, ether: 1, antidote: 0, phoenix: 0, lambari: 0, royal: 0, goldfish: 0 });
 
 export const SHOP_STOCK = ['potion', 'hipotion', 'ether', 'antidote', 'phoenix'];
 

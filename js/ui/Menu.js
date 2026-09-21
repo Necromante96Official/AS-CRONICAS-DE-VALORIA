@@ -8,7 +8,7 @@ import { SPELLS, aliveHeroes } from '../entities/Party.js';
 import { xpForLevel } from '../core/Config.js';
 import { SPEED_ORDER } from '../systems/Settings.js';
 import { SaveSystem } from '../systems/SaveSystem.js';
-import { HUNT_GOAL, CHESTS } from '../world/MapData.js';
+import { HUNT_GOAL, HERB_GOAL, CHESTS } from '../world/MapData.js';
 import { ic } from './ItemIcons.js';
 
 const TABS = [
@@ -206,6 +206,14 @@ export class Menu {
     else qs.push({ t: 'Caça aos slimes', d: `${hc}/${HUNT_GOAL} slimes derrotados.`, done: false });
     if (f.eliteDefeated) qs.push({ t: 'Golem Ancião', d: 'O deserto respira aliviado.', done: true });
     else qs.push({ t: 'Golem Ancião', d: 'Um colosso ronda o Deserto Dourado, a leste do rio.', done: false });
+    const hb = f.herbCount || 0;
+    if (f.herbRewarded) qs.push({ t: 'Ervas da Yara', d: 'Pântano limpo! A Yara agradece.', done: true });
+    else if (!f.herbQuest) qs.push({ t: '???', d: 'Uma herbalista no pântano, a sudoeste, parece aflita...', done: false });
+    else if (hb >= HERB_GOAL) qs.push({ t: 'Ervas da Yara', d: 'Meta batida! Volte à Herbalista Yara.', done: false });
+    else qs.push({ t: 'Ervas da Yara', d: `${hb}/${HERB_GOAL} sapos/cogumelos derrotados.`, done: false });
+    if (f.pearlRewarded) qs.push({ t: 'Peixe Real do Tumba', d: 'O velho marinheiro sorri para o mar.', done: true });
+    else if (!f.pearlQuest) qs.push({ t: '???', d: 'Um velho na Praia do Sol conta histórias de pesca...', done: false });
+    else qs.push({ t: 'Peixe Real do Tumba', d: 'Pesque um PEIXE REAL encarando a água (E). Na praia é mais fácil!', done: false });
     const opened = CHESTS.filter((c) => f[`chest_${c.id}`]).length;
     qs.push(opened >= CHESTS.length
       ? { t: `Baús do tesouro`, d: 'Todos abertos! Olho de águia.', done: true }
@@ -269,7 +277,7 @@ export class Menu {
     if (tabId === 'items') {
       const id = this.rows[this.sel];
       if ((inv[id] || 0) <= 0) { this.notify(`Você não tem ${ITEMS[id].name}!`); this.audio.sfx('flee-fail'); return; }
-      if (ITEMS[id].flee) { this.notify(`${ITEMS[id].name} só funciona em batalha!`); this.audio.sfx('flee-fail'); return; }
+      if (ITEMS[id].flee || ITEMS[id].dmg) { this.notify(`${ITEMS[id].name} só funciona em batalha!`); this.audio.sfx('flee-fail'); return; }
       this.sub = { kind: 'item', id }; this.sel = 0;
     } else if (tabId === 'magic') {
       if (this.spellHero == null) {

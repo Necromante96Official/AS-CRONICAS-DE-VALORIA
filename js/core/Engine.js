@@ -7,12 +7,12 @@ import { Input } from './Input.js';
 import { AudioMan } from './Audio.js';
 import { Camera } from './Camera.js';
 import { TileMap } from '../world/TileMap.js';
-import { buildMap, regionAt, SPAWN, NPC_DEFS, BOSS_ALTAR, TOY_SPOT, HEAL_CRYSTAL, CHESTS, HUNT_GOAL } from '../world/MapData.js';
+import { buildMap, regionAt, SPAWN, NPC_DEFS, BOSS_ALTAR, TOY_SPOT, HEAL_CRYSTAL, CHESTS, HUNT_GOAL, HERB_GOAL, ELITE } from '../world/MapData.js';
 import { isEncounterTile, tileColor, T } from '../world/Tiles.js';
 import { NPC } from '../world/NPCs.js';
 import { Player } from '../entities/Player.js';
 import { newParty, aliveHeroes, restoreParty, serializeParty, fullHeal } from '../entities/Party.js';
-import { makeEncounter, makeBoss } from '../entities/Enemies.js';
+import { makeEncounter, makeBoss, makeElite } from '../entities/Enemies.js';
 import { newInventory, useItem, ITEMS, SHOP_STOCK } from '../systems/Inventory.js';
 import { SaveSystem } from '../systems/SaveSystem.js';
 import { loadSettings, saveSettings, SPEED_ORDER } from '../systems/Settings.js';
@@ -22,7 +22,7 @@ import { HUD } from '../ui/HUD.js';
 import { TitleScreen } from '../ui/TitleScreen.js';
 import { Transition, toast } from '../ui/Transition.js';
 import { BattleSystem } from '../battle/BattleSystem.js';
-import { makeHumanoid, makeDragon, makeCrystal, humanoidFace, dragonFace } from './SpriteFactory.js';
+import { makeHumanoid, makeDragon, makeCrystal, makeAncient, makePortrait, humanoidFace, dragonFace } from './SpriteFactory.js';
 import { ic, preloadIcons } from '../ui/ItemIcons.js';
 import { SPELLS } from '../entities/Party.js';
 
@@ -36,6 +36,11 @@ const NPC_PALETTES = {
   fisher:   { skin: '#d89a6a', hair: '#3a2a1a', tunic: '#2e7d8c', pants: '#4a3a2a' },
   nomad:    { skin: '#c89878', hair: '#1e1e1e', tunic: '#c2691e', pants: '#5e3a17' },
   hunter:   { skin: '#e8b88a', hair: '#e8e8e8', tunic: '#3f6b4a', pants: '#2a2a3a' },
+  smith:    { skin: '#d89a6a', hair: '#1e1e1e', tunic: '#5e3a17', pants: '#3a2a1a' },
+  bard:     { skin: '#f2c89b', hair: '#e8a23c', tunic: '#8e2b8c', pants: '#3a2a4a' },
+  sailor:   { skin: '#c89878', hair: '#dddddd', tunic: '#2b6fd6', pants: '#3a3a4a' },
+  sage:     { skin: '#e8b88a', hair: '#ffffff', tunic: '#1b2f9e', pants: '#2a2a3a' },
+  herbalist:{ skin: '#d89a6a', hair: '#3a2a1a', tunic: '#2e7d46', pants: '#4a3a2a' },
 };
 
 const HERO_PALETTES = {
@@ -51,6 +56,10 @@ const GAMEOVER_TIPS = [
   'Dica: Trovão causa dano massivo em um alvo.',
   'Dica: Bomba de Fumaça garante fuga da batalha.',
   'Dica: guarde Éteres para a magia do fim.',
+  'Dica: Bombas de Fogo do Rurik derretem Golems e o Golem Ancião.',
+  'Dica: a magia Gelo da Lyra (Nv 4) pode congelar o inimigo.',
+  'Dica: o Elixir restaura HP e MP de uma vez — ótimo contra o Dragão.',
+  'Dica: a Yara, no pântano, paga por sapos e cogumelos derrotados.',
 ];
 
 /**
@@ -96,6 +105,7 @@ export class Engine {
     for (const [k, p] of Object.entries(HERO_PALETTES)) this.heroArts[k] = makeHumanoid(p, { kind: k });
     this.heroArt = this.heroArts.hero;
     this.dragonArt = makeDragon();
+    this.ancientArt = makeAncient();
     this.crystalArt = makeCrystal();
     // retratos (diálogo + HUD) pré-renderizados
     const faceURL = (cv) => cv.toDataURL();
@@ -117,6 +127,15 @@ export class Engine {
       'Pescador Kai': humanoidFace(this.npcArt.fisher),
       'Nômade Zara': humanoidFace(this.npcArt.nomad),
       'Caçadora Liv': humanoidFace(this.npcArt.hunter),
+      'Rurik (Ferreiro)': humanoidFace(this.npcArt.smith),
+      'Felix, o Bardo': humanoidFace(this.npcArt.bard),
+      Mia: humanoidFace(this.npcArt.kid),
+      'Guarda Dina': humanoidFace(this.npcArt.guard),
+      'Velho Tumba': humanoidFace(this.npcArt.sailor),
+      'Sábia Sella': humanoidFace(this.npcArt.sage),
+      'Herbalista Yara': humanoidFace(this.npcArt.herbalist),
+      'Eremita Ash': humanoidFace(this.npcArt.hermit),
+      'GOLEM ANCIÃO': makePortrait(this.ancientArt, 8, 0, 72, 62),
       'DRAGÃO DO CAOS': dragonFace(this.dragonArt),
     };
     this.dialog.portraitProvider = (name) => this.faceCanvas[name] || null;
@@ -336,6 +355,7 @@ export class Engine {
     if (!this._fishing && inp.pressed.confirm) {
       this._path = null; this._tapAct = null;
       if (this._tryBossInteract()) return;
+      if (this._tryEliteInteract()) return;
       if (this._tryHealCrystal()) return;
       if (this._tryToyPickup()) return;
       if (this._tryChest()) return;
@@ -535,6 +555,7 @@ export class Engine {
     if (npc) return { kind: 'npc', npc };
     if (CHESTS.some((c) => c.x === tx && c.y === ty)) return { kind: 'chest' };
     if (tx === BOSS_ALTAR.x && ty === BOSS_ALTAR.y) return { kind: 'spot', which: 'boss' };
+    if (tx === ELITE.x && ty === ELITE.y) return { kind: 'spot', which: 'elite' };
     if (tx === HEAL_CRYSTAL.x && ty === HEAL_CRYSTAL.y) return { kind: 'spot', which: 'crystal' };
     if (tx === TOY_SPOT.x && ty === TOY_SPOT.y) return { kind: 'spot', which: 'toy' };
     if (this.map.tile(tx, ty) === T.WATER) return { kind: 'fish', tx, ty };
@@ -564,6 +585,7 @@ export class Engine {
       this._tryFish(act.tx, act.ty);
     } else if (act.kind === 'spot') {
       if (act.which === 'boss') this._tryBossInteract();
+      else if (act.which === 'elite') this._tryEliteInteract();
       else if (act.which === 'crystal') this._tryHealCrystal();
       else this._tryToyPickup();
     }
@@ -598,6 +620,8 @@ export class Engine {
     if (npc.inn) return this._openInn(npc);
     if (npc.id === 'kid') return this._talkPip(npc);
     if (npc.id === 'guard') return this._talkGuard(npc);
+    if (npc.id === 'herbalist') return this._talkHerbalist(npc);
+    if (npc.id === 'sailor') return this._talkSailor(npc);
     const lines = [{ name: npc.name, text: npc.nextLine() }];
     if (npc.gift && !npc.giftGiven) {
       npc.giftGiven = true;
@@ -682,6 +706,89 @@ export class Engine {
     this.dialog.say([
       { name: npc.name, text: `Faltam ${HUNT_GOAL - count} slimes. Procure na grama alta da planície! (${count}/${HUNT_GOAL})` },
     ]);
+  }
+
+  /** Quest de ervas: Herbalista Yara paga por sapos e cogumelos do pântano. */
+  _talkHerbalist(npc) {
+    const f = this.flags;
+    const count = f.herbCount || 0;
+    if (f.herbRewarded) {
+      this.dialog.say([
+        { name: npc.name, text: 'Meu tônico fez efeito? O pântano segue verdejante graças a você!' },
+      ]);
+      return;
+    }
+    if (!f.herbQuest) {
+      f.herbQuest = true;
+      this.audio.sfx('confirm');
+      this.dialog.say([
+        { name: npc.name, text: `Minhas ervas somem na gosma dos SAPOS GIGANTES e dos COGUMELOS!` },
+        { name: 'Herbalista Yara', text: `Derrote ${HERB_GOAL} deles no pântano e eu pago 150G e um HI-ÉTER. Boa colheita!` },
+      ]);
+      toast(`Nova quest: cace ${HERB_GOAL} sapos/cogumelos!`);
+      return;
+    }
+    if (count >= HERB_GOAL) {
+      f.herbRewarded = true;
+      this.gold += 150;
+      this.inv.hiether = (this.inv.hiether || 0) + 1;
+      this.audio.sfx('levelup');
+      this.dialog.say([
+        { name: npc.name, text: 'Que cheiro de vitória... e de sapo derrotado!' },
+        { name: 'Herbalista Yara', text: 'Aqui estão 150G e um HI-ÉTER do meu melhor lote. Beba com sabedoria!' },
+      ]);
+      toast('+150G · +1 Hi-Éter!');
+      return;
+    }
+    this.dialog.say([
+      { name: npc.name, text: `Faltam ${HERB_GOAL - count} pragas. Procure no pântano a sudoeste! (${count}/${HERB_GOAL})` },
+    ]);
+  }
+
+  /** Quest de pesca: Velho Tumba quer um Peixe Real de verdade. */
+  _talkSailor(npc) {
+    const f = this.flags;
+    if (f.pearlRewarded) {
+      this.dialog.say([
+        { name: npc.name, text: 'Aquele Peixe Real... ah, bons tempos! O mar agradece, e eu também!' },
+      ]);
+      return;
+    }
+    // presente de boas-vindas (uma vez), como os outros NPCs
+    const lines = [];
+    if (npc.gift && !npc.giftGiven) {
+      npc.giftGiven = true;
+      this.inv[npc.gift] = (this.inv[npc.gift] || 0) + 1;
+      lines.push({ name: npc.name, text: `Tome este ${ITEMS[npc.gift].name}. Isca boa pega peixe bom.` });
+      this.audio.sfx('item');
+    }
+    if (!f.pearlQuest) {
+      f.pearlQuest = true;
+      this.audio.sfx('confirm');
+      lines.push(
+        { name: npc.name, text: 'Trinta anos de mar... e nunca pesquei um PEIXE REAL de verdade!' },
+        { name: 'Velho Tumba', text: 'Traga-me um PEIXE REAL (pesque encarando a água!) e conto onde escondi 200G e 2 BOMBAS!' },
+      );
+      this.dialog.say(lines);
+      toast('Nova quest: pesque um Peixe Real!');
+      return;
+    }
+    if ((this.inv.royal || 0) >= 1) {
+      this.inv.royal--;
+      f.pearlRewarded = true;
+      this.gold += 200;
+      this.inv.bomb = (this.inv.bomb || 0) + 2;
+      this.audio.sfx('levelup');
+      lines.push(
+        { name: npc.name, text: 'AZUL! Escamas azuis de verdade! Você é pescador de verdade!' },
+        { name: 'Velho Tumba', text: 'Como prometido: 200G e 2 BOMBAS DE FOGO do meu paiol. Queimem os golems por mim!' },
+      );
+      this.dialog.say(lines);
+      toast('+200G · +2 Bombas de Fogo!');
+      return;
+    }
+    lines.push({ name: npc.name, text: 'Nada de Peixe Real ainda? Encare a ÁGUA e aperte E. Na praia a sorte é maior!' });
+    this.dialog.say(lines);
   }
 
   /** Baú ao alcance do jogador (para o E e para a dica visual). */
@@ -1097,6 +1204,39 @@ export class Engine {
     }
   }
 
+  /** Sentinela opcional do deserto: o Golem Ancião aguarda na clareira. */
+  _tryEliteInteract() {
+    if (this.flags.eliteDefeated) return false;
+    const d = Math.hypot(this.player.cx - (ELITE.x * TILE + 16), this.player.cy - (ELITE.y * TILE + 16));
+    if (d > TILE * 2.2) return false;
+    this.audio.sfx('encounter');
+    this.dialog.say(
+      [{ name: 'GOLEM ANCIÃO', text: '...QUEM... PISA... NA CLAREIRA...? PEDRA... NÃO... PERDOA...! Venha, poeira valente — seja ESMAGADA!', options: [{ label: `${ic('attack')} LUTAR!`, value: 'fight' }, { label: `${ic('flee')} Recuar`, value: null }] }],
+      null,
+      (v) => { if (v === 'fight') this._startEliteBattle(); }
+    );
+    return true;
+  }
+
+  async _startEliteBattle() {
+    if (this._busy) return;
+    this._path = null; this._tapAct = null; this._tapMark = null;
+    this._busy = true;
+    try {
+      this.audio.sfx('encounter');
+      this.audio.playMusic('boss');
+      await Transition.swirl(700);
+      this.state = 'BATTLE';
+      this.hud.hide();
+      this.battle.start(this.party, this.inv, [makeElite()], {
+        region: 'desert',
+        onEnd: (r) => this._afterBattle({ ...r, elite: true }, 'desert'),
+      });
+    } finally {
+      this._busy = false;
+    }
+  }
+
   async _afterBattle(result, region) {
     if (result.fled) {
       this.state = 'FIELD';
@@ -1120,6 +1260,31 @@ export class Engine {
             toast(`Caça: ${c}/${HUNT_GOAL} slimes`);
           }
         }
+      }
+      // quest de ervas: conta sapos e cogumelos do pântano
+      if (this.flags.herbQuest && !this.flags.herbRewarded && result.kills) {
+        const n = result.kills.filter((id) => id === 'toad' || id === 'shroom').length;
+        if (n > 0) {
+          this.flags.herbCount = (this.flags.herbCount || 0) + n;
+          const c = this.flags.herbCount;
+          if (c >= HERB_GOAL) {
+            this.audio.sfx('levelup');
+            toast(`Ervas completas! (${c}/${HERB_GOAL}) Volte à Herbalista Yara!`);
+          } else {
+            toast(`Ervas: ${c}/${HERB_GOAL} pragas`);
+          }
+        }
+      }
+      // mini-chefe do deserto: marca a vitória e paga o tônico extra
+      if (result.elite && !this.flags.eliteDefeated) {
+        this.flags.eliteDefeated = true;
+        this.inv.elixir = (this.inv.elixir || 0) + 1;
+        this.audio.sfx('levelup');
+        this.dialog.say([
+          { name: '', text: '(O Golem Ancião desmorona numa pilha de pedras mansas. Entre os escombros, um frasco dourado...)' },
+          { name: 'Golem Ancião', text: '...DESCULPE... OBRIGADO... ...zzz...' },
+        ]);
+        toast('+1 Elixir! O deserto respira aliviado.');
       }
       if (result.boss) {
         this.flags.bossDefeated = true;
@@ -1209,6 +1374,17 @@ export class Engine {
     if (!this.flags.bossDefeated) {
       const dx = BOSS_ALTAR.x * TILE + ox - 32, dy = BOSS_ALTAR.y * TILE + oy - 56 + Math.sin(this.time * 1.8) * 4;
       g.drawImage(this.dragonArt, dx, dy, 128, 96);
+    }
+
+    // golem ancião (sentinela opcional do deserto)
+    if (!this.flags.eliteDefeated) {
+      const ex = ELITE.x * TILE + ox, ey = ELITE.y * TILE + oy;
+      const bob = Math.sin(this.time * 1.4) * 3;
+      // anel de runas no chão
+      const pulse = 0.5 + 0.3 * Math.sin(this.time * 2.2);
+      g.strokeStyle = `rgba(255,215,94,${pulse.toFixed(2)})`; g.lineWidth = 2;
+      g.beginPath(); g.ellipse(ex + 16, ey + 26, 22 + pulse * 4, 9 + pulse * 2, 0, 0, 7); g.stroke();
+      g.drawImage(this.ancientArt, ex + 16 - 55, ey - 62 + bob, 110, 100);
     }
 
     // cristal restaurador das ruínas (com halo pulsante = "cura aqui")
@@ -1311,13 +1487,18 @@ export class Engine {
       g.strokeText('▼ E', cx - 14, cy);
       g.fillText('▼ E', cx - 14, cy);
     }
-    // balão "!" dourado sobre o Pip quando a quest está pendente
-    const pip = this.flags.toyQuest && !this.flags.toyRewarded ? this.npcs.find((n) => n.id === 'kid') : null;
-    if (pip && pip !== npc && this.state === 'FIELD' && !this.dialog.active) {
+    // balão "!" dourado sobre quem tem quest pendente (Pip, Yara, Tumba)
+    const questNpcs = [];
+    if (this.flags.toyQuest && !this.flags.toyRewarded) questNpcs.push('kid');
+    if (this.flags.herbQuest && !this.flags.herbRewarded && (this.flags.herbCount || 0) >= HERB_GOAL) questNpcs.push('herbalist');
+    if (this.flags.pearlQuest && !this.flags.pearlRewarded && (this.inv.royal || 0) >= 1) questNpcs.push('sailor');
+    for (const qid of questNpcs) {
+      const qn = this.npcs.find((n) => n.id === qid);
+      if (!qn || qn === npc || this.state !== 'FIELD' || this.dialog.active) continue;
       g.fillStyle = '#ffd75e';
       g.font = 'bold 22px monospace';
       g.strokeStyle = '#000'; g.lineWidth = 4;
-      const qx = pip.x + ox + 8, qy = pip.y + oy - 24 + Math.sin(this.time * 5) * 3;
+      const qx = qn.x + ox + 8, qy = qn.y + oy - 24 + Math.sin(this.time * 5) * 3;
       g.strokeText('!', qx, qy);
       g.fillText('!', qx, qy);
     }

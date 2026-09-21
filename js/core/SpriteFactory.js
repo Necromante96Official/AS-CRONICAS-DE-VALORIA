@@ -34,7 +34,7 @@ export function makeHumanoid(pal, opts = {}) {
     g.fillStyle = 'rgba(0,0,0,.3)';
     g.beginPath(); g.ellipse(8 * S, 18.6 * S, 5 * S, 1.2 * S, 0, 0, 7); g.fill();
 
-    const isRobe = kind === 'mage' || kind === 'cleric' || kind === 'elder' || kind === 'hermit';
+    const isRobe = kind === 'mage' || kind === 'cleric' || kind === 'elder' || kind === 'hermit' || kind === 'sage';
     const isKid = kind === 'kid';
 
     // capa por trás (herói guerreiro) — visível em todas as direções
@@ -205,6 +205,43 @@ export function makeHumanoid(pal, opts = {}) {
       px(4, 14, 8, 1, '#ffd75e'); // vivo dourado
       px(4, 9, 8, 1, '#3a2a1a'); px(11, 11, 3, 3, '#5e3a17'); // tiracolo + sacola
       px(12, 12, 1, 1, '#ffd75e'); // fecho
+    }
+    // FERREIRO: avental de couro + braços nus + martelo na mão
+    if (kind === 'smith') {
+      if (dir !== 'up') { px(5, 9, 6, 6, '#5e3a17'); px(6, 10, 4, 2, '#7a4e22'); px(7, 13, 2, 1, '#ffd75e'); }
+      px(2, 11, 2, 2, pal.skin); px(12, 11, 2, 2, pal.skin); // antebraços fortes
+      px(13, 5, 1, 10, '#6e451f'); // cabo do martelo
+      px(12, 3, 3, 3, '#8d8d99'); px(12, 3, 3, 1, '#e8ecff'); // cabeça do martelo
+      px(4, 1, 8, 2, '#3a2412'); // faixa na testa
+    }
+    // BARDO: boina com pluma + gibão colorido + bandolim nas costas
+    if (kind === 'bard') {
+      px(4, 1, 8, 2, '#8e2b8c'); px(9, 0, 3, 2, '#ff8fb3'); // boina + pluma
+      px(4, 1, 8, 1, '#c26ac2');
+      if (dir !== 'up') { px(4, 9, 8, 2, '#e8a91e'); px(6, 11, 4, 1, '#8e2b8c'); } // gibão listrado
+      if (dir === 'up' || dir === 'left') { px(10, 6, 2, 7, '#8a5a2b'); px(9, 5, 4, 3, '#c98d4e'); } // bandolim
+    }
+    // MARINHEIRO: bandana + barba grisalha + casaco com botões de âncora
+    if (kind === 'sailor') {
+      px(4, 1, 8, 2, '#2b6fd6'); px(4, 2, 8, 1, '#1b4a9e'); // bandana
+      if (dir === 'left') px(3, 2, 2, 2, '#2b6fd6'); else if (dir !== 'up') px(11, 2, 2, 2, '#2b6fd6');
+      if (dir !== 'up') { px(5, 7, 6, 2, '#bdbdc9'); px(6, 9, 4, 1, '#9a9aa8'); } // barba
+      px(4, 9, 8, 1, '#e8e4da'); // gola do casaco
+      if (dir !== 'up') { px(7, 10, 1, 1, '#ffd75e'); px(7, 12, 1, 1, '#ffd75e'); } // botões
+    }
+    // SÁBIA: manto estrelado + diadema + cajado de gelo
+    if (kind === 'sage') {
+      px(5, 0, 6, 2, '#9fb2ff'); px(7, 0, 2, 1, '#ffd75e'); // diadema
+      px(4, 12, 8, 1, '#7fd4ff'); // faixa gelada do manto
+      px(5, 13, 1, 1, '#fff'); px(10, 14, 1, 1, '#fff'); px(7, 15, 1, 1, '#ffd75e'); // estrelas
+      px(1, 6, 1, 12, '#b9c8de'); px(0, 4, 3, 2, '#7fd4ff'); // cajado + cristal de gelo
+    }
+    // HERBALISTA: capuz verde + cesto de ervas na cintura
+    if (kind === 'herbalist') {
+      px(3, 1, 10, 3, '#2e7d46'); px(3, 3, 1, 4, '#2e7d46'); px(12, 3, 1, 4, '#2e7d46'); // capuz
+      px(3, 1, 10, 1, '#5cbf5c');
+      if (dir !== 'up') { px(11, 11, 3, 3, '#8a5a2b'); px(11, 11, 3, 1, '#37e08b'); px(12, 10, 1, 1, '#7dff9a'); } // cesto + ervas
+      px(4, 14, 8, 1, '#37e08b'); // barrado verde
     }
     // CAÇADORA: murça de pele + trança + arco e aljava
     if (kind === 'hunter') {
@@ -663,6 +700,341 @@ export function makeShroom() {
   // esporos flutuando
   g.fillStyle = 'rgba(255,255,255,.7)';
   g.fillRect(5 * S, 6 * S, 1.2 * S, 1.2 * S); g.fillRect(26 * S, 8 * S, 1.4 * S, 1.4 * S);
+  return c;
+}
+
+/** Esqueleto — caveira sorridente, costelas à mostra e espada enferrujada. */
+export function makeSkeleton() {
+  const c = document.createElement('canvas');
+  c.width = 32 * S; c.height = 30 * S;
+  const g = c.getContext('2d');
+  const bone = '#e8e4da', dark = '#8d8d99', rust = '#8a5a2b';
+  g.fillStyle = 'rgba(0,0,0,.3)';
+  g.beginPath(); g.ellipse(16 * S, 28 * S, 9 * S, 1.8 * S, 0, 0, 7); g.fill();
+  // pernas de osso + pés
+  g.fillStyle = dark;
+  g.fillRect(11 * S, 23 * S, 2 * S, 5 * S); g.fillRect(19 * S, 23 * S, 2 * S, 5 * S);
+  g.fillStyle = bone;
+  g.fillRect(10.4 * S, 23 * S, 3.2 * S, 5 * S); g.fillRect(18.4 * S, 23 * S, 3.2 * S, 5 * S);
+  g.fillStyle = dark;
+  for (let i = 0; i < 2; i++) { g.fillRect(10.4 * S, (24.5 + i * 1.8) * S, 3.2 * S, 0.7 * S); g.fillRect(18.4 * S, (24.5 + i * 1.8) * S, 3.2 * S, 0.7 * S); }
+  g.fillStyle = bone;
+  g.fillRect(9 * S, 27.4 * S, 5 * S, 1.6 * S); g.fillRect(18 * S, 27.4 * S, 5 * S, 1.6 * S);
+  // costelas: coluna + arcos
+  g.fillStyle = dark;
+  g.fillRect(15 * S, 12 * S, 2 * S, 12 * S);
+  g.fillStyle = bone;
+  g.fillRect(15.3 * S, 12 * S, 1.4 * S, 12 * S);
+  for (let i = 0; i < 4; i++) {
+    const y = (13.5 + i * 2.6) * S, w = (3.6 - i * 0.4) * S;
+    g.fillStyle = bone;
+    g.fillRect((16 - 3.6) * S, y, w, 1.1 * S);
+    g.fillRect(16 * S, y, w, 1.1 * S);
+  }
+  // braços + espada enferrujada na mão direita
+  g.fillStyle = bone;
+  g.fillRect(7 * S, 14 * S, 2.4 * S, 8 * S); g.fillRect(22.6 * S, 14 * S, 2.4 * S, 6 * S);
+  g.fillStyle = dark;
+  g.fillRect(7 * S, 17 * S, 2.4 * S, 0.8 * S); g.fillRect(7 * S, 20 * S, 2.4 * S, 0.8 * S);
+  g.fillStyle = rust;
+  g.fillRect(24 * S, 4 * S, 1.6 * S, 12 * S); // lâmina
+  g.fillStyle = '#c0c6d0';
+  g.fillRect(24 * S, 4 * S, 0.7 * S, 12 * S); // fio gasto
+  g.fillStyle = '#5e3a17';
+  g.fillRect(22.4 * S, 16 * S, 4.8 * S, 1.6 * S); // guarda
+  g.fillStyle = '#3a2412';
+  g.fillRect(23.6 * S, 17.6 * S, 1.6 * S, 3 * S); // punho
+  // caveira: crânio + maxilar + olhos vazios com brasas
+  g.fillStyle = dark;
+  g.beginPath(); g.ellipse(16 * S, 7.6 * S, 7.4 * S, 6.4 * S, 0, 0, 7); g.fill();
+  g.fillStyle = bone;
+  g.beginPath(); g.ellipse(16 * S, 7 * S, 6.4 * S, 5.6 * S, 0, 0, 7); g.fill();
+  g.fillStyle = bone;
+  g.fillRect(11.5 * S, 10 * S, 9 * S, 3.6 * S);
+  g.fillStyle = dark;
+  for (let i = 0; i < 4; i++) g.fillRect((12.4 + i * 2) * S, 10.6 * S, 0.9 * S, 2.4 * S);
+  // órbitas + brasas verdes
+  g.fillStyle = '#101018';
+  g.beginPath(); g.ellipse(13.4 * S, 7 * S, 2.2 * S, 2.6 * S, 0, 0, 7); g.fill();
+  g.beginPath(); g.ellipse(18.6 * S, 7 * S, 2.2 * S, 2.6 * S, 0, 0, 7); g.fill();
+  g.fillStyle = '#37e08b';
+  g.beginPath(); g.arc(13.4 * S, 7.2 * S, 1 * S, 0, 7); g.fill();
+  g.beginPath(); g.arc(18.6 * S, 7.2 * S, 1 * S, 0, 7); g.fill();
+  g.fillStyle = '#101018';
+  g.fillRect(15.2 * S, 8 * S, 1.6 * S, 1.4 * S); // nariz
+  // rachadura no crânio
+  g.strokeStyle = dark; g.lineWidth = 0.9 * S;
+  g.beginPath(); g.moveTo(19 * S, 2.4 * S); g.lineTo(17.6 * S, 4.4 * S); g.lineTo(19.4 * S, 6 * S); g.stroke();
+  return c;
+}
+
+/** Orc do Deserto — brutamontes verde com presas e clava de osso. */
+export function makeOrc() {
+  const c = document.createElement('canvas');
+  c.width = 36 * S; c.height = 34 * S;
+  const g = c.getContext('2d');
+  const skin = '#5da24d', dark = '#2e5b26', lite = '#8fd07f', cloth = '#7a4a21';
+  g.fillStyle = 'rgba(0,0,0,.35)';
+  g.beginPath(); g.ellipse(18 * S, 32 * S, 12 * S, 2 * S, 0, 0, 7); g.fill();
+  // pernas + tanga
+  g.fillStyle = dark;
+  g.fillRect(11 * S, 26 * S, 6 * S, 6 * S); g.fillRect(19 * S, 26 * S, 6 * S, 6 * S);
+  g.fillStyle = skin;
+  g.fillRect(11 * S, 26 * S, 6 * S, 5 * S); g.fillRect(19 * S, 26 * S, 6 * S, 5 * S);
+  g.fillStyle = cloth;
+  g.fillRect(10 * S, 22 * S, 16 * S, 5 * S);
+  g.fillStyle = '#ffd75e';
+  g.fillRect(16.4 * S, 23.4 * S, 3.2 * S, 2 * S);
+  // torso musculoso
+  g.fillStyle = dark;
+  g.beginPath(); g.ellipse(18 * S, 17 * S, 10.4 * S, 8 * S, 0, 0, 7); g.fill();
+  g.fillStyle = skin;
+  g.beginPath(); g.ellipse(18 * S, 16.6 * S, 9.4 * S, 7.2 * S, 0, 0, 7); g.fill();
+  g.fillStyle = lite;
+  g.beginPath(); g.ellipse(14.6 * S, 13.6 * S, 3.6 * S, 2.6 * S, -0.4, 0, 7); g.fill();
+  // cicatriz + pintura de guerra
+  g.strokeStyle = dark; g.lineWidth = 1 * S;
+  g.beginPath(); g.moveTo(21 * S, 13 * S); g.lineTo(23 * S, 17 * S); g.lineTo(21.6 * S, 20 * S); g.stroke();
+  g.fillStyle = '#c22a1e';
+  g.fillRect(11 * S, 18 * S, 3 * S, 1.2 * S); g.fillRect(22 * S, 18 * S, 3 * S, 1.2 * S);
+  // braço esquerdo + clava de osso na direita
+  g.fillStyle = skin;
+  g.fillRect(4 * S, 12 * S, 5 * S, 12 * S);
+  g.fillStyle = dark;
+  g.fillRect(4 * S, 21 * S, 5 * S, 3 * S);
+  g.fillStyle = '#8a5a2b';
+  g.fillRect(26 * S, 2 * S, 3 * S, 16 * S); // cabo
+  g.fillStyle = '#e8e4da';
+  g.beginPath(); g.ellipse(27.5 * S, 3.4 * S, 4 * S, 3.2 * S, 0, 0, 7); g.fill(); // cabeça de osso
+  g.fillStyle = '#8d8d99';
+  g.fillRect(25.4 * S, 3 * S, 1 * S, 2 * S); g.fillRect(28.6 * S, 3 * S, 1 * S, 2 * S);
+  g.fillStyle = skin;
+  g.fillRect(25 * S, 16 * S, 5 * S, 5 * S); // mão na clava
+  // cabeça: queixo largo + presas + sobrancelha
+  g.fillStyle = dark;
+  g.beginPath(); g.ellipse(17 * S, 7.4 * S, 7.6 * S, 6.4 * S, 0, 0, 7); g.fill();
+  g.fillStyle = skin;
+  g.beginPath(); g.ellipse(17 * S, 7 * S, 6.6 * S, 5.6 * S, 0, 0, 7); g.fill();
+  g.fillStyle = dark;
+  g.fillRect(10.5 * S, 5.4 * S, 13 * S, 2.2 * S); // testa pesada
+  g.fillStyle = '#ffd75e';
+  g.fillRect(12 * S, 6.6 * S, 3 * S, 1.8 * S); g.fillRect(18 * S, 6.6 * S, 3 * S, 1.8 * S);
+  g.fillStyle = '#4a2f14';
+  g.fillRect(13 * S, 6.6 * S, 1 * S, 1.8 * S); g.fillRect(19 * S, 6.6 * S, 1 * S, 1.8 * S);
+  // focinho + presas brancas
+  g.fillStyle = shade(skin, -25);
+  g.beginPath(); g.ellipse(17 * S, 10.6 * S, 3.4 * S, 2 * S, 0, 0, 7); g.fill();
+  g.fillStyle = '#fff';
+  g.beginPath(); g.moveTo(14 * S, 11 * S); g.lineTo(14.8 * S, 13.6 * S); g.lineTo(15.8 * S, 11 * S); g.fill();
+  g.beginPath(); g.moveTo(18.2 * S, 11 * S); g.lineTo(19 * S, 13.6 * S); g.lineTo(19.8 * S, 11 * S); g.fill();
+  // orelhas pontudas + argola
+  g.fillStyle = skin;
+  g.beginPath(); g.moveTo(10.4 * S, 7 * S); g.lineTo(6.4 * S, 5 * S); g.lineTo(9.4 * S, 9.4 * S); g.closePath(); g.fill();
+  g.beginPath(); g.moveTo(23.6 * S, 7 * S); g.lineTo(27.6 * S, 5 * S); g.lineTo(24.6 * S, 9.4 * S); g.closePath(); g.fill();
+  g.fillStyle = '#ffd75e';
+  g.beginPath(); g.arc(7.4 * S, 7.4 * S, 1 * S, 0, 7); g.fill();
+  // moicano
+  g.fillStyle = '#1e1e1e';
+  g.fillRect(15.4 * S, 0.6 * S, 3.2 * S, 3 * S);
+  g.fillRect(14.4 * S, 1.6 * S, 5.2 * S, 1.4 * S);
+  return c;
+}
+
+/** Sapo Gigante — bola verde do pântano com papo inflável e língua. */
+export function makeToad() {
+  const c = document.createElement('canvas');
+  c.width = 36 * S; c.height = 26 * S;
+  const g = c.getContext('2d');
+  const skin = '#4da64d', dark = '#256b33', lite = '#8fd07f', belly = '#e8f0d8';
+  g.fillStyle = 'rgba(0,0,0,.3)';
+  g.beginPath(); g.ellipse(18 * S, 24 * S, 12 * S, 2 * S, 0, 0, 7); g.fill();
+  // patas traseiras musculosas + dianteiras
+  g.fillStyle = dark;
+  g.beginPath(); g.ellipse(7 * S, 20 * S, 4.4 * S, 3.4 * S, 0.4, 0, 7); g.fill();
+  g.beginPath(); g.ellipse(29 * S, 20 * S, 4.4 * S, 3.4 * S, -0.4, 0, 7); g.fill();
+  g.fillStyle = skin;
+  g.beginPath(); g.ellipse(7 * S, 19.4 * S, 3.6 * S, 2.6 * S, 0.4, 0, 7); g.fill();
+  g.beginPath(); g.ellipse(29 * S, 19.4 * S, 3.6 * S, 2.6 * S, -0.4, 0, 7); g.fill();
+  g.fillStyle = skin;
+  g.fillRect(12 * S, 20 * S, 3 * S, 4 * S); g.fillRect(21 * S, 20 * S, 3 * S, 4 * S);
+  // corpo redondo + barriga
+  g.fillStyle = dark;
+  g.beginPath(); g.ellipse(18 * S, 15 * S, 11.4 * S, 8.4 * S, 0, 0, 7); g.fill();
+  g.fillStyle = skin;
+  g.beginPath(); g.ellipse(18 * S, 14.4 * S, 10.4 * S, 7.6 * S, 0, 0, 7); g.fill();
+  g.fillStyle = belly;
+  g.beginPath(); g.ellipse(18 * S, 18 * S, 7 * S, 4.4 * S, 0, 0, 7); g.fill();
+  // verrugas
+  g.fillStyle = dark;
+  for (const [wx, wy] of [[11, 11], [15, 9.5], [22, 10], [26, 12], [13, 14]]) {
+    g.beginPath(); g.arc(wx * S, wy * S, 1 * S, 0, 7); g.fill();
+  }
+  g.fillStyle = lite;
+  g.beginPath(); g.ellipse(13 * S, 10.4 * S, 4 * S, 2.2 * S, -0.4, 0, 7); g.fill();
+  // papo inflável (saco vocal)
+  g.fillStyle = '#f2e6c4';
+  g.beginPath(); g.ellipse(18 * S, 19.4 * S, 4.4 * S, 3.4 * S, 0, 0, 7); g.fill();
+  g.fillStyle = '#d9c9a8';
+  g.beginPath(); g.ellipse(18 * S, 20.4 * S, 3 * S, 2 * S, 0, 0, 7); g.fill();
+  // olhos esbugalhados no topo + pupila horizontal
+  g.fillStyle = dark;
+  g.beginPath(); g.arc(12.5 * S, 6.4 * S, 3.2 * S, 0, 7); g.fill();
+  g.beginPath(); g.arc(23.5 * S, 6.4 * S, 3.2 * S, 0, 7); g.fill();
+  g.fillStyle = '#ffd75e';
+  g.beginPath(); g.arc(12.5 * S, 6.2 * S, 2.4 * S, 0, 7); g.fill();
+  g.beginPath(); g.arc(23.5 * S, 6.2 * S, 2.4 * S, 0, 7); g.fill();
+  g.fillStyle = '#101018';
+  g.fillRect(10.6 * S, 5.6 * S, 3.8 * S, 1.2 * S); g.fillRect(21.6 * S, 5.6 * S, 3.8 * S, 1.2 * S);
+  g.fillStyle = '#fff';
+  g.fillRect(11.2 * S, 4.8 * S, 1 * S, 1 * S); g.fillRect(22.2 * S, 4.8 * S, 1 * S, 1 * S);
+  // boca larga + língua de fora
+  g.strokeStyle = dark; g.lineWidth = 1.2 * S;
+  g.beginPath(); g.moveTo(10 * S, 14.5 * S); g.quadraticCurveTo(18 * S, 17 * S, 26 * S, 14.5 * S); g.stroke();
+  g.strokeStyle = '#c26a8c'; g.lineWidth = 1.6 * S; g.lineCap = 'round';
+  g.beginPath(); g.moveTo(20 * S, 15.4 * S); g.quadraticCurveTo(25 * S, 16.5 * S, 28.5 * S, 14.5 * S); g.stroke();
+  g.fillStyle = '#c26a8c';
+  g.beginPath(); g.arc(28.8 * S, 14.4 * S, 1.2 * S, 0, 7); g.fill();
+  return c;
+}
+
+/** Lobo da Neve — quadrúpede branco veloz com olhos de gelo. */
+export function makeWolf() {
+  const c = document.createElement('canvas');
+  c.width = 40 * S; c.height = 26 * S;
+  const g = c.getContext('2d');
+  const fur = '#e8ecf4', dark = '#8d99b5', lite = '#ffffff';
+  g.fillStyle = 'rgba(0,0,0,.3)';
+  g.beginPath(); g.ellipse(20 * S, 24 * S, 13 * S, 2 * S, 0, 0, 7); g.fill();
+  // cauda peluda erguida
+  g.strokeStyle = dark; g.lineWidth = 3.4 * S; g.lineCap = 'round';
+  g.beginPath(); g.moveTo(33 * S, 16 * S); g.quadraticCurveTo(37.5 * S, 13 * S, 36.5 * S, 8 * S); g.stroke();
+  g.strokeStyle = fur; g.lineWidth = 2.2 * S;
+  g.beginPath(); g.moveTo(33 * S, 16 * S); g.quadraticCurveTo(37.5 * S, 13 * S, 36.5 * S, 8 * S); g.stroke();
+  // 4 patas em corrida (duas estendidas, duas dobradas)
+  g.fillStyle = dark;
+  g.fillRect(10 * S, 19 * S, 2.6 * S, 5 * S); g.fillRect(17 * S, 19 * S, 2.6 * S, 5 * S);
+  g.fillRect(24 * S, 19 * S, 2.6 * S, 5 * S); g.fillRect(30 * S, 18 * S, 4.6 * S, 2.6 * S);
+  g.fillStyle = fur;
+  g.fillRect(10 * S, 19 * S, 2.6 * S, 4 * S); g.fillRect(17 * S, 19 * S, 2.6 * S, 4 * S);
+  g.fillRect(24 * S, 19 * S, 2.6 * S, 4 * S); g.fillRect(30 * S, 18 * S, 4 * S, 2 * S);
+  // corpo alongado + peito
+  g.fillStyle = dark;
+  g.beginPath(); g.ellipse(20 * S, 15 * S, 12.4 * S, 5.6 * S, 0, 0, 7); g.fill();
+  g.fillStyle = fur;
+  g.beginPath(); g.ellipse(20 * S, 14.4 * S, 11.4 * S, 4.8 * S, 0, 0, 7); g.fill();
+  g.fillStyle = lite;
+  g.beginPath(); g.ellipse(16 * S, 16 * S, 7 * S, 2.6 * S, 0, 0, 7); g.fill();
+  // pelo eriçado no dorso
+  g.fillStyle = fur;
+  for (let i = 0; i < 5; i++) {
+    const x = (13 + i * 3.4) * S;
+    g.beginPath(); g.moveTo(x, 10.4 * S); g.lineTo(x + 1.4 * S, 7.6 * S); g.lineTo(x + 2.8 * S, 10.4 * S); g.closePath(); g.fill();
+  }
+  // cabeça + focinho + orelhas
+  g.fillStyle = dark;
+  g.beginPath(); g.ellipse(8 * S, 12 * S, 5.4 * S, 4.6 * S, 0, 0, 7); g.fill();
+  g.fillStyle = fur;
+  g.beginPath(); g.ellipse(8 * S, 11.6 * S, 4.6 * S, 3.8 * S, 0, 0, 7); g.fill();
+  g.fillStyle = fur;
+  g.beginPath(); g.moveTo(5.4 * S, 9 * S); g.lineTo(4.4 * S, 4.6 * S); g.lineTo(8 * S, 8 * S); g.closePath(); g.fill();
+  g.beginPath(); g.moveTo(10.4 * S, 9 * S); g.lineTo(11.4 * S, 4.6 * S); g.lineTo(12.4 * S, 8.6 * S); g.closePath(); g.fill();
+  g.fillStyle = '#3a3f52';
+  g.beginPath(); g.ellipse(4 * S, 12.4 * S, 1.6 * S, 1.2 * S, 0, 0, 7); g.fill(); // nariz
+  // olho de gelo + cicatriz
+  g.fillStyle = '#7fd4ff';
+  g.beginPath(); g.ellipse(8.4 * S, 10.4 * S, 1.6 * S, 1.8 * S, 0, 0, 7); g.fill();
+  g.fillStyle = '#101018';
+  g.fillRect(7.9 * S, 9.4 * S, 1 * S, 2 * S);
+  g.fillStyle = '#fff';
+  g.fillRect(8 * S, 9.6 * S, 0.6 * S, 0.6 * S);
+  g.strokeStyle = dark; g.lineWidth = 0.8 * S;
+  g.beginPath(); g.moveTo(12 * S, 12 * S); g.lineTo(14 * S, 14 * S); g.stroke();
+  // bafo frio
+  g.fillStyle = 'rgba(180,225,255,.6)';
+  g.beginPath(); g.arc(1.4 * S, 14 * S, 1.2 * S, 0, 7); g.fill();
+  g.fillStyle = 'rgba(180,225,255,.35)';
+  g.beginPath(); g.arc(-0.4 * S + 2 * S, 15.4 * S, 0.9 * S, 0, 7); g.fill();
+  return c;
+}
+
+/** Golem Ancião — colosso coberto de musgo com runas douradas (mini-chefe). */
+export function makeAncient() {
+  const c = document.createElement('canvas');
+  c.width = 44 * S; c.height = 40 * S;
+  const g = c.getContext('2d');
+  const rock = '#6e7482', dark = '#3a3e4a', lite = '#a8aeba', moss = '#37a05b', gold = '#ffd75e';
+  g.fillStyle = 'rgba(0,0,0,.4)';
+  g.beginPath(); g.ellipse(22 * S, 38 * S, 15 * S, 2.2 * S, 0, 0, 7); g.fill();
+  // pernas colunares
+  g.fillStyle = dark;
+  g.fillRect(13 * S, 32 * S, 7 * S, 6 * S); g.fillRect(24 * S, 32 * S, 7 * S, 6 * S);
+  g.fillStyle = rock;
+  g.fillRect(13 * S, 32 * S, 7 * S, 4 * S); g.fillRect(24 * S, 32 * S, 7 * S, 4 * S);
+  g.fillStyle = moss;
+  g.fillRect(13 * S, 35 * S, 7 * S, 1.4 * S); g.fillRect(24 * S, 35 * S, 7 * S, 1.4 * S);
+  // braços de pedra maciça + punhos com runas
+  g.fillStyle = dark;
+  g.fillRect(3 * S, 16 * S, 8 * S, 14 * S); g.fillRect(33 * S, 16 * S, 8 * S, 14 * S);
+  g.fillStyle = rock;
+  g.fillRect(3 * S, 16 * S, 8 * S, 12 * S); g.fillRect(33 * S, 16 * S, 8 * S, 12 * S);
+  g.fillStyle = lite;
+  g.fillRect(3 * S, 16 * S, 8 * S, 2 * S); g.fillRect(33 * S, 16 * S, 8 * S, 2 * S);
+  g.fillStyle = dark;
+  g.fillRect(2 * S, 28 * S, 10 * S, 7 * S); g.fillRect(32 * S, 28 * S, 10 * S, 7 * S);
+  g.fillStyle = rock;
+  g.fillRect(2 * S, 28 * S, 10 * S, 5 * S); g.fillRect(32 * S, 28 * S, 10 * S, 5 * S);
+  g.fillStyle = gold; // runas nos punhos
+  g.fillRect(4 * S, 29.4 * S, 6 * S, 1 * S); g.fillRect(34 * S, 29.4 * S, 6 * S, 1 * S);
+  g.fillRect(6.5 * S, 28.4 * S, 1 * S, 3 * S); g.fillRect(36.5 * S, 28.4 * S, 1 * S, 3 * S);
+  g.fillStyle = moss; // musgo nos ombros
+  g.fillRect(3 * S, 16 * S, 8 * S, 1.6 * S); g.fillRect(33 * S, 16 * S, 8 * S, 1.6 * S);
+  // torso de muralha com núcleo duplo
+  g.fillStyle = dark;
+  g.fillRect(10 * S, 17 * S, 24 * S, 16 * S);
+  g.fillStyle = rock;
+  g.fillRect(11 * S, 18 * S, 22 * S, 14 * S);
+  g.fillStyle = lite;
+  g.fillRect(11 * S, 18 * S, 22 * S, 2 * S);
+  g.fillStyle = dark;
+  g.fillRect(11 * S, 24 * S, 22 * S, 1.4 * S);
+  g.fillRect(21 * S, 18 * S, 1.4 * S, 14 * S);
+  // vinhas + flores no torso = ancião
+  g.strokeStyle = moss; g.lineWidth = 1.2 * S;
+  g.beginPath(); g.moveTo(12 * S, 30 * S); g.quadraticCurveTo(16 * S, 24 * S, 13 * S, 19 * S); g.stroke();
+  g.fillStyle = '#ff8fb3';
+  g.beginPath(); g.arc(13 * S, 19 * S, 1.2 * S, 0, 7); g.fill();
+  g.beginPath(); g.arc(30 * S, 28 * S, 1.2 * S, 0, 7); g.fill();
+  // núcleo duplo: cristais gêmeos
+  for (const nx of [17.5, 23.5]) {
+    g.fillStyle = dark;
+    g.fillRect(nx * S, 25.5 * S, 3 * S, 4 * S);
+    g.fillStyle = '#8e2bff';
+    g.fillRect((nx + 0.4) * S, 26 * S, 2.2 * S, 3 * S);
+    g.fillStyle = '#d8b4ff';
+    g.fillRect((nx + 0.7) * S, 26.3 * S, 1.2 * S, 1.6 * S);
+  }
+  // cabeça coroada de pedra com chifres de musgo
+  g.fillStyle = dark;
+  g.fillRect(13 * S, 5 * S, 18 * S, 13 * S);
+  g.fillStyle = rock;
+  g.fillRect(14 * S, 6 * S, 16 * S, 11 * S);
+  g.fillStyle = lite;
+  g.fillRect(14 * S, 6 * S, 16 * S, 2.4 * S);
+  g.fillStyle = moss; // coroa viva
+  g.fillRect(14 * S, 4 * S, 16 * S, 2.4 * S);
+  g.beginPath(); g.moveTo(14 * S, 4 * S); g.lineTo(12 * S, 0.6 * S); g.lineTo(17 * S, 3 * S); g.closePath(); g.fill();
+  g.beginPath(); g.moveTo(30 * S, 4 * S); g.lineTo(32 * S, 0.6 * S); g.lineTo(27 * S, 3 * S); g.closePath(); g.fill();
+  // olhos de magma + boca de pedra
+  g.fillStyle = dark;
+  g.fillRect(14 * S, 11 * S, 16 * S, 3 * S);
+  g.fillStyle = '#ff7b2e';
+  g.fillRect(15.6 * S, 11.8 * S, 4 * S, 1.8 * S); g.fillRect(24.4 * S, 11.8 * S, 4 * S, 1.8 * S);
+  g.fillStyle = '#fff';
+  g.fillRect(16 * S, 12 * S, 1 * S, 1 * S); g.fillRect(24.8 * S, 12 * S, 1 * S, 1 * S);
+  g.fillStyle = dark;
+  g.fillRect(18 * S, 15 * S, 8 * S, 1.6 * S);
+  g.fillStyle = lite;
+  g.fillRect(19.4 * S, 15 * S, 1.2 * S, 1.2 * S); g.fillRect(23.4 * S, 15 * S, 1.2 * S, 1.2 * S);
   return c;
 }
 

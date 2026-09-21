@@ -12,12 +12,15 @@ export const ITEMS = {
   royal:     { name: 'Peixe Real', price: 30, heal: 70, desc: 'Escamas azuis. Restaura 70 HP', battle: true },
   goldfish:  { name: 'Dourado Lendário', price: 90, heal: 140, desc: 'Lenda da Praia do Sol. Restaura 140 HP', battle: true },
   phoenix:   { name: 'Pena de Fênix', price: 200, revive: 0.5, desc: 'Revive um aliado caído com 50% do HP', battle: true },
+  bomb:      { name: 'Bomba de Fogo', price: 90, dmg: 90, desc: 'Explode num inimigo (90 de dano)', battle: true },
+  hiether:   { name: 'Hi-Éter', price: 280, mp: 60, desc: 'Restaura 60 MP de um aliado', battle: true },
+  elixir:    { name: 'Elixir', price: 400, heal: 200, mp: 40, desc: 'Restaura 200 HP e 40 MP de um aliado', battle: true },
 };
 
 /** @returns {Record<string, number>} */
-export const newInventory = () => ({ potion: 3, hipotion: 0, ether: 1, antidote: 0, phoenix: 0, lambari: 0, royal: 0, goldfish: 0 });
+export const newInventory = () => ({ potion: 3, hipotion: 0, ether: 1, antidote: 0, phoenix: 0, lambari: 0, royal: 0, goldfish: 0, bomb: 0, hiether: 0, elixir: 0, fish: 0 });
 
-export const SHOP_STOCK = ['potion', 'hipotion', 'ether', 'antidote', 'phoenix'];
+export const SHOP_STOCK = ['potion', 'hipotion', 'ether', 'antidote', 'phoenix', 'bomb', 'hiether'];
 
 /**
  * Usa um item num alvo.
@@ -36,19 +39,23 @@ export function useItem(inv, id, target) {
     target.hp = v;
     return { ok: true, msg: `${target.name} renasceu com ${v} HP!` };
   }
-  if (it.heal && target.hp >= target.maxHp) return { ok: false, msg: `${target.name} já está com HP cheio!` };
+  if (it.dmg) return { ok: false, msg: `${it.name} só funciona em batalha!` };
+  if (it.heal && !it.mp && target.hp >= target.maxHp) return { ok: false, msg: `${target.name} já está com HP cheio!` };
   if (it.heal && target.hp <= 0) return { ok: false, msg: `${target.name} está caído!` };
-  if (it.mp && target.mp >= target.maxMp) return { ok: false, msg: `${target.name} já está com MP cheio!` };
+  if (it.mp && !it.heal && target.mp >= target.maxMp) return { ok: false, msg: `${target.name} já está com MP cheio!` };
+  if (it.heal && it.mp && target.hp >= target.maxHp && target.mp >= target.maxMp) return { ok: false, msg: `${target.name} já está com HP e MP cheios!` };
   inv[id]--;
+  const parts = [];
   if (it.heal) {
     const v = Math.min(it.heal, target.maxHp - target.hp);
     target.hp += v;
-    return { ok: true, msg: `${target.name} recuperou ${v} HP!` };
+    parts.push(`${v} HP`);
   }
   if (it.mp) {
     const v = Math.min(it.mp, target.maxMp - target.mp);
     target.mp += v;
-    return { ok: true, msg: `${target.name} recuperou ${v} MP!` };
+    parts.push(`${v} MP`);
   }
+  if (parts.length) return { ok: true, msg: `${target.name} recuperou ${parts.join(' e ')}!` };
   return { ok: true, msg: `${it.name} usado!` };
 }

@@ -21,9 +21,13 @@ export const CHESTS = [
   { id: 'forest', x: 5, y: 9, loot: { gold: 40, items: { ether: 1, antidote: 1 } } },
   { id: 'ruin', x: 53, y: 11, loot: { gold: 150, items: { hipotion: 1 } } },
   { id: 'desert', x: 74, y: 38, loot: { gold: 120, items: { ether: 1 } } },
+  { id: 'swamp', x: 5, y: 54, loot: { gold: 90, items: { potion: 1, antidote: 1 } } },
+  { id: 'snow', x: 40, y: 3, loot: { gold: 110, items: { hiether: 1 } } },
 ];
 /** Meta da quest de caça do Guarda Cato (slimes derrotados). */
 export const HUNT_GOAL = 6;
+/** Meta da quest de ervas da Herbalista Yara (sapos e cogumelos do pântano). */
+export const HERB_GOAL = 4;
 /** Sentinela opcional do deserto: Golem Ancião (mini-chefe). */
 export const ELITE = { x: 60, y: 20, name: 'GOLEM ANCIÃO' };
 
@@ -194,6 +198,19 @@ export function buildMap() {
   set(53, 11, T.DARK_GRASS);
   set(52, 11, T.DARK_GRASS); set(53, 10, T.DARK_GRASS); set(53, 12, T.DARK_GRASS);
   set(74, 38, T.SAND);
+  set(5, 54, T.GRASS); // baú do pântano: terra firme no brejo
+  set(5, 53, T.GRASS); set(6, 54, T.GRASS);
+  set(40, 3, T.SNOW); // baú da neve: clareira pisável
+  set(39, 3, T.SNOW); set(40, 4, T.SNOW);
+  // ---- Clareiras dos novos NPCs (garante que ninguém nasce na água/pedra) ----
+  set(13, 40, T.PATH); // Rurik, o ferreiro
+  set(16, 38, T.PLAZA); // Felix, o bardo
+  set(15, 39, T.PLAZA); // Mia
+  set(43, 51, T.SAND); // Guarda Dina (ponte sul)
+  set(33, 47, T.SAND); // Velho Tumba (praia)
+  set(33, 3, T.SNOW); // Sábia Sella (neve)
+  set(14, 49, T.DARK_GRASS); // Herbalista Yara (pântano)
+  set(67, 41, T.SAND); // Eremita Ash (oásis)
   // ---- Clareira do Golem Ancião (deserto): sentinela + arredores pisáveis ----
   set(60, 20, T.SAND);
   set(59, 20, T.SAND); set(61, 20, T.SAND); set(60, 19, T.SAND); set(60, 21, T.SAND);
@@ -291,6 +308,63 @@ export const NPC_DEFS = [
     lines: [
       'Frio bom p/ caçar! Fagulhas rondam a neve — chegue perto e seja rápido.',
       'Se for ao pântano, cuidado com os Cogumelos: eles se curam com esporos!',
+    ],
+  },
+  {
+    id: 'smith', x: 13, y: 40, name: 'Rurik (Ferreiro)', kind: 'smith', wander: false, shop: true,
+    lines: ['Martelo quente, lâmina fria! Golems odeiam magia — bata de FOGO e TROVÃO neles.'],
+  },
+  {
+    id: 'bard', x: 16, y: 38, name: 'Felix, o Bardo', kind: 'bard', wander: true,
+    lines: [
+      '♪ Na planície o slime pulou, na ruína o golem rolou... ♪',
+      '♪ Quem o Ancião de pedra calar, no deserto há de penar... Golem Ancião, dizem! ♪',
+      '♪ E a Sella, sábia do frio, viu lobo branco no Pico... auuu! ♪',
+    ],
+  },
+  {
+    id: 'mia', x: 15, y: 39, name: 'Mia', kind: 'kid', wander: true,
+    lines: [
+      'O Pip disse que o boneco dele BRILHA! Eu também perdi... minha concha da praia!',
+      'A mamãe diz que o pântano tem luzinhas verdes que enganam viajante. Não siga as luzinhas!',
+    ],
+  },
+  {
+    id: 'guardS', x: 43, y: 51, name: 'Guarda Dina', kind: 'guard', wander: false,
+    lines: [
+      'Ponte sul liberada! Praia p/ descansar, deserto p/ enriquecer — e pântano p/ se perder.',
+      'A Yara, herbalista do pântano, paga bem por ajuda contra os sapos gigantes. Procure-a a sudoeste!',
+    ],
+  },
+  {
+    id: 'sailor', x: 33, y: 47, name: 'Velho Tumba', kind: 'sailor', wander: false,
+    gift: 'lambari',
+    lines: [
+      'Trinta anos de mar... e o maior peixe que vi foi o DOURADO LENDÁRIO, sombra G na água!',
+      'Dizem que um PEIXE REAL alimenta uma vila inteira. Traga um para este velho e conto onde escondi minhas economias...',
+    ],
+  },
+  {
+    id: 'sage', x: 33, y: 3, name: 'Sábia Sella', kind: 'sage', wander: false,
+    gift: 'ether',
+    lines: [
+      'O frio conserva o cristal... e os lobos. Os LOBOS DA NEVE caçam em matilha — derrote o mais rápido primeiro.',
+      'Esqueletos rondam as Ruínas: ossos velhos, ódio novo. GELO os torna lentos... dizem os pergaminhos.',
+    ],
+  },
+  {
+    id: 'herbalist', x: 14, y: 49, name: 'Herbalista Yara', kind: 'herbalist', wander: false,
+    lines: [
+      'Minhas ervas somem na gosma dos SAPOS! Derrote 4 sapos do pântano e eu pago com meu melhor tônico.',
+      'Sapo inchado anuncia chuva... e língua comprida. Bata primeiro, pergunte depois!',
+    ],
+  },
+  {
+    id: 'oasis', x: 67, y: 41, name: 'Eremita Ash', kind: 'hermit', wander: false,
+    gift: 'phoenix',
+    lines: [
+      'O oásis me escondeu do Golem Ancião... aquele colosso a noroeste daqui não dorme nunca.',
+      'Orcs do deserto bebem desta água. Se for enfrentá-los, leve BOMBAS — o Rurik vende.',
     ],
   },
 ];

@@ -676,6 +676,104 @@ function p_qtodo(g) {
   gloss(g, 20, 16, 2.6, 2);
 }
 
+function p_bomb(g) {
+  drop(g, 24, 39, 11);
+  // faíscas ao fundo
+  g.fillStyle = 'rgba(255,150,60,.5)';
+  g.fillRect(12, 10, 2.4, 2.4); g.fillRect(34, 12, 2, 2); g.fillRect(30, 32, 2, 2);
+  // bomba esférica vermelha
+  const bg = g.createRadialGradient(19, 21, 2, 24, 27, 13);
+  bg.addColorStop(0, '#ff9b8a'); bg.addColorStop(0.5, '#c22a1e'); bg.addColorStop(1, '#5e1a28');
+  g.fillStyle = bg;
+  g.beginPath(); g.arc(24, 26, 11.5, 0, 7); g.fill(); ln(g, 2);
+  // tampa + pavio + faísca
+  g.fillStyle = '#8a5a2b';
+  g.fillRect(21, 11, 6, 5);
+  ln(g, 1.4); g.strokeRect(21, 11, 6, 5);
+  g.strokeStyle = '#d9b878'; g.lineWidth = 2;
+  g.beginPath(); g.moveTo(24, 11); g.quadraticCurveTo(27, 7, 31, 8); g.stroke();
+  g.fillStyle = '#ffd75e';
+  g.beginPath(); g.arc(31.5, 8, 2.6, 0, 7); g.fill();
+  g.fillStyle = '#fff';
+  g.beginPath(); g.arc(31, 7.4, 1.1, 0, 7); g.fill();
+  gloss(g, 19.5, 20.5, 4, 2.4);
+  // chama mínima
+  g.fillStyle = '#ffd75e';
+  g.beginPath();
+  g.moveTo(24, 22); g.quadraticCurveTo(27, 26, 26, 31);
+  g.quadraticCurveTo(24, 33, 22, 31); g.quadraticCurveTo(21, 26, 24, 22);
+  g.fill();
+}
+
+function p_hiether(g) {
+  drop(g, 24, 39, 9);
+  // vial largo
+  g.fillStyle = vg(g, 8, 15, [[0, '#fff3c4'], [1, '#c98d2e']]);
+  rr(g, 19, 8, 10, 7, 2); g.fill(); ln(g, 1.6);
+  const bg = g.createLinearGradient(15, 0, 33, 0);
+  bg.addColorStop(0, '#1b2f9e'); bg.addColorStop(0.4, '#4fc3ff'); bg.addColorStop(0.6, '#bff3ff'); bg.addColorStop(1, '#2456e0');
+  g.fillStyle = bg;
+  rr(g, 15, 15, 18, 24, 7); g.fill(); ln(g, 2);
+  // mana densa + dupla bolha
+  g.fillStyle = 'rgba(230,250,255,.9)';
+  rr(g, 18, 24, 12, 12, 6); g.fill();
+  g.fillStyle = '#fff';
+  g.beginPath(); g.arc(22, 29, 1.8, 0, 7); g.fill();
+  g.beginPath(); g.arc(26.5, 32.5, 1.2, 0, 7); g.fill();
+  gloss(g, 19, 19.5, 2.8, 5);
+  g.fillStyle = 'rgba(160,220,255,.9)';
+  g.fillRect(35, 22, 2, 2); g.fillRect(11, 30, 2, 2);
+}
+
+function p_elixir(g) {
+  drop(g, 24, 39, 11);
+  // halo dourado
+  g.fillStyle = 'rgba(255,215,94,.25)';
+  g.beginPath(); g.arc(24, 25, 15, 0, 7); g.fill();
+  // frasco de cristal facetado
+  const bg = g.createLinearGradient(14, 0, 34, 0);
+  bg.addColorStop(0, '#c9a8ff'); bg.addColorStop(0.5, '#efe6ff'); bg.addColorStop(1, '#8a6fd6');
+  g.fillStyle = bg;
+  g.beginPath();
+  g.moveTo(24, 8); g.lineTo(35, 22); g.lineTo(24, 40); g.lineTo(13, 22);
+  g.closePath(); g.fill(); ln(g, 2);
+  g.strokeStyle = 'rgba(255,255,255,.8)'; g.lineWidth = 1.4;
+  g.beginPath(); g.moveTo(24, 12); g.lineTo(30, 22); g.lineTo(24, 35); g.stroke();
+  // cruz verde de cura no centro
+  g.fillStyle = '#37e08b';
+  g.fillRect(22, 20, 4, 10); g.fillRect(19, 23, 10, 4);
+  ln(g, 1.2);
+  gloss(g, 20, 15, 2.4, 3.4, 0.25, 0.8);
+}
+
+function p_ice(g) {
+  drop(g, 24, 39, 10);
+  // halo frio
+  g.fillStyle = 'rgba(127,212,255,.25)';
+  g.beginPath(); g.arc(24, 24, 14, 0, 7); g.fill();
+  // floco de neve: 3 eixos cruzados
+  g.strokeStyle = '#bff3ff'; g.lineWidth = 3.4; g.lineCap = 'round';
+  for (const a of [0, Math.PI / 3, -Math.PI / 3]) {
+    g.beginPath();
+    g.moveTo(24 - Math.cos(a) * 13, 24 - Math.sin(a) * 13);
+    g.lineTo(24 + Math.cos(a) * 13, 24 + Math.sin(a) * 13);
+    g.stroke();
+  }
+  g.strokeStyle = '#2456e0'; g.lineWidth = 1.2;
+  for (const a of [0, Math.PI / 3, -Math.PI / 3]) {
+    g.beginPath();
+    g.moveTo(24 - Math.cos(a) * 13, 24 - Math.sin(a) * 13);
+    g.lineTo(24 + Math.cos(a) * 13, 24 + Math.sin(a) * 13);
+    g.stroke();
+  }
+  // núcleo + brilhos
+  g.fillStyle = '#fff';
+  g.beginPath(); g.arc(24, 24, 4, 0, 7); g.fill();
+  g.fillStyle = '#7fd4ff';
+  g.beginPath(); g.arc(24, 24, 2.2, 0, 7); g.fill();
+  gloss(g, 24, 14, 2, 5, 0.2, 0.7);
+}
+
 function p_spark(g) {
   drop(g, 24, 39, 9);
   g.fillStyle = '#c9a8ff';
@@ -695,7 +793,8 @@ function p_spark(g) {
 const PAINT = {
   potion: p_potion, hipotion: p_hipotion, ether: p_ether, antidote: p_antidote,
   fish: p_fish, lambari: p_lambari, royal: p_royal, goldfish: p_goldfish, phoenix: p_phoenix,
-  fire: p_fire, thunder: p_thunder, cure: p_cure,
+  bomb: p_bomb, hiether: p_hiether, elixir: p_elixir,
+  fire: p_fire, ice: p_ice, thunder: p_thunder, cure: p_cure,
   attack: p_attack, magic: p_magic, item: p_item, scan: p_scan, flee: p_flee, guard: p_guard,
   gold: p_gold, bed: p_bed, save: p_save, quest: p_quest, status: p_status, config: p_config,
   sound: p_sound, mute: p_mute, slot: p_slot, qdone: p_qdone, qtodo: p_qtodo,
@@ -708,6 +807,10 @@ function accentFor(id) {
     case 'royal': return ['#6b8cff', true];
     case 'phoenix': return ['#ff9b5b', true];
     case 'hipotion': return ['#ffd75e', false];
+    case 'elixir': return ['#c9a8ff', true];
+    case 'bomb': return ['#ff8a6b', false];
+    case 'hiether': return ['#7fd4ff', true];
+    case 'ice': return ['#7fd4ff', false];
     case 'thunder': return ['#ffe95e', true];
     case 'fire': return ['#ff8a6b', false];
     case 'cure': return ['#37e08b', false];

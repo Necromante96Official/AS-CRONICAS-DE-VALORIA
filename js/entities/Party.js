@@ -6,6 +6,7 @@ import { xpForLevel } from '../core/Config.js';
 
 export const SPELLS = {
   fire:    { name: 'Fogo',     mp: 4,  power: 1.6, target: 'enemy', desc: 'Dano de fogo num inimigo' },
+  ice:     { name: 'Gelo',     mp: 6,  power: 2.0, target: 'enemy', desc: 'Dano de gelo; pode atordoar' },
   thunder: { name: 'Trovão',   mp: 7,  power: 2.4, target: 'enemy', desc: 'Dano alto num inimigo' },
   cure:    { name: 'Cura',     mp: 5,  power: 2.2, target: 'ally',  desc: 'Restaura HP de um aliado' },
 };
@@ -39,6 +40,8 @@ export function grantXp(party, amount) {
       h.atk += 1 + (h.cls === 'Guerreiro' ? 1 : 0);
       h.def += 1; h.spd += h.cls === 'Maga' ? 1 : 0; h.mag += h.cls !== 'Guerreiro' ? 1 : 0;
       if (h.cls === 'Clérigo' && h.level >= 3 && !h.spells.includes('thunder')) { h.spells.push('thunder'); }
+      if (h.cls === 'Maga' && h.level >= 4 && !h.spells.includes('ice')) { h.spells.push('ice'); msgs.push(`${h.name} aprendeu GELO!`); }
+      if (h.cls === 'Clérigo' && h.level >= 5 && !h.spells.includes('ice')) { h.spells.push('ice'); msgs.push(`${h.name} aprendeu GELO!`); }
       msgs.push(`${h.name} subiu para o Nv ${h.level}!`);
     }
   }

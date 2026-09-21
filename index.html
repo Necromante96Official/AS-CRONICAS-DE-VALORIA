@@ -2299,9 +2299,13 @@ const CHESTS = [
   { id: 'forest', x: 5, y: 9, loot: { gold: 40, items: { ether: 1, antidote: 1 } } },
   { id: 'ruin', x: 53, y: 11, loot: { gold: 150, items: { hipotion: 1 } } },
   { id: 'desert', x: 74, y: 38, loot: { gold: 120, items: { ether: 1 } } },
+  { id: 'swamp', x: 5, y: 54, loot: { gold: 90, items: { potion: 1, antidote: 1 } } },
+  { id: 'snow', x: 40, y: 3, loot: { gold: 110, items: { hiether: 1 } } },
 ];
 /** Meta da quest de caça do Guarda Cato (slimes derrotados). */
 const HUNT_GOAL = 6;
+/** Meta da quest de ervas da Herbalista Yara (sapos e cogumelos do pântano). */
+const HERB_GOAL = 4;
 /** Sentinela opcional do deserto: Golem Ancião (mini-chefe). */
 const ELITE = { x: 60, y: 20, name: 'GOLEM ANCIÃO' };
 
@@ -2472,6 +2476,19 @@ function buildMap() {
   set(53, 11, T.DARK_GRASS);
   set(52, 11, T.DARK_GRASS); set(53, 10, T.DARK_GRASS); set(53, 12, T.DARK_GRASS);
   set(74, 38, T.SAND);
+  set(5, 54, T.GRASS); // baú do pântano: terra firme no brejo
+  set(5, 53, T.GRASS); set(6, 54, T.GRASS);
+  set(40, 3, T.SNOW); // baú da neve: clareira pisável
+  set(39, 3, T.SNOW); set(40, 4, T.SNOW);
+  // ---- Clareiras dos novos NPCs (garante que ninguém nasce na água/pedra) ----
+  set(13, 40, T.PATH); // Rurik, o ferreiro
+  set(16, 38, T.PLAZA); // Felix, o bardo
+  set(15, 39, T.PLAZA); // Mia
+  set(43, 51, T.SAND); // Guarda Dina (ponte sul)
+  set(33, 47, T.SAND); // Velho Tumba (praia)
+  set(33, 3, T.SNOW); // Sábia Sella (neve)
+  set(14, 49, T.DARK_GRASS); // Herbalista Yara (pântano)
+  set(67, 41, T.SAND); // Eremita Ash (oásis)
   // ---- Clareira do Golem Ancião (deserto): sentinela + arredores pisáveis ----
   set(60, 20, T.SAND);
   set(59, 20, T.SAND); set(61, 20, T.SAND); set(60, 19, T.SAND); set(60, 21, T.SAND);
@@ -2569,6 +2586,63 @@ const NPC_DEFS = [
     lines: [
       'Frio bom p/ caçar! Fagulhas rondam a neve — chegue perto e seja rápido.',
       'Se for ao pântano, cuidado com os Cogumelos: eles se curam com esporos!',
+    ],
+  },
+  {
+    id: 'smith', x: 13, y: 40, name: 'Rurik (Ferreiro)', kind: 'smith', wander: false, shop: true,
+    lines: ['Martelo quente, lâmina fria! Golems odeiam magia — bata de FOGO e TROVÃO neles.'],
+  },
+  {
+    id: 'bard', x: 16, y: 38, name: 'Felix, o Bardo', kind: 'bard', wander: true,
+    lines: [
+      '♪ Na planície o slime pulou, na ruína o golem rolou... ♪',
+      '♪ Quem o Ancião de pedra calar, no deserto há de penar... Golem Ancião, dizem! ♪',
+      '♪ E a Sella, sábia do frio, viu lobo branco no Pico... auuu! ♪',
+    ],
+  },
+  {
+    id: 'mia', x: 15, y: 39, name: 'Mia', kind: 'kid', wander: true,
+    lines: [
+      'O Pip disse que o boneco dele BRILHA! Eu também perdi... minha concha da praia!',
+      'A mamãe diz que o pântano tem luzinhas verdes que enganam viajante. Não siga as luzinhas!',
+    ],
+  },
+  {
+    id: 'guardS', x: 43, y: 51, name: 'Guarda Dina', kind: 'guard', wander: false,
+    lines: [
+      'Ponte sul liberada! Praia p/ descansar, deserto p/ enriquecer — e pântano p/ se perder.',
+      'A Yara, herbalista do pântano, paga bem por ajuda contra os sapos gigantes. Procure-a a sudoeste!',
+    ],
+  },
+  {
+    id: 'sailor', x: 33, y: 47, name: 'Velho Tumba', kind: 'sailor', wander: false,
+    gift: 'lambari',
+    lines: [
+      'Trinta anos de mar... e o maior peixe que vi foi o DOURADO LENDÁRIO, sombra G na água!',
+      'Dizem que um PEIXE REAL alimenta uma vila inteira. Traga um para este velho e conto onde escondi minhas economias...',
+    ],
+  },
+  {
+    id: 'sage', x: 33, y: 3, name: 'Sábia Sella', kind: 'sage', wander: false,
+    gift: 'ether',
+    lines: [
+      'O frio conserva o cristal... e os lobos. Os LOBOS DA NEVE caçam em matilha — derrote o mais rápido primeiro.',
+      'Esqueletos rondam as Ruínas: ossos velhos, ódio novo. GELO os torna lentos... dizem os pergaminhos.',
+    ],
+  },
+  {
+    id: 'herbalist', x: 14, y: 49, name: 'Herbalista Yara', kind: 'herbalist', wander: false,
+    lines: [
+      'Minhas ervas somem na gosma dos SAPOS! Derrote 4 sapos do pântano e eu pago com meu melhor tônico.',
+      'Sapo inchado anuncia chuva... e língua comprida. Bata primeiro, pergunte depois!',
+    ],
+  },
+  {
+    id: 'oasis', x: 67, y: 41, name: 'Eremita Ash', kind: 'hermit', wander: false,
+    gift: 'phoenix',
+    lines: [
+      'O oásis me escondeu do Golem Ancião... aquele colosso a noroeste daqui não dorme nunca.',
+      'Orcs do deserto bebem desta água. Se for enfrentá-los, leve BOMBAS — o Rurik vende.',
     ],
   },
 ];
@@ -2760,6 +2834,7 @@ class Player {
 
 const SPELLS = {
   fire:    { name: 'Fogo',     mp: 4,  power: 1.6, target: 'enemy', desc: 'Dano de fogo num inimigo' },
+  ice:     { name: 'Gelo',     mp: 6,  power: 2.0, target: 'enemy', desc: 'Dano de gelo; pode atordoar' },
   thunder: { name: 'Trovão',   mp: 7,  power: 2.4, target: 'enemy', desc: 'Dano alto num inimigo' },
   cure:    { name: 'Cura',     mp: 5,  power: 2.2, target: 'ally',  desc: 'Restaura HP de um aliado' },
 };
@@ -2793,6 +2868,8 @@ function grantXp(party, amount) {
       h.atk += 1 + (h.cls === 'Guerreiro' ? 1 : 0);
       h.def += 1; h.spd += h.cls === 'Maga' ? 1 : 0; h.mag += h.cls !== 'Guerreiro' ? 1 : 0;
       if (h.cls === 'Clérigo' && h.level >= 3 && !h.spells.includes('thunder')) { h.spells.push('thunder'); }
+      if (h.cls === 'Maga' && h.level >= 4 && !h.spells.includes('ice')) { h.spells.push('ice'); msgs.push(`${h.name} aprendeu GELO!`); }
+      if (h.cls === 'Clérigo' && h.level >= 5 && !h.spells.includes('ice')) { h.spells.push('ice'); msgs.push(`${h.name} aprendeu GELO!`); }
       msgs.push(`${h.name} subiu para o Nv ${h.level}!`);
     }
   }
@@ -2827,20 +2904,25 @@ const BESTIARY = {
   crab:   { name: 'Caranguejo',   hp: 30, atk: 10, def: 9, spd: 5,  xp: 18, gold: 14, sprite: 'crab' },
   scorpion: { name: 'Escorpião',  hp: 24, atk: 14, def: 5, spd: 11, xp: 24, gold: 20, sprite: 'scorpion' },
   shroom: { name: 'Cogumelo',     hp: 34, atk: 11, def: 6, spd: 6,  xp: 24, gold: 16, sprite: 'shroom' },
+  skeleton: { name: 'Esqueleto',  hp: 32, atk: 13, def: 5, spd: 8,  xp: 26, gold: 24, sprite: 'skeleton' },
+  orc:    { name: 'Orc do Deserto', hp: 44, atk: 15, def: 7, spd: 6,  xp: 30, gold: 26, sprite: 'orc' },
+  toad:   { name: 'Sapo Gigante', hp: 38, atk: 12, def: 6, spd: 7,  xp: 26, gold: 18, sprite: 'toad' },
+  wolf:   { name: 'Lobo da Neve', hp: 28, atk: 14, def: 5, spd: 14, xp: 28, gold: 24, sprite: 'wolf' },
   king:   { name: 'SLIME REI',    hp: 70, atk: 15, def: 9, spd: 6,  xp: 70, gold: 80, sprite: 'king' },
+  ancient: { name: 'GOLEM ANCIÃO', hp: 130, atk: 18, def: 11, spd: 4, xp: 150, gold: 300, sprite: 'ancient', boss: true },
   dragon: { name: 'DRAGÃO DO CAOS', hp: 220, atk: 22, def: 12, spd: 9, xp: 250, gold: 500, sprite: 'dragon', boss: true },
 };
 
 /** Tabela de encontros por região: [id, peso]. @param {string} region */
 function encounterTable(region) {
   switch (region) {
-    case 'forest': return [['bat', 4], ['slime', 2], ['shroom', 2], ['wisp', 1]];
-    case 'dungeon': case 'altar': return [['golem', 4], ['wisp', 4], ['bat', 2]];
-    case 'snow': return [['wisp', 4], ['bat', 3], ['golem', 3]];
-    case 'beach': return [['crab', 4], ['slime', 3], ['bat', 1]];
-    case 'desert': return [['scorpion', 4], ['golem', 2], ['bat', 2]];
-    case 'swamp': return [['shroom', 4], ['bat', 2], ['wisp', 2]];
-    default: return [['slime', 5], ['bat', 3], ['golem', 1]];
+    case 'forest': return [['bat', 4], ['slime', 2], ['shroom', 2], ['wolf', 1], ['wisp', 1]];
+    case 'dungeon': case 'altar': return [['golem', 3], ['skeleton', 3], ['wisp', 3], ['bat', 2]];
+    case 'snow': return [['wisp', 3], ['wolf', 3], ['bat', 2], ['golem', 2]];
+    case 'beach': return [['crab', 4], ['slime', 3], ['toad', 1], ['bat', 1]];
+    case 'desert': return [['scorpion', 3], ['orc', 3], ['golem', 2], ['bat', 1]];
+    case 'swamp': return [['shroom', 3], ['toad', 3], ['bat', 2], ['wisp', 1]];
+    default: return [['slime', 4], ['bat', 3], ['skeleton', 1], ['golem', 1]];
   }
 }
 
@@ -2873,6 +2955,9 @@ function makeEncounter(region, avgLevel) {
 /** O boss final. */
 const makeBoss = () => makeEnemy('dragon', 1.15);
 
+/** Mini-chefe opcional do deserto: o Golem Ancião da clareira. */
+const makeElite = () => makeEnemy('ancient', 1.0);
+
 /* ===== js\systems\Inventory.js ===== */
 /**
  * Inventory — itens consumíveis e loja.
@@ -2888,12 +2973,15 @@ const ITEMS = {
   royal:     { name: 'Peixe Real', price: 30, heal: 70, desc: 'Escamas azuis. Restaura 70 HP', battle: true },
   goldfish:  { name: 'Dourado Lendário', price: 90, heal: 140, desc: 'Lenda da Praia do Sol. Restaura 140 HP', battle: true },
   phoenix:   { name: 'Pena de Fênix', price: 200, revive: 0.5, desc: 'Revive um aliado caído com 50% do HP', battle: true },
+  bomb:      { name: 'Bomba de Fogo', price: 90, dmg: 90, desc: 'Explode num inimigo (90 de dano)', battle: true },
+  hiether:   { name: 'Hi-Éter', price: 280, mp: 60, desc: 'Restaura 60 MP de um aliado', battle: true },
+  elixir:    { name: 'Elixir', price: 400, heal: 200, mp: 40, desc: 'Restaura 200 HP e 40 MP de um aliado', battle: true },
 };
 
 /** @returns {Record<string, number>} */
-const newInventory = () => ({ potion: 3, hipotion: 0, ether: 1, antidote: 0, phoenix: 0, lambari: 0, royal: 0, goldfish: 0 });
+const newInventory = () => ({ potion: 3, hipotion: 0, ether: 1, antidote: 0, phoenix: 0, lambari: 0, royal: 0, goldfish: 0, bomb: 0, hiether: 0, elixir: 0, fish: 0 });
 
-const SHOP_STOCK = ['potion', 'hipotion', 'ether', 'antidote', 'phoenix'];
+const SHOP_STOCK = ['potion', 'hipotion', 'ether', 'antidote', 'phoenix', 'bomb', 'hiether'];
 
 /**
  * Usa um item num alvo.
@@ -2912,20 +3000,24 @@ function useItem(inv, id, target) {
     target.hp = v;
     return { ok: true, msg: `${target.name} renasceu com ${v} HP!` };
   }
-  if (it.heal && target.hp >= target.maxHp) return { ok: false, msg: `${target.name} já está com HP cheio!` };
+  if (it.dmg) return { ok: false, msg: `${it.name} só funciona em batalha!` };
+  if (it.heal && !it.mp && target.hp >= target.maxHp) return { ok: false, msg: `${target.name} já está com HP cheio!` };
   if (it.heal && target.hp <= 0) return { ok: false, msg: `${target.name} está caído!` };
-  if (it.mp && target.mp >= target.maxMp) return { ok: false, msg: `${target.name} já está com MP cheio!` };
+  if (it.mp && !it.heal && target.mp >= target.maxMp) return { ok: false, msg: `${target.name} já está com MP cheio!` };
+  if (it.heal && it.mp && target.hp >= target.maxHp && target.mp >= target.maxMp) return { ok: false, msg: `${target.name} já está com HP e MP cheios!` };
   inv[id]--;
+  const parts = [];
   if (it.heal) {
     const v = Math.min(it.heal, target.maxHp - target.hp);
     target.hp += v;
-    return { ok: true, msg: `${target.name} recuperou ${v} HP!` };
+    parts.push(`${v} HP`);
   }
   if (it.mp) {
     const v = Math.min(it.mp, target.maxMp - target.mp);
     target.mp += v;
-    return { ok: true, msg: `${target.name} recuperou ${v} MP!` };
+    parts.push(`${v} MP`);
   }
+  if (parts.length) return { ok: true, msg: `${target.name} recuperou ${parts.join(' e ')}!` };
   return { ok: true, msg: `${it.name} usado!` };
 }
 
@@ -3834,6 +3926,104 @@ function p_qtodo(g) {
   gloss(g, 20, 16, 2.6, 2);
 }
 
+function p_bomb(g) {
+  drop(g, 24, 39, 11);
+  // faíscas ao fundo
+  g.fillStyle = 'rgba(255,150,60,.5)';
+  g.fillRect(12, 10, 2.4, 2.4); g.fillRect(34, 12, 2, 2); g.fillRect(30, 32, 2, 2);
+  // bomba esférica vermelha
+  const bg = g.createRadialGradient(19, 21, 2, 24, 27, 13);
+  bg.addColorStop(0, '#ff9b8a'); bg.addColorStop(0.5, '#c22a1e'); bg.addColorStop(1, '#5e1a28');
+  g.fillStyle = bg;
+  g.beginPath(); g.arc(24, 26, 11.5, 0, 7); g.fill(); ln(g, 2);
+  // tampa + pavio + faísca
+  g.fillStyle = '#8a5a2b';
+  g.fillRect(21, 11, 6, 5);
+  ln(g, 1.4); g.strokeRect(21, 11, 6, 5);
+  g.strokeStyle = '#d9b878'; g.lineWidth = 2;
+  g.beginPath(); g.moveTo(24, 11); g.quadraticCurveTo(27, 7, 31, 8); g.stroke();
+  g.fillStyle = '#ffd75e';
+  g.beginPath(); g.arc(31.5, 8, 2.6, 0, 7); g.fill();
+  g.fillStyle = '#fff';
+  g.beginPath(); g.arc(31, 7.4, 1.1, 0, 7); g.fill();
+  gloss(g, 19.5, 20.5, 4, 2.4);
+  // chama mínima
+  g.fillStyle = '#ffd75e';
+  g.beginPath();
+  g.moveTo(24, 22); g.quadraticCurveTo(27, 26, 26, 31);
+  g.quadraticCurveTo(24, 33, 22, 31); g.quadraticCurveTo(21, 26, 24, 22);
+  g.fill();
+}
+
+function p_hiether(g) {
+  drop(g, 24, 39, 9);
+  // vial largo
+  g.fillStyle = vg(g, 8, 15, [[0, '#fff3c4'], [1, '#c98d2e']]);
+  rr(g, 19, 8, 10, 7, 2); g.fill(); ln(g, 1.6);
+  const bg = g.createLinearGradient(15, 0, 33, 0);
+  bg.addColorStop(0, '#1b2f9e'); bg.addColorStop(0.4, '#4fc3ff'); bg.addColorStop(0.6, '#bff3ff'); bg.addColorStop(1, '#2456e0');
+  g.fillStyle = bg;
+  rr(g, 15, 15, 18, 24, 7); g.fill(); ln(g, 2);
+  // mana densa + dupla bolha
+  g.fillStyle = 'rgba(230,250,255,.9)';
+  rr(g, 18, 24, 12, 12, 6); g.fill();
+  g.fillStyle = '#fff';
+  g.beginPath(); g.arc(22, 29, 1.8, 0, 7); g.fill();
+  g.beginPath(); g.arc(26.5, 32.5, 1.2, 0, 7); g.fill();
+  gloss(g, 19, 19.5, 2.8, 5);
+  g.fillStyle = 'rgba(160,220,255,.9)';
+  g.fillRect(35, 22, 2, 2); g.fillRect(11, 30, 2, 2);
+}
+
+function p_elixir(g) {
+  drop(g, 24, 39, 11);
+  // halo dourado
+  g.fillStyle = 'rgba(255,215,94,.25)';
+  g.beginPath(); g.arc(24, 25, 15, 0, 7); g.fill();
+  // frasco de cristal facetado
+  const bg = g.createLinearGradient(14, 0, 34, 0);
+  bg.addColorStop(0, '#c9a8ff'); bg.addColorStop(0.5, '#efe6ff'); bg.addColorStop(1, '#8a6fd6');
+  g.fillStyle = bg;
+  g.beginPath();
+  g.moveTo(24, 8); g.lineTo(35, 22); g.lineTo(24, 40); g.lineTo(13, 22);
+  g.closePath(); g.fill(); ln(g, 2);
+  g.strokeStyle = 'rgba(255,255,255,.8)'; g.lineWidth = 1.4;
+  g.beginPath(); g.moveTo(24, 12); g.lineTo(30, 22); g.lineTo(24, 35); g.stroke();
+  // cruz verde de cura no centro
+  g.fillStyle = '#37e08b';
+  g.fillRect(22, 20, 4, 10); g.fillRect(19, 23, 10, 4);
+  ln(g, 1.2);
+  gloss(g, 20, 15, 2.4, 3.4, 0.25, 0.8);
+}
+
+function p_ice(g) {
+  drop(g, 24, 39, 10);
+  // halo frio
+  g.fillStyle = 'rgba(127,212,255,.25)';
+  g.beginPath(); g.arc(24, 24, 14, 0, 7); g.fill();
+  // floco de neve: 3 eixos cruzados
+  g.strokeStyle = '#bff3ff'; g.lineWidth = 3.4; g.lineCap = 'round';
+  for (const a of [0, Math.PI / 3, -Math.PI / 3]) {
+    g.beginPath();
+    g.moveTo(24 - Math.cos(a) * 13, 24 - Math.sin(a) * 13);
+    g.lineTo(24 + Math.cos(a) * 13, 24 + Math.sin(a) * 13);
+    g.stroke();
+  }
+  g.strokeStyle = '#2456e0'; g.lineWidth = 1.2;
+  for (const a of [0, Math.PI / 3, -Math.PI / 3]) {
+    g.beginPath();
+    g.moveTo(24 - Math.cos(a) * 13, 24 - Math.sin(a) * 13);
+    g.lineTo(24 + Math.cos(a) * 13, 24 + Math.sin(a) * 13);
+    g.stroke();
+  }
+  // núcleo + brilhos
+  g.fillStyle = '#fff';
+  g.beginPath(); g.arc(24, 24, 4, 0, 7); g.fill();
+  g.fillStyle = '#7fd4ff';
+  g.beginPath(); g.arc(24, 24, 2.2, 0, 7); g.fill();
+  gloss(g, 24, 14, 2, 5, 0.2, 0.7);
+}
+
 function p_spark(g) {
   drop(g, 24, 39, 9);
   g.fillStyle = '#c9a8ff';
@@ -3853,7 +4043,8 @@ function p_spark(g) {
 const PAINT = {
   potion: p_potion, hipotion: p_hipotion, ether: p_ether, antidote: p_antidote,
   fish: p_fish, lambari: p_lambari, royal: p_royal, goldfish: p_goldfish, phoenix: p_phoenix,
-  fire: p_fire, thunder: p_thunder, cure: p_cure,
+  bomb: p_bomb, hiether: p_hiether, elixir: p_elixir,
+  fire: p_fire, ice: p_ice, thunder: p_thunder, cure: p_cure,
   attack: p_attack, magic: p_magic, item: p_item, scan: p_scan, flee: p_flee, guard: p_guard,
   gold: p_gold, bed: p_bed, save: p_save, quest: p_quest, status: p_status, config: p_config,
   sound: p_sound, mute: p_mute, slot: p_slot, qdone: p_qdone, qtodo: p_qtodo,
@@ -3866,6 +4057,10 @@ function accentFor(id) {
     case 'royal': return ['#6b8cff', true];
     case 'phoenix': return ['#ff9b5b', true];
     case 'hipotion': return ['#ffd75e', false];
+    case 'elixir': return ['#c9a8ff', true];
+    case 'bomb': return ['#ff8a6b', false];
+    case 'hiether': return ['#7fd4ff', true];
+    case 'ice': return ['#7fd4ff', false];
     case 'thunder': return ['#ffe95e', true];
     case 'fire': return ['#ff8a6b', false];
     case 'cure': return ['#37e08b', false];
@@ -4100,6 +4295,14 @@ class Menu {
     else qs.push({ t: 'Caça aos slimes', d: `${hc}/${HUNT_GOAL} slimes derrotados.`, done: false });
     if (f.eliteDefeated) qs.push({ t: 'Golem Ancião', d: 'O deserto respira aliviado.', done: true });
     else qs.push({ t: 'Golem Ancião', d: 'Um colosso ronda o Deserto Dourado, a leste do rio.', done: false });
+    const hb = f.herbCount || 0;
+    if (f.herbRewarded) qs.push({ t: 'Ervas da Yara', d: 'Pântano limpo! A Yara agradece.', done: true });
+    else if (!f.herbQuest) qs.push({ t: '???', d: 'Uma herbalista no pântano, a sudoeste, parece aflita...', done: false });
+    else if (hb >= HERB_GOAL) qs.push({ t: 'Ervas da Yara', d: 'Meta batida! Volte à Herbalista Yara.', done: false });
+    else qs.push({ t: 'Ervas da Yara', d: `${hb}/${HERB_GOAL} sapos/cogumelos derrotados.`, done: false });
+    if (f.pearlRewarded) qs.push({ t: 'Peixe Real do Tumba', d: 'O velho marinheiro sorri para o mar.', done: true });
+    else if (!f.pearlQuest) qs.push({ t: '???', d: 'Um velho na Praia do Sol conta histórias de pesca...', done: false });
+    else qs.push({ t: 'Peixe Real do Tumba', d: 'Pesque um PEIXE REAL encarando a água (E). Na praia é mais fácil!', done: false });
     const opened = CHESTS.filter((c) => f[`chest_${c.id}`]).length;
     qs.push(opened >= CHESTS.length
       ? { t: `Baús do tesouro`, d: 'Todos abertos! Olho de águia.', done: true }
@@ -4163,7 +4366,7 @@ class Menu {
     if (tabId === 'items') {
       const id = this.rows[this.sel];
       if ((inv[id] || 0) <= 0) { this.notify(`Você não tem ${ITEMS[id].name}!`); this.audio.sfx('flee-fail'); return; }
-      if (ITEMS[id].flee) { this.notify(`${ITEMS[id].name} só funciona em batalha!`); this.audio.sfx('flee-fail'); return; }
+      if (ITEMS[id].flee || ITEMS[id].dmg) { this.notify(`${ITEMS[id].name} só funciona em batalha!`); this.audio.sfx('flee-fail'); return; }
       this.sub = { kind: 'item', id }; this.sel = 0;
     } else if (tabId === 'magic') {
       if (this.spellHero == null) {
@@ -4476,7 +4679,7 @@ function makeHumanoid(pal, opts = {}) {
     g.fillStyle = 'rgba(0,0,0,.3)';
     g.beginPath(); g.ellipse(8 * S, 18.6 * S, 5 * S, 1.2 * S, 0, 0, 7); g.fill();
 
-    const isRobe = kind === 'mage' || kind === 'cleric' || kind === 'elder' || kind === 'hermit';
+    const isRobe = kind === 'mage' || kind === 'cleric' || kind === 'elder' || kind === 'hermit' || kind === 'sage';
     const isKid = kind === 'kid';
 
     // capa por trás (herói guerreiro) — visível em todas as direções
@@ -4647,6 +4850,43 @@ function makeHumanoid(pal, opts = {}) {
       px(4, 14, 8, 1, '#ffd75e'); // vivo dourado
       px(4, 9, 8, 1, '#3a2a1a'); px(11, 11, 3, 3, '#5e3a17'); // tiracolo + sacola
       px(12, 12, 1, 1, '#ffd75e'); // fecho
+    }
+    // FERREIRO: avental de couro + braços nus + martelo na mão
+    if (kind === 'smith') {
+      if (dir !== 'up') { px(5, 9, 6, 6, '#5e3a17'); px(6, 10, 4, 2, '#7a4e22'); px(7, 13, 2, 1, '#ffd75e'); }
+      px(2, 11, 2, 2, pal.skin); px(12, 11, 2, 2, pal.skin); // antebraços fortes
+      px(13, 5, 1, 10, '#6e451f'); // cabo do martelo
+      px(12, 3, 3, 3, '#8d8d99'); px(12, 3, 3, 1, '#e8ecff'); // cabeça do martelo
+      px(4, 1, 8, 2, '#3a2412'); // faixa na testa
+    }
+    // BARDO: boina com pluma + gibão colorido + bandolim nas costas
+    if (kind === 'bard') {
+      px(4, 1, 8, 2, '#8e2b8c'); px(9, 0, 3, 2, '#ff8fb3'); // boina + pluma
+      px(4, 1, 8, 1, '#c26ac2');
+      if (dir !== 'up') { px(4, 9, 8, 2, '#e8a91e'); px(6, 11, 4, 1, '#8e2b8c'); } // gibão listrado
+      if (dir === 'up' || dir === 'left') { px(10, 6, 2, 7, '#8a5a2b'); px(9, 5, 4, 3, '#c98d4e'); } // bandolim
+    }
+    // MARINHEIRO: bandana + barba grisalha + casaco com botões de âncora
+    if (kind === 'sailor') {
+      px(4, 1, 8, 2, '#2b6fd6'); px(4, 2, 8, 1, '#1b4a9e'); // bandana
+      if (dir === 'left') px(3, 2, 2, 2, '#2b6fd6'); else if (dir !== 'up') px(11, 2, 2, 2, '#2b6fd6');
+      if (dir !== 'up') { px(5, 7, 6, 2, '#bdbdc9'); px(6, 9, 4, 1, '#9a9aa8'); } // barba
+      px(4, 9, 8, 1, '#e8e4da'); // gola do casaco
+      if (dir !== 'up') { px(7, 10, 1, 1, '#ffd75e'); px(7, 12, 1, 1, '#ffd75e'); } // botões
+    }
+    // SÁBIA: manto estrelado + diadema + cajado de gelo
+    if (kind === 'sage') {
+      px(5, 0, 6, 2, '#9fb2ff'); px(7, 0, 2, 1, '#ffd75e'); // diadema
+      px(4, 12, 8, 1, '#7fd4ff'); // faixa gelada do manto
+      px(5, 13, 1, 1, '#fff'); px(10, 14, 1, 1, '#fff'); px(7, 15, 1, 1, '#ffd75e'); // estrelas
+      px(1, 6, 1, 12, '#b9c8de'); px(0, 4, 3, 2, '#7fd4ff'); // cajado + cristal de gelo
+    }
+    // HERBALISTA: capuz verde + cesto de ervas na cintura
+    if (kind === 'herbalist') {
+      px(3, 1, 10, 3, '#2e7d46'); px(3, 3, 1, 4, '#2e7d46'); px(12, 3, 1, 4, '#2e7d46'); // capuz
+      px(3, 1, 10, 1, '#5cbf5c');
+      if (dir !== 'up') { px(11, 11, 3, 3, '#8a5a2b'); px(11, 11, 3, 1, '#37e08b'); px(12, 10, 1, 1, '#7dff9a'); } // cesto + ervas
+      px(4, 14, 8, 1, '#37e08b'); // barrado verde
     }
     // CAÇADORA: murça de pele + trança + arco e aljava
     if (kind === 'hunter') {
@@ -5108,6 +5348,341 @@ function makeShroom() {
   return c;
 }
 
+/** Esqueleto — caveira sorridente, costelas à mostra e espada enferrujada. */
+function makeSkeleton() {
+  const c = document.createElement('canvas');
+  c.width = 32 * S; c.height = 30 * S;
+  const g = c.getContext('2d');
+  const bone = '#e8e4da', dark = '#8d8d99', rust = '#8a5a2b';
+  g.fillStyle = 'rgba(0,0,0,.3)';
+  g.beginPath(); g.ellipse(16 * S, 28 * S, 9 * S, 1.8 * S, 0, 0, 7); g.fill();
+  // pernas de osso + pés
+  g.fillStyle = dark;
+  g.fillRect(11 * S, 23 * S, 2 * S, 5 * S); g.fillRect(19 * S, 23 * S, 2 * S, 5 * S);
+  g.fillStyle = bone;
+  g.fillRect(10.4 * S, 23 * S, 3.2 * S, 5 * S); g.fillRect(18.4 * S, 23 * S, 3.2 * S, 5 * S);
+  g.fillStyle = dark;
+  for (let i = 0; i < 2; i++) { g.fillRect(10.4 * S, (24.5 + i * 1.8) * S, 3.2 * S, 0.7 * S); g.fillRect(18.4 * S, (24.5 + i * 1.8) * S, 3.2 * S, 0.7 * S); }
+  g.fillStyle = bone;
+  g.fillRect(9 * S, 27.4 * S, 5 * S, 1.6 * S); g.fillRect(18 * S, 27.4 * S, 5 * S, 1.6 * S);
+  // costelas: coluna + arcos
+  g.fillStyle = dark;
+  g.fillRect(15 * S, 12 * S, 2 * S, 12 * S);
+  g.fillStyle = bone;
+  g.fillRect(15.3 * S, 12 * S, 1.4 * S, 12 * S);
+  for (let i = 0; i < 4; i++) {
+    const y = (13.5 + i * 2.6) * S, w = (3.6 - i * 0.4) * S;
+    g.fillStyle = bone;
+    g.fillRect((16 - 3.6) * S, y, w, 1.1 * S);
+    g.fillRect(16 * S, y, w, 1.1 * S);
+  }
+  // braços + espada enferrujada na mão direita
+  g.fillStyle = bone;
+  g.fillRect(7 * S, 14 * S, 2.4 * S, 8 * S); g.fillRect(22.6 * S, 14 * S, 2.4 * S, 6 * S);
+  g.fillStyle = dark;
+  g.fillRect(7 * S, 17 * S, 2.4 * S, 0.8 * S); g.fillRect(7 * S, 20 * S, 2.4 * S, 0.8 * S);
+  g.fillStyle = rust;
+  g.fillRect(24 * S, 4 * S, 1.6 * S, 12 * S); // lâmina
+  g.fillStyle = '#c0c6d0';
+  g.fillRect(24 * S, 4 * S, 0.7 * S, 12 * S); // fio gasto
+  g.fillStyle = '#5e3a17';
+  g.fillRect(22.4 * S, 16 * S, 4.8 * S, 1.6 * S); // guarda
+  g.fillStyle = '#3a2412';
+  g.fillRect(23.6 * S, 17.6 * S, 1.6 * S, 3 * S); // punho
+  // caveira: crânio + maxilar + olhos vazios com brasas
+  g.fillStyle = dark;
+  g.beginPath(); g.ellipse(16 * S, 7.6 * S, 7.4 * S, 6.4 * S, 0, 0, 7); g.fill();
+  g.fillStyle = bone;
+  g.beginPath(); g.ellipse(16 * S, 7 * S, 6.4 * S, 5.6 * S, 0, 0, 7); g.fill();
+  g.fillStyle = bone;
+  g.fillRect(11.5 * S, 10 * S, 9 * S, 3.6 * S);
+  g.fillStyle = dark;
+  for (let i = 0; i < 4; i++) g.fillRect((12.4 + i * 2) * S, 10.6 * S, 0.9 * S, 2.4 * S);
+  // órbitas + brasas verdes
+  g.fillStyle = '#101018';
+  g.beginPath(); g.ellipse(13.4 * S, 7 * S, 2.2 * S, 2.6 * S, 0, 0, 7); g.fill();
+  g.beginPath(); g.ellipse(18.6 * S, 7 * S, 2.2 * S, 2.6 * S, 0, 0, 7); g.fill();
+  g.fillStyle = '#37e08b';
+  g.beginPath(); g.arc(13.4 * S, 7.2 * S, 1 * S, 0, 7); g.fill();
+  g.beginPath(); g.arc(18.6 * S, 7.2 * S, 1 * S, 0, 7); g.fill();
+  g.fillStyle = '#101018';
+  g.fillRect(15.2 * S, 8 * S, 1.6 * S, 1.4 * S); // nariz
+  // rachadura no crânio
+  g.strokeStyle = dark; g.lineWidth = 0.9 * S;
+  g.beginPath(); g.moveTo(19 * S, 2.4 * S); g.lineTo(17.6 * S, 4.4 * S); g.lineTo(19.4 * S, 6 * S); g.stroke();
+  return c;
+}
+
+/** Orc do Deserto — brutamontes verde com presas e clava de osso. */
+function makeOrc() {
+  const c = document.createElement('canvas');
+  c.width = 36 * S; c.height = 34 * S;
+  const g = c.getContext('2d');
+  const skin = '#5da24d', dark = '#2e5b26', lite = '#8fd07f', cloth = '#7a4a21';
+  g.fillStyle = 'rgba(0,0,0,.35)';
+  g.beginPath(); g.ellipse(18 * S, 32 * S, 12 * S, 2 * S, 0, 0, 7); g.fill();
+  // pernas + tanga
+  g.fillStyle = dark;
+  g.fillRect(11 * S, 26 * S, 6 * S, 6 * S); g.fillRect(19 * S, 26 * S, 6 * S, 6 * S);
+  g.fillStyle = skin;
+  g.fillRect(11 * S, 26 * S, 6 * S, 5 * S); g.fillRect(19 * S, 26 * S, 6 * S, 5 * S);
+  g.fillStyle = cloth;
+  g.fillRect(10 * S, 22 * S, 16 * S, 5 * S);
+  g.fillStyle = '#ffd75e';
+  g.fillRect(16.4 * S, 23.4 * S, 3.2 * S, 2 * S);
+  // torso musculoso
+  g.fillStyle = dark;
+  g.beginPath(); g.ellipse(18 * S, 17 * S, 10.4 * S, 8 * S, 0, 0, 7); g.fill();
+  g.fillStyle = skin;
+  g.beginPath(); g.ellipse(18 * S, 16.6 * S, 9.4 * S, 7.2 * S, 0, 0, 7); g.fill();
+  g.fillStyle = lite;
+  g.beginPath(); g.ellipse(14.6 * S, 13.6 * S, 3.6 * S, 2.6 * S, -0.4, 0, 7); g.fill();
+  // cicatriz + pintura de guerra
+  g.strokeStyle = dark; g.lineWidth = 1 * S;
+  g.beginPath(); g.moveTo(21 * S, 13 * S); g.lineTo(23 * S, 17 * S); g.lineTo(21.6 * S, 20 * S); g.stroke();
+  g.fillStyle = '#c22a1e';
+  g.fillRect(11 * S, 18 * S, 3 * S, 1.2 * S); g.fillRect(22 * S, 18 * S, 3 * S, 1.2 * S);
+  // braço esquerdo + clava de osso na direita
+  g.fillStyle = skin;
+  g.fillRect(4 * S, 12 * S, 5 * S, 12 * S);
+  g.fillStyle = dark;
+  g.fillRect(4 * S, 21 * S, 5 * S, 3 * S);
+  g.fillStyle = '#8a5a2b';
+  g.fillRect(26 * S, 2 * S, 3 * S, 16 * S); // cabo
+  g.fillStyle = '#e8e4da';
+  g.beginPath(); g.ellipse(27.5 * S, 3.4 * S, 4 * S, 3.2 * S, 0, 0, 7); g.fill(); // cabeça de osso
+  g.fillStyle = '#8d8d99';
+  g.fillRect(25.4 * S, 3 * S, 1 * S, 2 * S); g.fillRect(28.6 * S, 3 * S, 1 * S, 2 * S);
+  g.fillStyle = skin;
+  g.fillRect(25 * S, 16 * S, 5 * S, 5 * S); // mão na clava
+  // cabeça: queixo largo + presas + sobrancelha
+  g.fillStyle = dark;
+  g.beginPath(); g.ellipse(17 * S, 7.4 * S, 7.6 * S, 6.4 * S, 0, 0, 7); g.fill();
+  g.fillStyle = skin;
+  g.beginPath(); g.ellipse(17 * S, 7 * S, 6.6 * S, 5.6 * S, 0, 0, 7); g.fill();
+  g.fillStyle = dark;
+  g.fillRect(10.5 * S, 5.4 * S, 13 * S, 2.2 * S); // testa pesada
+  g.fillStyle = '#ffd75e';
+  g.fillRect(12 * S, 6.6 * S, 3 * S, 1.8 * S); g.fillRect(18 * S, 6.6 * S, 3 * S, 1.8 * S);
+  g.fillStyle = '#4a2f14';
+  g.fillRect(13 * S, 6.6 * S, 1 * S, 1.8 * S); g.fillRect(19 * S, 6.6 * S, 1 * S, 1.8 * S);
+  // focinho + presas brancas
+  g.fillStyle = shade(skin, -25);
+  g.beginPath(); g.ellipse(17 * S, 10.6 * S, 3.4 * S, 2 * S, 0, 0, 7); g.fill();
+  g.fillStyle = '#fff';
+  g.beginPath(); g.moveTo(14 * S, 11 * S); g.lineTo(14.8 * S, 13.6 * S); g.lineTo(15.8 * S, 11 * S); g.fill();
+  g.beginPath(); g.moveTo(18.2 * S, 11 * S); g.lineTo(19 * S, 13.6 * S); g.lineTo(19.8 * S, 11 * S); g.fill();
+  // orelhas pontudas + argola
+  g.fillStyle = skin;
+  g.beginPath(); g.moveTo(10.4 * S, 7 * S); g.lineTo(6.4 * S, 5 * S); g.lineTo(9.4 * S, 9.4 * S); g.closePath(); g.fill();
+  g.beginPath(); g.moveTo(23.6 * S, 7 * S); g.lineTo(27.6 * S, 5 * S); g.lineTo(24.6 * S, 9.4 * S); g.closePath(); g.fill();
+  g.fillStyle = '#ffd75e';
+  g.beginPath(); g.arc(7.4 * S, 7.4 * S, 1 * S, 0, 7); g.fill();
+  // moicano
+  g.fillStyle = '#1e1e1e';
+  g.fillRect(15.4 * S, 0.6 * S, 3.2 * S, 3 * S);
+  g.fillRect(14.4 * S, 1.6 * S, 5.2 * S, 1.4 * S);
+  return c;
+}
+
+/** Sapo Gigante — bola verde do pântano com papo inflável e língua. */
+function makeToad() {
+  const c = document.createElement('canvas');
+  c.width = 36 * S; c.height = 26 * S;
+  const g = c.getContext('2d');
+  const skin = '#4da64d', dark = '#256b33', lite = '#8fd07f', belly = '#e8f0d8';
+  g.fillStyle = 'rgba(0,0,0,.3)';
+  g.beginPath(); g.ellipse(18 * S, 24 * S, 12 * S, 2 * S, 0, 0, 7); g.fill();
+  // patas traseiras musculosas + dianteiras
+  g.fillStyle = dark;
+  g.beginPath(); g.ellipse(7 * S, 20 * S, 4.4 * S, 3.4 * S, 0.4, 0, 7); g.fill();
+  g.beginPath(); g.ellipse(29 * S, 20 * S, 4.4 * S, 3.4 * S, -0.4, 0, 7); g.fill();
+  g.fillStyle = skin;
+  g.beginPath(); g.ellipse(7 * S, 19.4 * S, 3.6 * S, 2.6 * S, 0.4, 0, 7); g.fill();
+  g.beginPath(); g.ellipse(29 * S, 19.4 * S, 3.6 * S, 2.6 * S, -0.4, 0, 7); g.fill();
+  g.fillStyle = skin;
+  g.fillRect(12 * S, 20 * S, 3 * S, 4 * S); g.fillRect(21 * S, 20 * S, 3 * S, 4 * S);
+  // corpo redondo + barriga
+  g.fillStyle = dark;
+  g.beginPath(); g.ellipse(18 * S, 15 * S, 11.4 * S, 8.4 * S, 0, 0, 7); g.fill();
+  g.fillStyle = skin;
+  g.beginPath(); g.ellipse(18 * S, 14.4 * S, 10.4 * S, 7.6 * S, 0, 0, 7); g.fill();
+  g.fillStyle = belly;
+  g.beginPath(); g.ellipse(18 * S, 18 * S, 7 * S, 4.4 * S, 0, 0, 7); g.fill();
+  // verrugas
+  g.fillStyle = dark;
+  for (const [wx, wy] of [[11, 11], [15, 9.5], [22, 10], [26, 12], [13, 14]]) {
+    g.beginPath(); g.arc(wx * S, wy * S, 1 * S, 0, 7); g.fill();
+  }
+  g.fillStyle = lite;
+  g.beginPath(); g.ellipse(13 * S, 10.4 * S, 4 * S, 2.2 * S, -0.4, 0, 7); g.fill();
+  // papo inflável (saco vocal)
+  g.fillStyle = '#f2e6c4';
+  g.beginPath(); g.ellipse(18 * S, 19.4 * S, 4.4 * S, 3.4 * S, 0, 0, 7); g.fill();
+  g.fillStyle = '#d9c9a8';
+  g.beginPath(); g.ellipse(18 * S, 20.4 * S, 3 * S, 2 * S, 0, 0, 7); g.fill();
+  // olhos esbugalhados no topo + pupila horizontal
+  g.fillStyle = dark;
+  g.beginPath(); g.arc(12.5 * S, 6.4 * S, 3.2 * S, 0, 7); g.fill();
+  g.beginPath(); g.arc(23.5 * S, 6.4 * S, 3.2 * S, 0, 7); g.fill();
+  g.fillStyle = '#ffd75e';
+  g.beginPath(); g.arc(12.5 * S, 6.2 * S, 2.4 * S, 0, 7); g.fill();
+  g.beginPath(); g.arc(23.5 * S, 6.2 * S, 2.4 * S, 0, 7); g.fill();
+  g.fillStyle = '#101018';
+  g.fillRect(10.6 * S, 5.6 * S, 3.8 * S, 1.2 * S); g.fillRect(21.6 * S, 5.6 * S, 3.8 * S, 1.2 * S);
+  g.fillStyle = '#fff';
+  g.fillRect(11.2 * S, 4.8 * S, 1 * S, 1 * S); g.fillRect(22.2 * S, 4.8 * S, 1 * S, 1 * S);
+  // boca larga + língua de fora
+  g.strokeStyle = dark; g.lineWidth = 1.2 * S;
+  g.beginPath(); g.moveTo(10 * S, 14.5 * S); g.quadraticCurveTo(18 * S, 17 * S, 26 * S, 14.5 * S); g.stroke();
+  g.strokeStyle = '#c26a8c'; g.lineWidth = 1.6 * S; g.lineCap = 'round';
+  g.beginPath(); g.moveTo(20 * S, 15.4 * S); g.quadraticCurveTo(25 * S, 16.5 * S, 28.5 * S, 14.5 * S); g.stroke();
+  g.fillStyle = '#c26a8c';
+  g.beginPath(); g.arc(28.8 * S, 14.4 * S, 1.2 * S, 0, 7); g.fill();
+  return c;
+}
+
+/** Lobo da Neve — quadrúpede branco veloz com olhos de gelo. */
+function makeWolf() {
+  const c = document.createElement('canvas');
+  c.width = 40 * S; c.height = 26 * S;
+  const g = c.getContext('2d');
+  const fur = '#e8ecf4', dark = '#8d99b5', lite = '#ffffff';
+  g.fillStyle = 'rgba(0,0,0,.3)';
+  g.beginPath(); g.ellipse(20 * S, 24 * S, 13 * S, 2 * S, 0, 0, 7); g.fill();
+  // cauda peluda erguida
+  g.strokeStyle = dark; g.lineWidth = 3.4 * S; g.lineCap = 'round';
+  g.beginPath(); g.moveTo(33 * S, 16 * S); g.quadraticCurveTo(37.5 * S, 13 * S, 36.5 * S, 8 * S); g.stroke();
+  g.strokeStyle = fur; g.lineWidth = 2.2 * S;
+  g.beginPath(); g.moveTo(33 * S, 16 * S); g.quadraticCurveTo(37.5 * S, 13 * S, 36.5 * S, 8 * S); g.stroke();
+  // 4 patas em corrida (duas estendidas, duas dobradas)
+  g.fillStyle = dark;
+  g.fillRect(10 * S, 19 * S, 2.6 * S, 5 * S); g.fillRect(17 * S, 19 * S, 2.6 * S, 5 * S);
+  g.fillRect(24 * S, 19 * S, 2.6 * S, 5 * S); g.fillRect(30 * S, 18 * S, 4.6 * S, 2.6 * S);
+  g.fillStyle = fur;
+  g.fillRect(10 * S, 19 * S, 2.6 * S, 4 * S); g.fillRect(17 * S, 19 * S, 2.6 * S, 4 * S);
+  g.fillRect(24 * S, 19 * S, 2.6 * S, 4 * S); g.fillRect(30 * S, 18 * S, 4 * S, 2 * S);
+  // corpo alongado + peito
+  g.fillStyle = dark;
+  g.beginPath(); g.ellipse(20 * S, 15 * S, 12.4 * S, 5.6 * S, 0, 0, 7); g.fill();
+  g.fillStyle = fur;
+  g.beginPath(); g.ellipse(20 * S, 14.4 * S, 11.4 * S, 4.8 * S, 0, 0, 7); g.fill();
+  g.fillStyle = lite;
+  g.beginPath(); g.ellipse(16 * S, 16 * S, 7 * S, 2.6 * S, 0, 0, 7); g.fill();
+  // pelo eriçado no dorso
+  g.fillStyle = fur;
+  for (let i = 0; i < 5; i++) {
+    const x = (13 + i * 3.4) * S;
+    g.beginPath(); g.moveTo(x, 10.4 * S); g.lineTo(x + 1.4 * S, 7.6 * S); g.lineTo(x + 2.8 * S, 10.4 * S); g.closePath(); g.fill();
+  }
+  // cabeça + focinho + orelhas
+  g.fillStyle = dark;
+  g.beginPath(); g.ellipse(8 * S, 12 * S, 5.4 * S, 4.6 * S, 0, 0, 7); g.fill();
+  g.fillStyle = fur;
+  g.beginPath(); g.ellipse(8 * S, 11.6 * S, 4.6 * S, 3.8 * S, 0, 0, 7); g.fill();
+  g.fillStyle = fur;
+  g.beginPath(); g.moveTo(5.4 * S, 9 * S); g.lineTo(4.4 * S, 4.6 * S); g.lineTo(8 * S, 8 * S); g.closePath(); g.fill();
+  g.beginPath(); g.moveTo(10.4 * S, 9 * S); g.lineTo(11.4 * S, 4.6 * S); g.lineTo(12.4 * S, 8.6 * S); g.closePath(); g.fill();
+  g.fillStyle = '#3a3f52';
+  g.beginPath(); g.ellipse(4 * S, 12.4 * S, 1.6 * S, 1.2 * S, 0, 0, 7); g.fill(); // nariz
+  // olho de gelo + cicatriz
+  g.fillStyle = '#7fd4ff';
+  g.beginPath(); g.ellipse(8.4 * S, 10.4 * S, 1.6 * S, 1.8 * S, 0, 0, 7); g.fill();
+  g.fillStyle = '#101018';
+  g.fillRect(7.9 * S, 9.4 * S, 1 * S, 2 * S);
+  g.fillStyle = '#fff';
+  g.fillRect(8 * S, 9.6 * S, 0.6 * S, 0.6 * S);
+  g.strokeStyle = dark; g.lineWidth = 0.8 * S;
+  g.beginPath(); g.moveTo(12 * S, 12 * S); g.lineTo(14 * S, 14 * S); g.stroke();
+  // bafo frio
+  g.fillStyle = 'rgba(180,225,255,.6)';
+  g.beginPath(); g.arc(1.4 * S, 14 * S, 1.2 * S, 0, 7); g.fill();
+  g.fillStyle = 'rgba(180,225,255,.35)';
+  g.beginPath(); g.arc(-0.4 * S + 2 * S, 15.4 * S, 0.9 * S, 0, 7); g.fill();
+  return c;
+}
+
+/** Golem Ancião — colosso coberto de musgo com runas douradas (mini-chefe). */
+function makeAncient() {
+  const c = document.createElement('canvas');
+  c.width = 44 * S; c.height = 40 * S;
+  const g = c.getContext('2d');
+  const rock = '#6e7482', dark = '#3a3e4a', lite = '#a8aeba', moss = '#37a05b', gold = '#ffd75e';
+  g.fillStyle = 'rgba(0,0,0,.4)';
+  g.beginPath(); g.ellipse(22 * S, 38 * S, 15 * S, 2.2 * S, 0, 0, 7); g.fill();
+  // pernas colunares
+  g.fillStyle = dark;
+  g.fillRect(13 * S, 32 * S, 7 * S, 6 * S); g.fillRect(24 * S, 32 * S, 7 * S, 6 * S);
+  g.fillStyle = rock;
+  g.fillRect(13 * S, 32 * S, 7 * S, 4 * S); g.fillRect(24 * S, 32 * S, 7 * S, 4 * S);
+  g.fillStyle = moss;
+  g.fillRect(13 * S, 35 * S, 7 * S, 1.4 * S); g.fillRect(24 * S, 35 * S, 7 * S, 1.4 * S);
+  // braços de pedra maciça + punhos com runas
+  g.fillStyle = dark;
+  g.fillRect(3 * S, 16 * S, 8 * S, 14 * S); g.fillRect(33 * S, 16 * S, 8 * S, 14 * S);
+  g.fillStyle = rock;
+  g.fillRect(3 * S, 16 * S, 8 * S, 12 * S); g.fillRect(33 * S, 16 * S, 8 * S, 12 * S);
+  g.fillStyle = lite;
+  g.fillRect(3 * S, 16 * S, 8 * S, 2 * S); g.fillRect(33 * S, 16 * S, 8 * S, 2 * S);
+  g.fillStyle = dark;
+  g.fillRect(2 * S, 28 * S, 10 * S, 7 * S); g.fillRect(32 * S, 28 * S, 10 * S, 7 * S);
+  g.fillStyle = rock;
+  g.fillRect(2 * S, 28 * S, 10 * S, 5 * S); g.fillRect(32 * S, 28 * S, 10 * S, 5 * S);
+  g.fillStyle = gold; // runas nos punhos
+  g.fillRect(4 * S, 29.4 * S, 6 * S, 1 * S); g.fillRect(34 * S, 29.4 * S, 6 * S, 1 * S);
+  g.fillRect(6.5 * S, 28.4 * S, 1 * S, 3 * S); g.fillRect(36.5 * S, 28.4 * S, 1 * S, 3 * S);
+  g.fillStyle = moss; // musgo nos ombros
+  g.fillRect(3 * S, 16 * S, 8 * S, 1.6 * S); g.fillRect(33 * S, 16 * S, 8 * S, 1.6 * S);
+  // torso de muralha com núcleo duplo
+  g.fillStyle = dark;
+  g.fillRect(10 * S, 17 * S, 24 * S, 16 * S);
+  g.fillStyle = rock;
+  g.fillRect(11 * S, 18 * S, 22 * S, 14 * S);
+  g.fillStyle = lite;
+  g.fillRect(11 * S, 18 * S, 22 * S, 2 * S);
+  g.fillStyle = dark;
+  g.fillRect(11 * S, 24 * S, 22 * S, 1.4 * S);
+  g.fillRect(21 * S, 18 * S, 1.4 * S, 14 * S);
+  // vinhas + flores no torso = ancião
+  g.strokeStyle = moss; g.lineWidth = 1.2 * S;
+  g.beginPath(); g.moveTo(12 * S, 30 * S); g.quadraticCurveTo(16 * S, 24 * S, 13 * S, 19 * S); g.stroke();
+  g.fillStyle = '#ff8fb3';
+  g.beginPath(); g.arc(13 * S, 19 * S, 1.2 * S, 0, 7); g.fill();
+  g.beginPath(); g.arc(30 * S, 28 * S, 1.2 * S, 0, 7); g.fill();
+  // núcleo duplo: cristais gêmeos
+  for (const nx of [17.5, 23.5]) {
+    g.fillStyle = dark;
+    g.fillRect(nx * S, 25.5 * S, 3 * S, 4 * S);
+    g.fillStyle = '#8e2bff';
+    g.fillRect((nx + 0.4) * S, 26 * S, 2.2 * S, 3 * S);
+    g.fillStyle = '#d8b4ff';
+    g.fillRect((nx + 0.7) * S, 26.3 * S, 1.2 * S, 1.6 * S);
+  }
+  // cabeça coroada de pedra com chifres de musgo
+  g.fillStyle = dark;
+  g.fillRect(13 * S, 5 * S, 18 * S, 13 * S);
+  g.fillStyle = rock;
+  g.fillRect(14 * S, 6 * S, 16 * S, 11 * S);
+  g.fillStyle = lite;
+  g.fillRect(14 * S, 6 * S, 16 * S, 2.4 * S);
+  g.fillStyle = moss; // coroa viva
+  g.fillRect(14 * S, 4 * S, 16 * S, 2.4 * S);
+  g.beginPath(); g.moveTo(14 * S, 4 * S); g.lineTo(12 * S, 0.6 * S); g.lineTo(17 * S, 3 * S); g.closePath(); g.fill();
+  g.beginPath(); g.moveTo(30 * S, 4 * S); g.lineTo(32 * S, 0.6 * S); g.lineTo(27 * S, 3 * S); g.closePath(); g.fill();
+  // olhos de magma + boca de pedra
+  g.fillStyle = dark;
+  g.fillRect(14 * S, 11 * S, 16 * S, 3 * S);
+  g.fillStyle = '#ff7b2e';
+  g.fillRect(15.6 * S, 11.8 * S, 4 * S, 1.8 * S); g.fillRect(24.4 * S, 11.8 * S, 4 * S, 1.8 * S);
+  g.fillStyle = '#fff';
+  g.fillRect(16 * S, 12 * S, 1 * S, 1 * S); g.fillRect(24.8 * S, 12 * S, 1 * S, 1 * S);
+  g.fillStyle = dark;
+  g.fillRect(18 * S, 15 * S, 8 * S, 1.6 * S);
+  g.fillStyle = lite;
+  g.fillRect(19.4 * S, 15 * S, 1.2 * S, 1.2 * S); g.fillRect(23.4 * S, 15 * S, 1.2 * S, 1.2 * S);
+  return c;
+}
+
 /** Dragão do Caos (boss) — réptil alado com focinho, asas com garras e cauda com ponta. */
 function makeDragon() {
   const c = document.createElement('canvas');
@@ -5295,6 +5870,11 @@ function enemySprite(id) {
     case 'crab': return makeCrab();
     case 'scorpion': return makeScorpion();
     case 'shroom': return makeShroom();
+    case 'skeleton': return makeSkeleton();
+    case 'orc': return makeOrc();
+    case 'toad': return makeToad();
+    case 'wolf': return makeWolf();
+    case 'ancient': return makeAncient();
     case 'king': return makeKing();
     case 'dragon': return makeDragon();
     default: return makeSlime();
@@ -5599,11 +6179,11 @@ class BattleSystem {
         const id = ids[this.sel];
         if (ITEMS[id].flee) { this._act(this.heroIdx, { type: 'flee', item: id }); return true; }
         this.pending = { type: 'item', item: id };
-        this.menu = 'targetA'; this.sel = 0;
+        this.menu = ITEMS[id].dmg ? 'targetE' : 'targetA'; this.sel = 0;
       }
     } else if (this.menu === 'targetE') {
       const alive = this._aliveFoes();
-      if (this.sel >= alive.length) { this.menu = this.pending?.type === 'attack' ? 'main' : (this.pending?.type === 'magic' ? 'magic' : 'main'); this.sel = 0; }
+      if (this.sel >= alive.length) { this.menu = this.pending?.type === 'attack' ? 'main' : (this.pending?.type === 'magic' ? 'magic' : (this.pending?.type === 'item' ? 'item' : 'main')); this.sel = 0; }
       else {
         const realIdx = alive[this.sel];
         if (realIdx === undefined || this.enemies[realIdx].hp <= 0) { this.audio.sfx('flee-fail'); this.sel = 0; this._renderCmds(); return true; }
@@ -5791,6 +6371,11 @@ class BattleSystem {
       scorpion: 'Ferrão venenoso que fura defesa. Rápido e frágil.',
       shroom: 'Solta esporos que o curam. Derrube rápido!',
       king: 'Um rei entre gosmas! Recompensa real para quem vencer.',
+      skeleton: 'Ossos velhos, ódio novo. Lâmina enferrujada, mas certeira. GELO o deixa lento!',
+      orc: 'Brutamontes do deserto. Fica FURIOSO quando ferido — derrube rápido!',
+      toad: 'Papo inflável, língua comprida. Atinge os mais frágeis de longe!',
+      wolf: 'Veloz como a nevasca! Mordidas duplas em quem estiver mais ferido.',
+      ancient: 'O colosso do deserto! Runas acendem na fúria. Traga BOMBAS e magia!',
       dragon: 'O CAOS encarnado. Fases de fúria: baforadas, regeneração e fúria final!',
     }[id] || 'Sem dados no bestiário.';
   }
@@ -5864,6 +6449,16 @@ class BattleSystem {
           } else {
             this._log(`${h.name} conjura ${sp.name} em ${e.name}! ${dmg} de dano!${e.hp <= 0 ? ` ${e.name} foi derrotado!` : ''}`);
           }
+        } else if (act.spell === 'ice') {
+          this._cometFx(from, to, col);
+          this._burstFx(to, col);
+          this._ringFx(to, col);
+          if (!e.boss && e.hp > 0 && Math.random() < 0.30) {
+            e.stun = true;
+            this._log(`${h.name} conjura ${sp.name} em ${e.name}! ${dmg} de dano! ${e.name} foi CONGELADO! ❄${e.hp <= 0 ? ` ${e.name} foi derrotado!` : ''}`);
+          } else {
+            this._log(`${h.name} conjura ${sp.name} em ${e.name}! ${dmg} de dano!${e.hp <= 0 ? ` ${e.name} foi derrotado!` : ''}`);
+          }
         } else {
           this._cometFx(from, to, col);
           this._burstFx(to, col);
@@ -5896,6 +6491,29 @@ class BattleSystem {
     } else if (act.type === 'item') {
       const it = ITEMS[act.item];
       let ti = act.target ?? 0;
+      if (it.dmg) {
+        // Bomba de Fogo: dano fixo explosivo num inimigo (ignora defesa parcial)
+        const ei2 = this._resolveEnemyTarget(act.target ?? 0);
+        if (ei2 < 0) return;
+        const e = this.enemies[ei2];
+        const dmg = Math.round(it.dmg * (0.9 + Math.random() * 0.25));
+        e.hp -= dmg;
+        e.hitT = 0.4;
+        this.inv[act.item]--;
+        this.audio.sfx('fire');
+        this.anim = { who: 'hero', idx: hi, t: 0.35, dur: 0.35 };
+        const to = this.enemyPos(ei2);
+        this._cometFx(this.heroPos(hi), to, '#ff7b2e');
+        this._burstFx(to, '#ff7b2e', 30);
+        this._burstFx(to, '#ffd75e', 16);
+        this._ringFx(to, '#ff9b3c');
+        this._shake(5, 0.25);
+        this._floatDmg(to, dmg, '#ff9b3c', false);
+        this._log(`${h.name} atira ${it.name} em ${e.name}! ${dmg} de dano explosivo!${e.hp <= 0 ? ` ${e.name} foi derrotado!` : ''}`);
+        if (e.hp <= 0) { this.audio.sfx('die'); this._soulFx(to); }
+        this._renderAll();
+        return;
+      }
       if (it.revive) {
         // Fênix mira o caído exato (sem redirecionar p/ vivos)
         const a = this.party[ti];
@@ -5952,7 +6570,8 @@ class BattleSystem {
     // 2) sabor por espécie
     const r = Math.random();
     if (e.id === 'bat' && r < 0.6) return [...alive].sort((a, b) => a.def - b.def)[0]; // mira frágeis
-    if (e.id === 'golem' && r < 0.55) return [...alive].sort((a, b) => b.maxHp - a.maxHp)[0]; // esmaga tanques
+    if ((e.id === 'golem' || e.id === 'orc' || e.id === 'ancient') && r < 0.55) return [...alive].sort((a, b) => b.maxHp - a.maxHp)[0]; // esmaga tanques
+    if (e.id === 'wolf' && r < 0.6) return [...alive].sort((a, b) => b.spd - a.spd)[0]; // caça os mais velozes
     if ((e.id === 'wisp' || e.id === 'king') && r < 0.3) return [...alive].sort((a, b) => (b.mag + b.atk) - (a.mag + a.atk))[0]; // cala o maior dano
     // 3) padrão: 70% o mais ferido (%), resto aleatório (evita guarda de vez em quando)
     const byWeak = [...alive].sort((a, b) => (a.hp / a.maxHp) - (b.hp / b.maxHp));
@@ -6088,6 +6707,84 @@ class BattleSystem {
       this.audio.sfx('crit');
       this._burstFx(this.heroPos(this.party.indexOf(t)), '#8e2bff', 12);
       this._hurtHero(t, dmg, e, ei, 'com o FERRÃO VENENOSO em', this.heroPos(this.party.indexOf(t)));
+      return;
+    }
+    // Esqueleto: lâmina enferrujada — crítico certeiro no mais ferido
+    if (e.id === 'skeleton' && Math.random() < 0.25) {
+      const t = [...alive].sort((a, b) => (a.hp / a.maxHp) - (b.hp / b.maxHp))[0];
+      const dmg = Math.round(physDmg(e.atk + 2, t.def) * 1.5);
+      this.audio.sfx('crit');
+      this._shake(4, 0.2);
+      this._hurtHero(t, dmg, e, ei, 'com a LÂMINA ENFERRUJADA', this.heroPos(this.party.indexOf(t)));
+      return;
+    }
+    // Orc: fúria quando ferido (uma vez) + clava pesada no mais resistente
+    if (e.id === 'orc' && !e.enraged && e.hp < e.maxHp * 0.5) {
+      e.enraged = true;
+      e.atk += 4;
+      this.audio.sfx('crit');
+      this._shake(5, 0.3);
+      this._floatText(this.enemyPos(ei), -20, '😡 FÚRIA!', '#ff6b6b', false);
+      this._log(`${e.name} entra em FÚRIA! (ATK ↑)`);
+      this._renderAll();
+      return;
+    }
+    if (e.id === 'orc' && Math.random() < 0.3) {
+      const t = [...alive].sort((a, b) => b.maxHp - a.maxHp)[0];
+      const dmg = Math.round(physDmg(e.atk, t.def) * 1.4);
+      this.audio.sfx('crit');
+      this._shake(4, 0.2);
+      this._hurtHero(t, dmg, e, ei, 'com a CLAVA DE OSSO', this.heroPos(this.party.indexOf(t)));
+      return;
+    }
+    // Sapo: língua comprida fura defesa dos mais frágeis
+    if (e.id === 'toad' && Math.random() < 0.3) {
+      const t = [...alive].sort((a, b) => a.def - b.def)[0];
+      const dmg = Math.max(1, Math.round(e.atk * 2.2 - t.def * 0.6 + Math.random() * 4));
+      this.audio.sfx('hit');
+      this._burstFx(this.heroPos(this.party.indexOf(t)), '#4da64d', 12);
+      this._hurtHero(t, dmg, e, ei, 'com a LÍNGUA COMPRIDA');
+      return;
+    }
+    // Lobo: mordida dupla no mais ferido
+    if (e.id === 'wolf' && Math.random() < 0.35) {
+      const t = [...alive].sort((a, b) => (a.hp / a.maxHp) - (b.hp / b.maxHp))[0];
+      const dmg = Math.round(physDmg(e.atk, t.def) * 1.35);
+      this.audio.sfx('crit');
+      this._hurtHero(t, dmg, e, ei, 'com a MORDIDA DUPLA', this.heroPos(this.party.indexOf(t)));
+      return;
+    }
+    // Golem Ancião: runas da fúria + pisão em área
+    if (e.id === 'ancient' && !e.enraged && e.hp < e.maxHp * 0.5) {
+      e.enraged = true;
+      e.atk += 5;
+      this.audio.sfx('crit');
+      this.flashT = 0.3; this.flashColor = '255,200,60';
+      this._shake(7, 0.4);
+      this._banner(e.name, 'RUNAS ACENDEM! 🗿');
+      this._log(`${e.name} acende as RUNAS ANCESTRAIS! (ATK ↑)`);
+      this._renderAll();
+      return;
+    }
+    if (e.id === 'ancient' && this.turnCount % 4 === 0) {
+      this.audio.sfx('crit');
+      this.anim = { who: 'enemy', idx: ei, t: 0.4, dur: 0.4 };
+      this._shake(6, 0.35);
+      const parts = [];
+      for (const hh of alive) {
+        const dmg0 = Math.max(1, Math.round(e.atk * 1.6 - hh.def * 0.8 + Math.random() * 4));
+        const ti = this.party.indexOf(hh);
+        let dmg = dmg0;
+        if (hh.guard) dmg = Math.max(1, Math.ceil(dmg0 / 2));
+        hh.hp -= dmg;
+        hh.hitT = 0.35;
+        parts.push(`${hh.name} sofre ${dmg}`);
+        const hp = this.heroPos(ti);
+        this._burstFx(hp, '#ffd75e');
+        this._floatDmg(hp, hh.guard ? `🛡${dmg}` : dmg, hh.guard ? '#6bb8ff' : '#ffd75e', false);
+      }
+      this._log(`${e.name} esmaga o chão com o PISÃO ANCESTRAL! ${parts.join(' · ')}!`);
+      this._renderAll();
       return;
     }
     // Cogumelo: esporos curativos quando ferido
@@ -6656,7 +7353,7 @@ class BattleSystem {
   }
 }
 
-const spellColor = (s) => (s === 'fire' ? '#ff9b3c' : s === 'thunder' ? '#ffe94f' : '#7dff9a');
+const spellColor = (s) => (s === 'fire' ? '#ff9b3c' : s === 'thunder' ? '#ffe94f' : s === 'ice' ? '#7fd4ff' : '#7dff9a');
 const spellSfx = (s) => (s === 'cure' ? 'heal' : 'fire');
 
 /* ===== js\core\Engine.js ===== */
@@ -6675,6 +7372,11 @@ const NPC_PALETTES = {
   fisher:   { skin: '#d89a6a', hair: '#3a2a1a', tunic: '#2e7d8c', pants: '#4a3a2a' },
   nomad:    { skin: '#c89878', hair: '#1e1e1e', tunic: '#c2691e', pants: '#5e3a17' },
   hunter:   { skin: '#e8b88a', hair: '#e8e8e8', tunic: '#3f6b4a', pants: '#2a2a3a' },
+  smith:    { skin: '#d89a6a', hair: '#1e1e1e', tunic: '#5e3a17', pants: '#3a2a1a' },
+  bard:     { skin: '#f2c89b', hair: '#e8a23c', tunic: '#8e2b8c', pants: '#3a2a4a' },
+  sailor:   { skin: '#c89878', hair: '#dddddd', tunic: '#2b6fd6', pants: '#3a3a4a' },
+  sage:     { skin: '#e8b88a', hair: '#ffffff', tunic: '#1b2f9e', pants: '#2a2a3a' },
+  herbalist:{ skin: '#d89a6a', hair: '#3a2a1a', tunic: '#2e7d46', pants: '#4a3a2a' },
 };
 
 const HERO_PALETTES = {
@@ -6690,6 +7392,10 @@ const GAMEOVER_TIPS = [
   'Dica: Trovão causa dano massivo em um alvo.',
   'Dica: Bomba de Fumaça garante fuga da batalha.',
   'Dica: guarde Éteres para a magia do fim.',
+  'Dica: Bombas de Fogo do Rurik derretem Golems e o Golem Ancião.',
+  'Dica: a magia Gelo da Lyra (Nv 4) pode congelar o inimigo.',
+  'Dica: o Elixir restaura HP e MP de uma vez — ótimo contra o Dragão.',
+  'Dica: a Yara, no pântano, paga por sapos e cogumelos derrotados.',
 ];
 
 /**
@@ -6735,6 +7441,7 @@ class Engine {
     for (const [k, p] of Object.entries(HERO_PALETTES)) this.heroArts[k] = makeHumanoid(p, { kind: k });
     this.heroArt = this.heroArts.hero;
     this.dragonArt = makeDragon();
+    this.ancientArt = makeAncient();
     this.crystalArt = makeCrystal();
     // retratos (diálogo + HUD) pré-renderizados
     const faceURL = (cv) => cv.toDataURL();
@@ -6756,6 +7463,15 @@ class Engine {
       'Pescador Kai': humanoidFace(this.npcArt.fisher),
       'Nômade Zara': humanoidFace(this.npcArt.nomad),
       'Caçadora Liv': humanoidFace(this.npcArt.hunter),
+      'Rurik (Ferreiro)': humanoidFace(this.npcArt.smith),
+      'Felix, o Bardo': humanoidFace(this.npcArt.bard),
+      Mia: humanoidFace(this.npcArt.kid),
+      'Guarda Dina': humanoidFace(this.npcArt.guard),
+      'Velho Tumba': humanoidFace(this.npcArt.sailor),
+      'Sábia Sella': humanoidFace(this.npcArt.sage),
+      'Herbalista Yara': humanoidFace(this.npcArt.herbalist),
+      'Eremita Ash': humanoidFace(this.npcArt.hermit),
+      'GOLEM ANCIÃO': makePortrait(this.ancientArt, 8, 0, 72, 62),
       'DRAGÃO DO CAOS': dragonFace(this.dragonArt),
     };
     this.dialog.portraitProvider = (name) => this.faceCanvas[name] || null;
@@ -6975,6 +7691,7 @@ class Engine {
     if (!this._fishing && inp.pressed.confirm) {
       this._path = null; this._tapAct = null;
       if (this._tryBossInteract()) return;
+      if (this._tryEliteInteract()) return;
       if (this._tryHealCrystal()) return;
       if (this._tryToyPickup()) return;
       if (this._tryChest()) return;
@@ -7174,6 +7891,7 @@ class Engine {
     if (npc) return { kind: 'npc', npc };
     if (CHESTS.some((c) => c.x === tx && c.y === ty)) return { kind: 'chest' };
     if (tx === BOSS_ALTAR.x && ty === BOSS_ALTAR.y) return { kind: 'spot', which: 'boss' };
+    if (tx === ELITE.x && ty === ELITE.y) return { kind: 'spot', which: 'elite' };
     if (tx === HEAL_CRYSTAL.x && ty === HEAL_CRYSTAL.y) return { kind: 'spot', which: 'crystal' };
     if (tx === TOY_SPOT.x && ty === TOY_SPOT.y) return { kind: 'spot', which: 'toy' };
     if (this.map.tile(tx, ty) === T.WATER) return { kind: 'fish', tx, ty };
@@ -7203,6 +7921,7 @@ class Engine {
       this._tryFish(act.tx, act.ty);
     } else if (act.kind === 'spot') {
       if (act.which === 'boss') this._tryBossInteract();
+      else if (act.which === 'elite') this._tryEliteInteract();
       else if (act.which === 'crystal') this._tryHealCrystal();
       else this._tryToyPickup();
     }
@@ -7237,6 +7956,8 @@ class Engine {
     if (npc.inn) return this._openInn(npc);
     if (npc.id === 'kid') return this._talkPip(npc);
     if (npc.id === 'guard') return this._talkGuard(npc);
+    if (npc.id === 'herbalist') return this._talkHerbalist(npc);
+    if (npc.id === 'sailor') return this._talkSailor(npc);
     const lines = [{ name: npc.name, text: npc.nextLine() }];
     if (npc.gift && !npc.giftGiven) {
       npc.giftGiven = true;
@@ -7321,6 +8042,89 @@ class Engine {
     this.dialog.say([
       { name: npc.name, text: `Faltam ${HUNT_GOAL - count} slimes. Procure na grama alta da planície! (${count}/${HUNT_GOAL})` },
     ]);
+  }
+
+  /** Quest de ervas: Herbalista Yara paga por sapos e cogumelos do pântano. */
+  _talkHerbalist(npc) {
+    const f = this.flags;
+    const count = f.herbCount || 0;
+    if (f.herbRewarded) {
+      this.dialog.say([
+        { name: npc.name, text: 'Meu tônico fez efeito? O pântano segue verdejante graças a você!' },
+      ]);
+      return;
+    }
+    if (!f.herbQuest) {
+      f.herbQuest = true;
+      this.audio.sfx('confirm');
+      this.dialog.say([
+        { name: npc.name, text: `Minhas ervas somem na gosma dos SAPOS GIGANTES e dos COGUMELOS!` },
+        { name: 'Herbalista Yara', text: `Derrote ${HERB_GOAL} deles no pântano e eu pago 150G e um HI-ÉTER. Boa colheita!` },
+      ]);
+      toast(`Nova quest: cace ${HERB_GOAL} sapos/cogumelos!`);
+      return;
+    }
+    if (count >= HERB_GOAL) {
+      f.herbRewarded = true;
+      this.gold += 150;
+      this.inv.hiether = (this.inv.hiether || 0) + 1;
+      this.audio.sfx('levelup');
+      this.dialog.say([
+        { name: npc.name, text: 'Que cheiro de vitória... e de sapo derrotado!' },
+        { name: 'Herbalista Yara', text: 'Aqui estão 150G e um HI-ÉTER do meu melhor lote. Beba com sabedoria!' },
+      ]);
+      toast('+150G · +1 Hi-Éter!');
+      return;
+    }
+    this.dialog.say([
+      { name: npc.name, text: `Faltam ${HERB_GOAL - count} pragas. Procure no pântano a sudoeste! (${count}/${HERB_GOAL})` },
+    ]);
+  }
+
+  /** Quest de pesca: Velho Tumba quer um Peixe Real de verdade. */
+  _talkSailor(npc) {
+    const f = this.flags;
+    if (f.pearlRewarded) {
+      this.dialog.say([
+        { name: npc.name, text: 'Aquele Peixe Real... ah, bons tempos! O mar agradece, e eu também!' },
+      ]);
+      return;
+    }
+    // presente de boas-vindas (uma vez), como os outros NPCs
+    const lines = [];
+    if (npc.gift && !npc.giftGiven) {
+      npc.giftGiven = true;
+      this.inv[npc.gift] = (this.inv[npc.gift] || 0) + 1;
+      lines.push({ name: npc.name, text: `Tome este ${ITEMS[npc.gift].name}. Isca boa pega peixe bom.` });
+      this.audio.sfx('item');
+    }
+    if (!f.pearlQuest) {
+      f.pearlQuest = true;
+      this.audio.sfx('confirm');
+      lines.push(
+        { name: npc.name, text: 'Trinta anos de mar... e nunca pesquei um PEIXE REAL de verdade!' },
+        { name: 'Velho Tumba', text: 'Traga-me um PEIXE REAL (pesque encarando a água!) e conto onde escondi 200G e 2 BOMBAS!' },
+      );
+      this.dialog.say(lines);
+      toast('Nova quest: pesque um Peixe Real!');
+      return;
+    }
+    if ((this.inv.royal || 0) >= 1) {
+      this.inv.royal--;
+      f.pearlRewarded = true;
+      this.gold += 200;
+      this.inv.bomb = (this.inv.bomb || 0) + 2;
+      this.audio.sfx('levelup');
+      lines.push(
+        { name: npc.name, text: 'AZUL! Escamas azuis de verdade! Você é pescador de verdade!' },
+        { name: 'Velho Tumba', text: 'Como prometido: 200G e 2 BOMBAS DE FOGO do meu paiol. Queimem os golems por mim!' },
+      );
+      this.dialog.say(lines);
+      toast('+200G · +2 Bombas de Fogo!');
+      return;
+    }
+    lines.push({ name: npc.name, text: 'Nada de Peixe Real ainda? Encare a ÁGUA e aperte E. Na praia a sorte é maior!' });
+    this.dialog.say(lines);
   }
 
   /** Baú ao alcance do jogador (para o E e para a dica visual). */
@@ -7736,6 +8540,39 @@ class Engine {
     }
   }
 
+  /** Sentinela opcional do deserto: o Golem Ancião aguarda na clareira. */
+  _tryEliteInteract() {
+    if (this.flags.eliteDefeated) return false;
+    const d = Math.hypot(this.player.cx - (ELITE.x * TILE + 16), this.player.cy - (ELITE.y * TILE + 16));
+    if (d > TILE * 2.2) return false;
+    this.audio.sfx('encounter');
+    this.dialog.say(
+      [{ name: 'GOLEM ANCIÃO', text: '...QUEM... PISA... NA CLAREIRA...? PEDRA... NÃO... PERDOA...! Venha, poeira valente — seja ESMAGADA!', options: [{ label: `${ic('attack')} LUTAR!`, value: 'fight' }, { label: `${ic('flee')} Recuar`, value: null }] }],
+      null,
+      (v) => { if (v === 'fight') this._startEliteBattle(); }
+    );
+    return true;
+  }
+
+  async _startEliteBattle() {
+    if (this._busy) return;
+    this._path = null; this._tapAct = null; this._tapMark = null;
+    this._busy = true;
+    try {
+      this.audio.sfx('encounter');
+      this.audio.playMusic('boss');
+      await Transition.swirl(700);
+      this.state = 'BATTLE';
+      this.hud.hide();
+      this.battle.start(this.party, this.inv, [makeElite()], {
+        region: 'desert',
+        onEnd: (r) => this._afterBattle({ ...r, elite: true }, 'desert'),
+      });
+    } finally {
+      this._busy = false;
+    }
+  }
+
   async _afterBattle(result, region) {
     if (result.fled) {
       this.state = 'FIELD';
@@ -7759,6 +8596,31 @@ class Engine {
             toast(`Caça: ${c}/${HUNT_GOAL} slimes`);
           }
         }
+      }
+      // quest de ervas: conta sapos e cogumelos do pântano
+      if (this.flags.herbQuest && !this.flags.herbRewarded && result.kills) {
+        const n = result.kills.filter((id) => id === 'toad' || id === 'shroom').length;
+        if (n > 0) {
+          this.flags.herbCount = (this.flags.herbCount || 0) + n;
+          const c = this.flags.herbCount;
+          if (c >= HERB_GOAL) {
+            this.audio.sfx('levelup');
+            toast(`Ervas completas! (${c}/${HERB_GOAL}) Volte à Herbalista Yara!`);
+          } else {
+            toast(`Ervas: ${c}/${HERB_GOAL} pragas`);
+          }
+        }
+      }
+      // mini-chefe do deserto: marca a vitória e paga o tônico extra
+      if (result.elite && !this.flags.eliteDefeated) {
+        this.flags.eliteDefeated = true;
+        this.inv.elixir = (this.inv.elixir || 0) + 1;
+        this.audio.sfx('levelup');
+        this.dialog.say([
+          { name: '', text: '(O Golem Ancião desmorona numa pilha de pedras mansas. Entre os escombros, um frasco dourado...)' },
+          { name: 'Golem Ancião', text: '...DESCULPE... OBRIGADO... ...zzz...' },
+        ]);
+        toast('+1 Elixir! O deserto respira aliviado.');
       }
       if (result.boss) {
         this.flags.bossDefeated = true;
@@ -7848,6 +8710,17 @@ class Engine {
     if (!this.flags.bossDefeated) {
       const dx = BOSS_ALTAR.x * TILE + ox - 32, dy = BOSS_ALTAR.y * TILE + oy - 56 + Math.sin(this.time * 1.8) * 4;
       g.drawImage(this.dragonArt, dx, dy, 128, 96);
+    }
+
+    // golem ancião (sentinela opcional do deserto)
+    if (!this.flags.eliteDefeated) {
+      const ex = ELITE.x * TILE + ox, ey = ELITE.y * TILE + oy;
+      const bob = Math.sin(this.time * 1.4) * 3;
+      // anel de runas no chão
+      const pulse = 0.5 + 0.3 * Math.sin(this.time * 2.2);
+      g.strokeStyle = `rgba(255,215,94,${pulse.toFixed(2)})`; g.lineWidth = 2;
+      g.beginPath(); g.ellipse(ex + 16, ey + 26, 22 + pulse * 4, 9 + pulse * 2, 0, 0, 7); g.stroke();
+      g.drawImage(this.ancientArt, ex + 16 - 55, ey - 62 + bob, 110, 100);
     }
 
     // cristal restaurador das ruínas (com halo pulsante = "cura aqui")
@@ -7950,13 +8823,18 @@ class Engine {
       g.strokeText('▼ E', cx - 14, cy);
       g.fillText('▼ E', cx - 14, cy);
     }
-    // balão "!" dourado sobre o Pip quando a quest está pendente
-    const pip = this.flags.toyQuest && !this.flags.toyRewarded ? this.npcs.find((n) => n.id === 'kid') : null;
-    if (pip && pip !== npc && this.state === 'FIELD' && !this.dialog.active) {
+    // balão "!" dourado sobre quem tem quest pendente (Pip, Yara, Tumba)
+    const questNpcs = [];
+    if (this.flags.toyQuest && !this.flags.toyRewarded) questNpcs.push('kid');
+    if (this.flags.herbQuest && !this.flags.herbRewarded && (this.flags.herbCount || 0) >= HERB_GOAL) questNpcs.push('herbalist');
+    if (this.flags.pearlQuest && !this.flags.pearlRewarded && (this.inv.royal || 0) >= 1) questNpcs.push('sailor');
+    for (const qid of questNpcs) {
+      const qn = this.npcs.find((n) => n.id === qid);
+      if (!qn || qn === npc || this.state !== 'FIELD' || this.dialog.active) continue;
       g.fillStyle = '#ffd75e';
       g.font = 'bold 22px monospace';
       g.strokeStyle = '#000'; g.lineWidth = 4;
-      const qx = pip.x + ox + 8, qy = pip.y + oy - 24 + Math.sin(this.time * 5) * 3;
+      const qx = qn.x + ox + 8, qy = qn.y + oy - 24 + Math.sin(this.time * 5) * 3;
       g.strokeText('!', qx, qy);
       g.fillText('!', qx, qy);
     }

@@ -5,7 +5,7 @@
 import { SPELLS, grantXp, aliveHeroes, partyWiped } from '../entities/Party.js';
 import { ITEMS } from '../systems/Inventory.js';
 import { ic } from '../ui/ItemIcons.js';
-import { makeHumanoid, makeSlime, makeBat, makeGolem, makeDragon, makeKing, makeWisp, makeCrab, makeScorpion, makeShroom } from '../core/SpriteFactory.js';
+import { makeHumanoid, makeSlime, makeBat, makeGolem, makeDragon, makeKing, makeWisp, makeCrab, makeScorpion, makeShroom, makeSkeleton, makeOrc, makeToad, makeWolf, makeAncient } from '../core/SpriteFactory.js';
 
 const PALETTES = {
   hero:   { skin: '#f2c89b', hair: '#7a4a21', tunic: '#2b6fd6', pants: '#3a3a5a', cape: '#c22a3a' },
@@ -22,6 +22,11 @@ function enemySprite(id) {
     case 'crab': return makeCrab();
     case 'scorpion': return makeScorpion();
     case 'shroom': return makeShroom();
+    case 'skeleton': return makeSkeleton();
+    case 'orc': return makeOrc();
+    case 'toad': return makeToad();
+    case 'wolf': return makeWolf();
+    case 'ancient': return makeAncient();
     case 'king': return makeKing();
     case 'dragon': return makeDragon();
     default: return makeSlime();
@@ -326,11 +331,11 @@ export class BattleSystem {
         const id = ids[this.sel];
         if (ITEMS[id].flee) { this._act(this.heroIdx, { type: 'flee', item: id }); return true; }
         this.pending = { type: 'item', item: id };
-        this.menu = 'targetA'; this.sel = 0;
+        this.menu = ITEMS[id].dmg ? 'targetE' : 'targetA'; this.sel = 0;
       }
     } else if (this.menu === 'targetE') {
       const alive = this._aliveFoes();
-      if (this.sel >= alive.length) { this.menu = this.pending?.type === 'attack' ? 'main' : (this.pending?.type === 'magic' ? 'magic' : 'main'); this.sel = 0; }
+      if (this.sel >= alive.length) { this.menu = this.pending?.type === 'attack' ? 'main' : (this.pending?.type === 'magic' ? 'magic' : (this.pending?.type === 'item' ? 'item' : 'main')); this.sel = 0; }
       else {
         const realIdx = alive[this.sel];
         if (realIdx === undefined || this.enemies[realIdx].hp <= 0) { this.audio.sfx('flee-fail'); this.sel = 0; this._renderCmds(); return true; }
@@ -518,6 +523,11 @@ export class BattleSystem {
       scorpion: 'Ferrão venenoso que fura defesa. Rápido e frágil.',
       shroom: 'Solta esporos que o curam. Derrube rápido!',
       king: 'Um rei entre gosmas! Recompensa real para quem vencer.',
+      skeleton: 'Ossos velhos, ódio novo. Lâmina enferrujada, mas certeira. GELO o deixa lento!',
+      orc: 'Brutamontes do deserto. Fica FURIOSO quando ferido — derrube rápido!',
+      toad: 'Papo inflável, língua comprida. Atinge os mais frágeis de longe!',
+      wolf: 'Veloz como a nevasca! Mordidas duplas em quem estiver mais ferido.',
+      ancient: 'O colosso do deserto! Runas acendem na fúria. Traga BOMBAS e magia!',
       dragon: 'O CAOS encarnado. Fases de fúria: baforadas, regeneração e fúria final!',
     }[id] || 'Sem dados no bestiário.';
   }
@@ -591,6 +601,16 @@ export class BattleSystem {
           } else {
             this._log(`${h.name} conjura ${sp.name} em ${e.name}! ${dmg} de dano!${e.hp <= 0 ? ` ${e.name} foi derrotado!` : ''}`);
           }
+        } else if (act.spell === 'ice') {
+          this._cometFx(from, to, col);
+          this._burstFx(to, col);
+          this._ringFx(to, col);
+          if (!e.boss && e.hp > 0 && Math.random() < 0.30) {
+            e.stun = true;
+            this._log(`${h.name} conjura ${sp.name} em ${e.name}! ${dmg} de dano! ${e.name} foi CONGELADO! ❄${e.hp <= 0 ? ` ${e.name} foi derrotado!` : ''}`);
+          } else {
+            this._log(`${h.name} conjura ${sp.name} em ${e.name}! ${dmg} de dano!${e.hp <= 0 ? ` ${e.name} foi derrotado!` : ''}`);
+          }
         } else {
           this._cometFx(from, to, col);
           this._burstFx(to, col);
@@ -623,6 +643,29 @@ export class BattleSystem {
     } else if (act.type === 'item') {
       const it = ITEMS[act.item];
       let ti = act.target ?? 0;
+      if (it.dmg) {
+        // Bomba de Fogo: dano fixo explosivo num inimigo (ignora defesa parcial)
+        const ei2 = this._resolveEnemyTarget(act.target ?? 0);
+        if (ei2 < 0) return;
+        const e = this.enemies[ei2];
+        const dmg = Math.round(it.dmg * (0.9 + Math.random() * 0.25));
+        e.hp -= dmg;
+        e.hitT = 0.4;
+        this.inv[act.item]--;
+        this.audio.sfx('fire');
+        this.anim = { who: 'hero', idx: hi, t: 0.35, dur: 0.35 };
+        const to = this.enemyPos(ei2);
+        this._cometFx(this.heroPos(hi), to, '#ff7b2e');
+        this._burstFx(to, '#ff7b2e', 30);
+        this._burstFx(to, '#ffd75e', 16);
+        this._ringFx(to, '#ff9b3c');
+        this._shake(5, 0.25);
+        this._floatDmg(to, dmg, '#ff9b3c', false);
+        this._log(`${h.name} atira ${it.name} em ${e.name}! ${dmg} de dano explosivo!${e.hp <= 0 ? ` ${e.name} foi derrotado!` : ''}`);
+        if (e.hp <= 0) { this.audio.sfx('die'); this._soulFx(to); }
+        this._renderAll();
+        return;
+      }
       if (it.revive) {
         // Fênix mira o caído exato (sem redirecionar p/ vivos)
         const a = this.party[ti];
@@ -679,7 +722,8 @@ export class BattleSystem {
     // 2) sabor por espécie
     const r = Math.random();
     if (e.id === 'bat' && r < 0.6) return [...alive].sort((a, b) => a.def - b.def)[0]; // mira frágeis
-    if (e.id === 'golem' && r < 0.55) return [...alive].sort((a, b) => b.maxHp - a.maxHp)[0]; // esmaga tanques
+    if ((e.id === 'golem' || e.id === 'orc' || e.id === 'ancient') && r < 0.55) return [...alive].sort((a, b) => b.maxHp - a.maxHp)[0]; // esmaga tanques
+    if (e.id === 'wolf' && r < 0.6) return [...alive].sort((a, b) => b.spd - a.spd)[0]; // caça os mais velozes
     if ((e.id === 'wisp' || e.id === 'king') && r < 0.3) return [...alive].sort((a, b) => (b.mag + b.atk) - (a.mag + a.atk))[0]; // cala o maior dano
     // 3) padrão: 70% o mais ferido (%), resto aleatório (evita guarda de vez em quando)
     const byWeak = [...alive].sort((a, b) => (a.hp / a.maxHp) - (b.hp / b.maxHp));
@@ -815,6 +859,84 @@ export class BattleSystem {
       this.audio.sfx('crit');
       this._burstFx(this.heroPos(this.party.indexOf(t)), '#8e2bff', 12);
       this._hurtHero(t, dmg, e, ei, 'com o FERRÃO VENENOSO em', this.heroPos(this.party.indexOf(t)));
+      return;
+    }
+    // Esqueleto: lâmina enferrujada — crítico certeiro no mais ferido
+    if (e.id === 'skeleton' && Math.random() < 0.25) {
+      const t = [...alive].sort((a, b) => (a.hp / a.maxHp) - (b.hp / b.maxHp))[0];
+      const dmg = Math.round(physDmg(e.atk + 2, t.def) * 1.5);
+      this.audio.sfx('crit');
+      this._shake(4, 0.2);
+      this._hurtHero(t, dmg, e, ei, 'com a LÂMINA ENFERRUJADA', this.heroPos(this.party.indexOf(t)));
+      return;
+    }
+    // Orc: fúria quando ferido (uma vez) + clava pesada no mais resistente
+    if (e.id === 'orc' && !e.enraged && e.hp < e.maxHp * 0.5) {
+      e.enraged = true;
+      e.atk += 4;
+      this.audio.sfx('crit');
+      this._shake(5, 0.3);
+      this._floatText(this.enemyPos(ei), -20, '😡 FÚRIA!', '#ff6b6b', false);
+      this._log(`${e.name} entra em FÚRIA! (ATK ↑)`);
+      this._renderAll();
+      return;
+    }
+    if (e.id === 'orc' && Math.random() < 0.3) {
+      const t = [...alive].sort((a, b) => b.maxHp - a.maxHp)[0];
+      const dmg = Math.round(physDmg(e.atk, t.def) * 1.4);
+      this.audio.sfx('crit');
+      this._shake(4, 0.2);
+      this._hurtHero(t, dmg, e, ei, 'com a CLAVA DE OSSO', this.heroPos(this.party.indexOf(t)));
+      return;
+    }
+    // Sapo: língua comprida fura defesa dos mais frágeis
+    if (e.id === 'toad' && Math.random() < 0.3) {
+      const t = [...alive].sort((a, b) => a.def - b.def)[0];
+      const dmg = Math.max(1, Math.round(e.atk * 2.2 - t.def * 0.6 + Math.random() * 4));
+      this.audio.sfx('hit');
+      this._burstFx(this.heroPos(this.party.indexOf(t)), '#4da64d', 12);
+      this._hurtHero(t, dmg, e, ei, 'com a LÍNGUA COMPRIDA');
+      return;
+    }
+    // Lobo: mordida dupla no mais ferido
+    if (e.id === 'wolf' && Math.random() < 0.35) {
+      const t = [...alive].sort((a, b) => (a.hp / a.maxHp) - (b.hp / b.maxHp))[0];
+      const dmg = Math.round(physDmg(e.atk, t.def) * 1.35);
+      this.audio.sfx('crit');
+      this._hurtHero(t, dmg, e, ei, 'com a MORDIDA DUPLA', this.heroPos(this.party.indexOf(t)));
+      return;
+    }
+    // Golem Ancião: runas da fúria + pisão em área
+    if (e.id === 'ancient' && !e.enraged && e.hp < e.maxHp * 0.5) {
+      e.enraged = true;
+      e.atk += 5;
+      this.audio.sfx('crit');
+      this.flashT = 0.3; this.flashColor = '255,200,60';
+      this._shake(7, 0.4);
+      this._banner(e.name, 'RUNAS ACENDEM! 🗿');
+      this._log(`${e.name} acende as RUNAS ANCESTRAIS! (ATK ↑)`);
+      this._renderAll();
+      return;
+    }
+    if (e.id === 'ancient' && this.turnCount % 4 === 0) {
+      this.audio.sfx('crit');
+      this.anim = { who: 'enemy', idx: ei, t: 0.4, dur: 0.4 };
+      this._shake(6, 0.35);
+      const parts = [];
+      for (const hh of alive) {
+        const dmg0 = Math.max(1, Math.round(e.atk * 1.6 - hh.def * 0.8 + Math.random() * 4));
+        const ti = this.party.indexOf(hh);
+        let dmg = dmg0;
+        if (hh.guard) dmg = Math.max(1, Math.ceil(dmg0 / 2));
+        hh.hp -= dmg;
+        hh.hitT = 0.35;
+        parts.push(`${hh.name} sofre ${dmg}`);
+        const hp = this.heroPos(ti);
+        this._burstFx(hp, '#ffd75e');
+        this._floatDmg(hp, hh.guard ? `🛡${dmg}` : dmg, hh.guard ? '#6bb8ff' : '#ffd75e', false);
+      }
+      this._log(`${e.name} esmaga o chão com o PISÃO ANCESTRAL! ${parts.join(' · ')}!`);
+      this._renderAll();
       return;
     }
     // Cogumelo: esporos curativos quando ferido
@@ -1383,5 +1505,5 @@ export class BattleSystem {
   }
 }
 
-const spellColor = (s) => (s === 'fire' ? '#ff9b3c' : s === 'thunder' ? '#ffe94f' : '#7dff9a');
+const spellColor = (s) => (s === 'fire' ? '#ff9b3c' : s === 'thunder' ? '#ffe94f' : s === 'ice' ? '#7fd4ff' : '#7dff9a');
 const spellSfx = (s) => (s === 'cure' ? 'heal' : 'fire');

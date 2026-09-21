@@ -42,12 +42,11 @@ html, body {
   width: min(96vw, 960px);
   aspect-ratio: 16 / 9;
   background: #000;
-  border: 3px solid #2a3570;
-  border-radius: 10px;
+  border: 3px solid #3a478c;
+  border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 0 60px #2a357055, 0 20px 60px #000c;
+  box-shadow: 0 0 0 1px #0a1030, 0 0 70px #2a357066, 0 0 140px #4fc3ff22, 0 20px 60px #000c;
 }
-
 /* vinheta retrô + scanlines sutis sobre o mundo (abaixo da UI) */
 #game-wrap::before {
   content: ''; position: absolute; inset: 0; z-index: 5; pointer-events: none;
@@ -77,12 +76,14 @@ html, body {
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
 }
 
-/* Caixa de diálogo/menu clássica: azul degradê + moldura fina */
+/* Caixa de diálogo/menu clássica: azul degradê + moldura dupla FF */
 .ff-box {
-  background: linear-gradient(160deg, #16236bf2, #0d1449f2);
-  border: 2px solid #cdd6ff;
-  border-radius: 8px;
-  box-shadow: 0 0 0 2px #0a1030, 0 6px 18px #000a;
+  background:
+    linear-gradient(180deg, #ffffff14 0%, transparent 18%),
+    linear-gradient(160deg, #1a2a78f2, #0d1449f5);
+  border: 2px solid #e8ecff;
+  border-radius: 10px;
+  box-shadow: 0 0 0 2px #0a1030, 0 0 0 3px #4fc3ff33, 0 8px 24px #000c, inset 0 0 24px #00000055;
   padding: 10px 12px;
 }
 
@@ -90,14 +91,19 @@ html, body {
   font-family: var(--px);
   font-size: 16px;
   font-weight: bold;
+  letter-spacing: 1px;
   color: var(--ff-text);
-  background: linear-gradient(160deg, var(--ff-blue2), var(--ff-blue));
+  text-shadow: 1px 1px 0 #000;
+  background: linear-gradient(180deg, #3347c9, #1b2f9e 45%, #101c5c);
   border: 3px solid var(--ff-border);
-  border-radius: 8px;
+  border-radius: 10px;
   padding: 10px 22px;
   cursor: pointer;
+  box-shadow: 0 4px 0 #0a1030, 0 6px 16px #000a;
+  transition: transform .08s, box-shadow .08s, filter .12s;
 }
-.ff-btn:hover { background: linear-gradient(160deg, #2b44c4, #16247c); }
+.ff-btn:hover { background: linear-gradient(180deg, #4358e0, #2b44c4 45%, #16247c); filter: brightness(1.08); }
+.ff-btn:active { transform: translateY(3px); box-shadow: 0 1px 0 #0a1030, 0 3px 8px #000a; }
 
 /* Transição de tela (fade / flash) */
 #transition {
@@ -116,19 +122,23 @@ html, body {
   position: absolute;
   top: 64px; left: 50%;
   transform: translateX(-50%);
-  background: #0a1030ee;
+  background: linear-gradient(180deg, #1a2a78f2, #0a1030f2);
   border: 2px solid var(--ff-yellow);
-  border-radius: 6px;
+  border-radius: 8px;
   padding: 8px 16px;
   font-weight: bold;
   color: var(--ff-yellow);
+  text-shadow: 1px 1px 0 #000;
   z-index: 55;
   max-width: 88%;
   text-align: center;
   text-wrap: balance;
+  box-shadow: 0 0 18px #ffd75e55, 0 6px 16px #000a;
   animation: toast-in .25s ease-out;
 }
 @keyframes toast-in { from { transform: translate(-50%, -10px); opacity: 0; } }
+#toast::before { content: '✦ '; opacity: .8; }
+#toast::after { content: ' ✦'; opacity: .8; }
 
 /* Controles touch */
 #touch {
@@ -141,12 +151,16 @@ html, body {
 #touch button {
   font-size: 18px;
   color: #fff;
-  background: #ffffff22;
+  text-shadow: 1px 1px 0 #000;
+  background: linear-gradient(180deg, #ffffff2e, #ffffff14);
   border: 2px solid #ffffff88;
-  border-radius: 10px;
-  backdrop-filter: blur(2px);
+  border-radius: 12px;
+  backdrop-filter: blur(3px);
+  box-shadow: 0 4px 12px #000a, inset 0 1px 0 #ffffff44;
   touch-action: none;
+  transition: transform .08s, filter .12s;
 }
+#touch button:active { transform: scale(.93); filter: brightness(1.25); }
 #tbtns { display: flex; gap: 10px; align-items: flex-end; pointer-events: auto; }
 #tbtns button { width: 56px; height: 56px; border-radius: 50%; font-weight: bold; }
 /* correr (alternador) + arrasto do bloco */
@@ -172,12 +186,13 @@ html, body {
 #hud-party { display: flex; gap: 6px; flex-wrap: wrap; }
 .hud-card {
   display: flex; gap: 7px; align-items: center;
-  background: #0a1030e6;
+  background: linear-gradient(180deg, #16236bee, #0a1030e6);
   border: 1px solid #ffffff55;
-  border-radius: 7px;
+  border-left: 3px solid var(--ff-yellow);
+  border-radius: 8px;
   padding: 4px 8px 4px 4px;
   min-width: 168px;
-  box-shadow: 0 2px 8px #000a;
+  box-shadow: 0 3px 10px #000b, inset 0 1px 0 #ffffff22;
 }
 .hud-face {
   width: 32px; height: 32px;
@@ -214,26 +229,34 @@ html, body {
 #hud-gold { color: var(--ff-yellow); }
 #minimap {
   width: 104px; height: 78px;
-  border: 1px solid #ffffff44;
-  border-radius: 6px;
+  border: 2px solid #4fc3ff66;
+  border-radius: 8px;
   background: #000;
   image-rendering: pixelated;
   align-self: flex-end;
-  box-shadow: 0 2px 8px #000a;
+  box-shadow: 0 2px 10px #000c, 0 0 12px #4fc3ff33;
 }
 
 /* banner de região (estilo FF ao entrar num local novo) */
 #region-banner {
-  position: absolute; top: 16%; left: 0; right: 0;
+  position: absolute; top: 15%; left: 0; right: 0;
   z-index: 25;
   text-align: center;
   font-size: clamp(22px, 4.2vw, 40px);
   font-weight: bold;
   letter-spacing: 8px;
   color: var(--ff-yellow);
-  text-shadow: 0 0 18px #ffd75e88, 2px 2px 0 #000, -1px -1px 0 #000;
+  text-shadow: 0 0 22px #ffd75e99, 0 0 46px #4fc3ff55, 2px 2px 0 #000, -1px -1px 0 #000;
   pointer-events: none;
   animation: banner-in 2.4s ease-out forwards;
+}
+#region-banner::before, #region-banner::after {
+  content: '✦ ─── ✦';
+  display: block;
+  font-size: 12px;
+  letter-spacing: 6px;
+  color: #ffffffaa;
+  text-shadow: 1px 1px 0 #000;
 }
 #region-banner small {
   display: block;
@@ -263,9 +286,10 @@ html, body {
 #dialog-face {
   width: 52px; height: 52px; flex: none;
   border: 2px solid var(--ff-yellow);
-  border-radius: 8px;
-  background: #0009;
+  border-radius: 10px;
+  background: linear-gradient(160deg, #1b2f9e, #000);
   image-rendering: pixelated;
+  box-shadow: 0 0 12px #ffd75e44, 0 3px 8px #000a;
 }
 #dialog-main { flex: 1; min-width: 0; overflow-y: auto; }
 #dialog-name {
@@ -330,8 +354,8 @@ html, body {
   padding-top: 6px;
 }
 #menu-list { overflow-y: auto; max-height: 38vh; }
-#menu-list .opt { padding: 6px 8px; border-radius: 4px; border-left: 2px solid transparent; }
-#menu-list .opt.sel { background: #ffffff10; border-left-color: var(--ff-yellow); }
+#menu-list .opt { padding: 6px 8px; border-radius: 6px; border-left: 2px solid transparent; transition: background .12s, transform .12s; }
+#menu-list .opt.sel { background: linear-gradient(90deg, #ffffff1e, #ffffff08); border-left-color: var(--ff-yellow); transform: translateX(2px); }
 #menu-list .opt.sel::before { content: '▶ '; color: var(--ff-yellow); }
 #menu-list .list-head {
   color: var(--ff-yellow);
@@ -376,17 +400,29 @@ html, body {
   font-size: clamp(30px, 7vw, 64px);
   letter-spacing: 6px;
   color: var(--ff-yellow);
-  text-shadow: 0 0 24px #ffd75e88, 3px 3px 0 #5a3c00, 6px 6px 0 #000;
+  background: linear-gradient(180deg, #fff3c4 8%, #ffd75e 38%, #c98d2e 62%, #ffd75e 85%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 0 22px #ffd75e66) drop-shadow(3px 3px 0 #000);
   line-height: 1.1;
+  animation: title-shine 4s ease-in-out infinite;
 }
+@keyframes title-shine { 50% { filter: drop-shadow(0 0 34px #ffd75eaa) drop-shadow(3px 3px 0 #000); } }
 #title .subtitle { opacity: .85; font-size: clamp(11px, 2vw, 15px); letter-spacing: 2px; }
 #title .version { opacity: .5; font-size: 11px; letter-spacing: 1px; }
 .title-crystal {
   width: 54px; height: 54px;
-  background: linear-gradient(135deg, #bff3ff, #4fc3ff 40%, #1b2f9e 75%, #bff3ff);
+  background: linear-gradient(135deg, #e8fbff, #4fc3ff 35%, #1b2f9e 70%, #bff3ff);
   clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
   animation: float 2.4s ease-in-out infinite;
-  filter: drop-shadow(0 0 18px #4fc3ff);
+  filter: drop-shadow(0 0 18px #4fc3ff) drop-shadow(0 0 42px #4fc3ff66);
+  position: relative;
+}
+.title-crystal::after {
+  content: ''; position: absolute; inset: 18% 42%;
+  background: linear-gradient(#ffffffee, transparent);
+  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
 }
 @keyframes float { 50% { transform: translateY(-10px) rotate(8deg); } }
 #title-list { min-width: min(78%, 320px); }
@@ -506,18 +542,19 @@ html, body {
   font-size: clamp(11px, 1.8vw, 14px);
   margin-bottom: 2px;
 }
-#boss-bar .bbar.hp.big { height: 8px; border: 1px solid #ffffff66; border-radius: 4px; background: #000a; overflow: hidden; }
-#boss-bar .bbar.hp.big > div { background: linear-gradient(90deg, #ff6b6b, #a00); transition: width .3s; }
+#boss-bar .bbar.hp.big { height: 9px; border: 1px solid #ffffff77; border-radius: 6px; background: #000c; overflow: hidden; box-shadow: 0 0 14px #ff6b6b55, 0 2px 8px #000a; }
+#boss-bar .bbar.hp.big > div { background: linear-gradient(90deg, #ffb36b, #ff6b6b 45%, #a00); transition: width .3s; }
 /* chips compactos: foto + barra */
 #battle-foes .bfoe, #battle-party .bchar {
   display: flex; gap: 6px; align-items: center;
-  background: #060913d9;
+  background: linear-gradient(180deg, #101a44e6, #060913e6);
   border: 1px solid #ffffff2e;
-  border-radius: 7px;
+  border-radius: 8px;
   padding: 3px 8px 3px 3px;
   font-size: clamp(10px, 1.7vw, 13px);
   line-height: 1.35;
-  transition: border-color .15s, background .15s;
+  box-shadow: 0 3px 10px #000a, inset 0 1px 0 #ffffff22;
+  transition: border-color .15s, background .15s, transform .12s;
 }
 #battle-foes .bfoe { flex-direction: row; }
 #battle-party .bchar { flex-direction: row-reverse; text-align: right; }
@@ -549,8 +586,8 @@ html, body {
 #battle-menu { overflow-x: auto; overflow-y: hidden; }
 #battle-cmds { display: flex; align-items: center; gap: 3px; }
 #battle-cmds .cmd-title { color: var(--ff-yellow); font-weight: bold; letter-spacing: 1px; font-size: .85em; flex: none; margin-right: 2px; }
-#battle-cmds .opt { padding: 4px 9px; border-radius: 14px; font-size: clamp(11px, 1.8vw, 15px); border: 1px solid transparent; transition: background .12s; white-space: nowrap; flex: none; }
-#battle-cmds .opt.sel { background: #ffffff16; color: var(--ff-yellow); border-color: #ffd75e66; }
+#battle-cmds .opt { padding: 4px 10px; border-radius: 14px; font-size: clamp(11px, 1.8vw, 15px); border: 1px solid transparent; transition: background .12s, transform .1s; white-space: nowrap; flex: none; }
+#battle-cmds .opt.sel { background: linear-gradient(180deg, #ffffff26, #ffffff10); color: var(--ff-yellow); border-color: #ffd75e88; box-shadow: 0 0 10px #ffd75e44; transform: translateY(-1px); }
 #battle-cmds .opt.nomp { opacity: .4; }
 #battle-party .bchar.dead { opacity: .45; }
 #battle-cmds .opt .cost { color: var(--ff-mp); font-size: .8em; margin-left: 6px; }
@@ -1026,6 +1063,11 @@ class AudioMan {
       case 'step': T(190 + Math.random() * 40, 0.04, 'triangle', 0.025); break;
       case 'bump': T(120, 0.07, 'square', 0.04); break;
       case 'flee-fail': T(300, 0.15, 'square', 0.08); T(250, 0.2, 'square', 0.08, 0.12); break;
+      case 'splash': T(900, 0.08, 'sine', 0.08); T(500, 0.12, 'sine', 0.07, 0.05); T(300, 0.14, 'triangle', 0.06, 0.1); break;
+      case 'bite': T(1200, 0.07, 'square', 0.09); T(1500, 0.07, 'square', 0.09, 0.08); T(1800, 0.12, 'square', 0.09, 0.16); break;
+      case 'reel': T(400, 0.06, 'sawtooth', 0.06); T(600, 0.06, 'sawtooth', 0.06, 0.07); T(800, 0.08, 'sawtooth', 0.06, 0.14); break;
+      case 'catch': [659, 784, 880, 1047, 1319].forEach((f, i) => T(f, 0.12, 'square', 0.08, i * 0.08)); break;
+      case 'plop': T(250, 0.09, 'sine', 0.09); T(180, 0.12, 'sine', 0.07, 0.07); break;
     }
   }
 }
@@ -2241,6 +2283,8 @@ const CHESTS = [
 ];
 /** Meta da quest de caça do Guarda Cato (slimes derrotados). */
 const HUNT_GOAL = 6;
+/** Sentinela opcional do deserto: Golem Ancião (mini-chefe). */
+const ELITE = { x: 60, y: 20, name: 'GOLEM ANCIÃO' };
 
 /** @returns {{tiles: Uint8Array, w: number, h: number}} */
 function buildMap() {
@@ -2409,6 +2453,9 @@ function buildMap() {
   set(53, 11, T.DARK_GRASS);
   set(52, 11, T.DARK_GRASS); set(53, 10, T.DARK_GRASS); set(53, 12, T.DARK_GRASS);
   set(74, 38, T.SAND);
+  // ---- Clareira do Golem Ancião (deserto): sentinela + arredores pisáveis ----
+  set(60, 20, T.SAND);
+  set(59, 20, T.SAND); set(61, 20, T.SAND); set(60, 19, T.SAND); set(60, 21, T.SAND);
 
   // ---- Altar do Caos (norte das ruínas) ----
   rect(51, 3, 57, 8, T.FLOOR);
@@ -2491,6 +2538,18 @@ const NPC_DEFS = [
     lines: [
       'Bom dia! Aqui na Praia do Sol a água é calma e o peixe morde fácil.',
       'Dizem que PÉROLAS aparecem na linha de quem pesca na praia... Tente a sorte encarando a água!',
+    ],
+  },
+  {
+    id: 'nomad', x: 66, y: 37, name: 'Nômade Zara', kind: 'nomad', wander: false, shop: true,
+    lines: ['O deserto me dá de tudo! Pena de Fênix fresquinha, quem vai querer?'],
+  },
+  {
+    id: 'hunter', x: 30, y: 2, name: 'Caçadora Liv', kind: 'hunter', wander: false,
+    gift: 'antidote',
+    lines: [
+      'Frio bom p/ caçar! Fagulhas rondam a neve — chegue perto e seja rápido.',
+      'Se for ao pântano, cuidado com os Cogumelos: eles se curam com esporos!',
     ],
   },
 ];
@@ -2796,12 +2855,13 @@ const ITEMS = {
   ether:     { name: 'Éter',       price: 120, mp: 20,    desc: 'Restaura 20 MP de um aliado', battle: true },
   antidote:  { name: 'Bomba Fumaça', price: 40, flee: true, desc: 'Garante fuga da batalha', battle: true },
   fish:      { name: 'Peixe Fresco', price: 12, heal: 35, desc: 'Pescado! Restaura 35 HP de um aliado', battle: true },
+  phoenix:   { name: 'Pena de Fênix', price: 200, revive: 0.5, desc: 'Revive um aliado caído com 50% do HP', battle: true },
 };
 
 /** @returns {Record<string, number>} */
-const newInventory = () => ({ potion: 3, hipotion: 0, ether: 1, antidote: 0 });
+const newInventory = () => ({ potion: 3, hipotion: 0, ether: 1, antidote: 0, phoenix: 0 });
 
-const SHOP_STOCK = ['potion', 'hipotion', 'ether', 'antidote'];
+const SHOP_STOCK = ['potion', 'hipotion', 'ether', 'antidote', 'phoenix'];
 
 /**
  * Usa um item num alvo.
@@ -2813,6 +2873,13 @@ const SHOP_STOCK = ['potion', 'hipotion', 'ether', 'antidote'];
 function useItem(inv, id, target) {
   if ((inv[id] || 0) <= 0) return { ok: false, msg: 'Você não tem esse item!' };
   const it = ITEMS[id];
+  if (it.revive) {
+    if (target.hp > 0) return { ok: false, msg: `${target.name} ainda está de pé!` };
+    inv[id]--;
+    const v = Math.ceil(target.maxHp * it.revive);
+    target.hp = v;
+    return { ok: true, msg: `${target.name} renasceu com ${v} HP!` };
+  }
   if (it.heal && target.hp >= target.maxHp) return { ok: false, msg: `${target.name} já está com HP cheio!` };
   if (it.heal && target.hp <= 0) return { ok: false, msg: `${target.name} está caído!` };
   if (it.mp && target.mp >= target.maxMp) return { ok: false, msg: `${target.name} já está com MP cheio!` };
@@ -3069,6 +3136,7 @@ const TABS = [
   { id: 'status', label: '📊 Status' },
   { id: 'config', label: '⚙ Config' },
   { id: 'save', label: '💾 Salvar' },
+  { id: 'quests', label: '📜 Quests' },
 ];
 
 class Menu {
@@ -3227,8 +3295,40 @@ class Menu {
         return `<div class="opt ${i === this.sel ? 'sel' : ''}">Slot ${s}${armed}<br/><span class="row-sub">${info || '(vazio)'}</span></div>`;
       }).join('');
       this.detailEl.innerHTML = `<h3>Salvar progresso</h3>Grava posição, grupo, itens e ouro.<br/><span class="row-sub">Slot ocupado pede confirmação. Q volta sem salvar.</span>`;
+    } else if (tabId === 'quests') {
+      const qs = this._questList();
+      this._quests = qs;
+      this.rows = qs.map((_, i) => i);
+      this.listEl.innerHTML = qs.map((q, i) =>
+        `<div class="opt ${i === this.sel ? 'sel' : ''}">${q.done ? '✔' : '⏳'} ${q.t}</div>`).join('');
+      const q = qs[this.sel];
+      this.detailEl.innerHTML = q ? `<h3>${q.t}</h3>${q.d}` : '<span class="row-sub">Nenhuma quest.</span>';
     }
     this._foot(gold, time);
+  }
+
+  /** Diário: deriva o estado das quests a partir das flags do save. */
+  _questList() {
+    const f = this.ctx?.flags || {};
+    const qs = [];
+    if (f.toyRewarded) qs.push({ t: 'Boneco do Pip', d: 'Devolvido! Pip vai ser mago.', done: true });
+    else if (f.toyFound) qs.push({ t: 'Boneco do Pip', d: 'Leve o boneco ao Pip, na Vila Lumen.', done: false });
+    else if (f.toyQuest) qs.push({ t: 'Boneco do Pip', d: 'Brilha na grama alta, a leste da vila.', done: false });
+    else qs.push({ t: '???', d: 'Fale com todos na Vila Lumen. Alguém precisa de ajuda...', done: false });
+    const hc = f.huntCount || 0;
+    if (f.huntRewarded) qs.push({ t: 'Caça aos slimes', d: 'Ponte segura graças a você!', done: true });
+    else if (!f.huntQuest) qs.push({ t: '???', d: 'O Guarda Cato, na ponte, parece preocupado...', done: false });
+    else if (hc >= HUNT_GOAL) qs.push({ t: 'Caça aos slimes', d: 'Meta batida! Volte ao Guarda Cato.', done: false });
+    else qs.push({ t: 'Caça aos slimes', d: `${hc}/${HUNT_GOAL} slimes derrotados.`, done: false });
+    if (f.eliteDefeated) qs.push({ t: 'Golem Ancião', d: 'O deserto respira aliviado.', done: true });
+    else qs.push({ t: 'Golem Ancião', d: 'Um colosso ronda o Deserto Dourado, a leste do rio.', done: false });
+    const opened = CHESTS.filter((c) => f[`chest_${c.id}`]).length;
+    qs.push(opened >= CHESTS.length
+      ? { t: `Baús do tesouro`, d: 'Todos abertos! Olho de águia.', done: true }
+      : { t: `Baús: ${opened}/${CHESTS.length}`, d: 'Espalhados por Valoria. Um brilha no escuro...', done: false });
+    if (f.bossDefeated) qs.push({ t: 'Dragão do Caos', d: 'O cristal renasceu. Lenda!', done: true });
+    else qs.push({ t: 'Dragão do Caos', d: 'Nas Ruínas ao nordeste, além da ponte.', done: false });
+    return qs;
   }
 
   _foot(gold, time) {
@@ -3269,7 +3369,9 @@ class Menu {
     if (this.sub) {
       const h = party[this.sel];
       if (this.sub.kind === 'item') {
-        if (ITEMS[this.sub.id].heal && h.hp <= 0) { this.notify(`${h.name} está caído!`); this.audio.sfx('flee-fail'); return; }
+        const it = ITEMS[this.sub.id];
+        if (it.revive && h.hp > 0) { this.notify(`${h.name} ainda está de pé!`); this.audio.sfx('flee-fail'); return; }
+        if (it.heal && h.hp <= 0) { this.notify(`${h.name} está caído! Use uma Pena de Fênix.`); this.audio.sfx('flee-fail'); return; }
         actions.useItem(this.sub.id, this.sel);
       } else {
         if (h.hp <= 0) { this.notify(`${h.name} está caído!`); this.audio.sfx('flee-fail'); return; }
@@ -3301,6 +3403,9 @@ class Menu {
       this.notify(`${party[this.sel].name}: pronto para a aventura!`);
     } else if (tabId === 'config') {
       actions.cycleConfig(this.rows[this.sel]);
+    } else if (tabId === 'quests') {
+      const q = this._quests?.[this.sel];
+      this.notify(q ? `${q.t} — ${q.d}` : 'Sem quests.');
     } else if (tabId === 'save') {
       const slot = this.rows[this.sel];
       if (SaveSystem.info(slot) && this._armSave !== slot) {
@@ -4689,8 +4794,14 @@ class BattleSystem {
       if (this.sel >= this.party.length) { this.menu = this.pending?.type === 'item' ? 'item' : 'magic'; this.sel = 0; }
       else {
         const t = this.party[this.sel];
-        if (t.hp <= 0) {
-          this._log(`${t.name} está caído! Itens e Cura não funcionam em aliados caídos.`);
+        const isRevive = this.pending?.type === 'item' && !!ITEMS[this.pending.item]?.revive;
+        if (t.hp <= 0 && !isRevive) {
+          this._log(`${t.name} está caído! Só uma Pena de Fênix o traz de volta.`);
+          this.audio.sfx('flee-fail');
+          return true;
+        }
+        if (t.hp > 0 && isRevive) {
+          this._log(`${t.name} ainda está de pé!`);
           this.audio.sfx('flee-fail');
           return true;
         }
@@ -4965,6 +5076,22 @@ class BattleSystem {
     } else if (act.type === 'item') {
       const it = ITEMS[act.item];
       let ti = act.target ?? 0;
+      if (it.revive) {
+        // Fênix mira o caído exato (sem redirecionar p/ vivos)
+        const a = this.party[ti];
+        if (!a || a.hp > 0) { this._log('Sem alvo caído para a Pena de Fênix!'); this.audio.sfx('flee-fail'); return; }
+        this.inv[act.item]--;
+        const v = Math.min(Math.ceil(a.maxHp * it.revive), a.maxHp);
+        a.hp = v;
+        this.audio.sfx('levelup');
+        this.anim = { who: 'hero', idx: hi, t: 0.4, dur: 0.4 };
+        this._healFx(this.heroPos(ti), '#ffd75e');
+        this._ringFx(this.heroPos(ti), '#ffd75e');
+        this._floatDmg(this.heroPos(ti), `+${v}`, '#ffd75e', false);
+        this._log(`${h.name} usa ${it.name} em ${a.name}! Renasceu com ${v} HP!`);
+        this._renderAll();
+        return;
+      }
       if (!this.party[ti] || this.party[ti].hp <= 0) {
         const alt = [...this.party.keys()].filter((i) => this.party[i].hp > 0)
           .sort((a, b) => (this.party[a].hp / this.party[a].maxHp) - (this.party[b].hp / this.party[b].maxHp))[0];
@@ -5726,6 +5853,8 @@ const NPC_PALETTES = {
   guard:    { skin: '#e8b88a', hair: '#222222', tunic: '#8c8c9c', pants: '#3a3a4a' },
   hermit:   { skin: '#c89878', hair: '#eeeeee', tunic: '#5e4a7a', pants: '#2a2a3a' },
   fisher:   { skin: '#d89a6a', hair: '#3a2a1a', tunic: '#2e7d8c', pants: '#4a3a2a' },
+  nomad:    { skin: '#c89878', hair: '#1e1e1e', tunic: '#c2691e', pants: '#5e3a17' },
+  hunter:   { skin: '#e8b88a', hair: '#e8e8e8', tunic: '#3f6b4a', pants: '#2a2a3a' },
 };
 
 const HERO_PALETTES = {
@@ -5785,6 +5914,8 @@ class Engine {
       'Guarda Cato': humanoidFace(this.npcArt.guard),
       'Eremita Sable': humanoidFace(this.npcArt.hermit),
       'Pescador Kai': humanoidFace(this.npcArt.fisher),
+      'Nômade Zara': humanoidFace(this.npcArt.nomad),
+      'Caçadora Liv': humanoidFace(this.npcArt.hunter),
       'DRAGÃO DO CAOS': dragonFace(this.dragonArt),
     };
     this.dialog.portraitProvider = (name) => this.faceCanvas[name] || null;
@@ -5987,15 +6118,20 @@ class Engine {
       return;
     }
 
-    if (inp.pressed.menu || inp.pressed.cancel) {
+    // pescaria ativa: E fisga / confirma, Q/Esc cancela (prioridade sobre menu)
+    if (this._fishing) {
+      if (inp.pressed.menu || inp.pressed.cancel) { this._cancelFish(); return; }
+      if (inp.pressed.confirm) { this._fishPress(); return; }
+      // movimento cancelado: tick da pescaria roda mais abaixo junto do mundo parado
+    } else if (inp.pressed.menu || inp.pressed.cancel) {
       this.audio.unlock(); this.audio.sfx('confirm');
       this._path = null; this._tapAct = null;
-      this.menu.show({ party: this.party, inv: this.inv, gold: this.gold, time: this._fmtTime() }, (m) => toast(m), this._menuActions());
+      this.menu.show({ party: this.party, inv: this.inv, gold: this.gold, time: this._fmtTime(), flags: this.flags }, (m) => toast(m), this._menuActions());
       return;
     }
 
     // falar / altar do boss / cristal / brinquedo / baú / pesca
-    if (inp.pressed.confirm) {
+    if (!this._fishing && inp.pressed.confirm) {
       this._path = null; this._tapAct = null;
       if (this._tryBossInteract()) return;
       if (this._tryHealCrystal()) return;
@@ -6014,6 +6150,15 @@ class Engine {
     // baús são sólidos (abertos ou não)
     for (const c of CHESTS) blockers.push({ x: c.x * TILE, y: c.y * TILE });
     if (this._fishCd > 0) this._fishCd -= dt;
+    // pescaria congela o movimento: só o tick da vara/bóia avança
+    if (this._fishing) {
+      for (const n of this.npcs) n.update(dt, this.map);
+      this.camera.follow(this.player.cx, this.player.cy, dt);
+      this.camera.update(dt);
+      this._wxTick(dt, regionAt(this.player.tileX, this.player.tileY));
+      this._tickFish(dt);
+      return;
+    }
     // toque-para-andar: input manual cancela a rota; sem input, a rota guia
     let ax = inp.axis;
     if (ax.x !== 0 || ax.y !== 0) { this._path = null; this._tapAct = null; }
@@ -6215,7 +6360,7 @@ class Engine {
       this._tryChest();
     } else if (act.kind === 'fish') {
       this._faceToward(act.tx * TILE + 16, act.ty * TILE + 16);
-      this._tryFish();
+      this._tryFish(act.tx, act.ty);
     } else if (act.kind === 'spot') {
       if (act.which === 'boss') this._tryBossInteract();
       else if (act.which === 'crystal') this._tryHealCrystal();
@@ -6369,35 +6514,197 @@ class Engine {
     return true;
   }
 
-  /** Pesca: E encarando a água. Na praia, chance maior de pérola. */
-  _tryFish() {
-    if (this._fishCd > 0) return false;
-    const ft = this.player.facingTile();
-    if (this.map.tile(ft.x, ft.y) !== T.WATER) return false;
-    this._fishCd = 1.5;
+  // ---------- pescaria com vara + mini-game ----------
+  /** Inicia a pescaria: E encarando a água (ou tocando a água). Retorna true se lançou a linha. */
+  _tryFish(forceTX, forceTY) {
+    if (this._fishing || this._fishCd > 0) return false;
+    let tx, ty;
+    if (forceTX !== undefined && forceTY !== undefined) {
+      tx = forceTX; ty = forceTY;
+      if (this.map.tile(tx, ty) !== T.WATER) return false;
+      this._faceToward(tx * TILE + 16, ty * TILE + 16);
+    } else {
+      const ft = this.player.facingTile();
+      tx = ft.x; ty = ft.y;
+      if (this.map.tile(tx, ty) !== T.WATER) return false;
+    }
+    this._path = null; this._tapAct = null;
+    this._fishing = {
+      phase: 'cast', t: 0,
+      tx, ty,
+      bobWX: tx * TILE + 16, bobWY: ty * TILE + 16,
+      fromX: this.player.cx, fromY: this.player.cy,
+      biteAt: 1.7 + Math.random() * 2.6,
+      biteLeft: 0, nibbleT: 0.4 + Math.random() * 1.2,
+      cursor: 0, cdir: 1, zoneX: 0.25 + Math.random() * 0.5, zoneW: 0.22, perfectW: 0.07,
+      reelT: 0, splashT: 0,
+    };
+    this.audio.sfx('reel');
+    return true;
+  }
+
+  /** E durante a pescaria: fisga na hora do "!" ou trava o cursor no mini-game. */
+  _fishPress() {
+    const f = this._fishing;
+    if (!f) return;
+    if (f.phase === 'bite') {
+      // fisgou! abre o mini-game da fisgada
+      f.phase = 'reel'; f.t = 0; f.reelT = 0;
+      f.cursor = Math.random();
+      f.cdir = Math.random() < 0.5 ? -1 : 1;
+      // zona alvo: praia = zona um pouco maior (pesca mais fácil)
+      const beach = regionAt(this.player.tileX, this.player.tileY) === 'beach';
+      f.zoneW = beach ? 0.24 : 0.19;
+      f.perfectW = 0.07;
+      f.zoneX = 0.08 + Math.random() * (0.84 - f.zoneW);
+      this.audio.sfx('bite');
+      this._fishSplash(f.bobWX, f.bobWY, 6);
+    } else if (f.phase === 'reel') {
+      this._fishStrike();
+    } else if (f.phase === 'caught' || f.phase === 'miss') {
+      this._endFish();
+    }
+    // cast/wait: E não faz nada (espera o peixe morder)
+  }
+
+  /** Cancela a pescaria (Q/Esc). */
+  _cancelFish() {
+    if (!this._fishing) return;
+    this._fishing = null;
+    this._fishCd = 0.5;
+    this.audio.sfx('cancel');
+    toast('🎣 Linha recolhida...');
+  }
+
+  /** Tick da pescaria (mundo parado, só vara/bóia/peixe vivem). */
+  _tickFish(dt) {
+    const f = this._fishing;
+    if (!f) return;
+    f.t += dt;
+    if (f.phase === 'cast') {
+      if (f.t >= 0.45) {
+        f.phase = 'wait'; f.t = 0;
+        this.audio.sfx('splash');
+        this._fishSplash(f.bobWX, f.bobWY, 5);
+      }
+    } else if (f.phase === 'wait') {
+      // mordidinhas falsas (só visual + plop baixo) antes da mordida real
+      f.nibbleT -= dt;
+      if (f.nibbleT <= 0 && f.t < f.biteAt - 0.6) {
+        f.nibbleT = 0.7 + Math.random() * 1.4;
+        this.audio.sfx('plop');
+        this._fishRipple(f.bobWX, f.bobWY, 1);
+      }
+      if (f.t >= f.biteAt) {
+        f.phase = 'bite'; f.t = 0; f.biteLeft = 0.95;
+        this.audio.sfx('bite');
+        this._fishSplash(f.bobWX, f.bobWY, 8);
+      }
+    } else if (f.phase === 'bite') {
+      f.biteLeft -= dt;
+      if (f.biteLeft <= 0) this._fishMiss('O peixe escapou... (fisgue no “!” com E)');
+    } else if (f.phase === 'reel') {
+      f.reelT += dt;
+      // cursor ping-pong cada vez mais rápido
+      const speed = 1.15 + Math.min(1.1, f.reelT * 0.18);
+      f.cursor += f.cdir * speed * dt;
+      if (f.cursor >= 1) { f.cursor = 1; f.cdir = -1; }
+      if (f.cursor <= 0) { f.cursor = 0; f.cdir = 1; }
+      if (f.reelT > 8) this._fishMiss('A linha arrebentou por demora...');
+    } else if (f.phase === 'caught' || f.phase === 'miss') {
+      if (f.t > (f.phase === 'caught' ? 1.5 : 1.1)) this._endFish();
+    }
+  }
+
+  /** Resolve a tentativa do mini-game (cursor dentro da zona = pega). */
+  _fishStrike() {
+    const f = this._fishing;
+    if (!f || f.phase !== 'reel') return;
+    const c = f.cursor;
+    const z0 = f.zoneX, z1 = f.zoneX + f.zoneW;
+    const p0 = f.zoneX + f.zoneW / 2 - f.perfectW / 2, p1 = p0 + f.perfectW;
+    if (c >= z0 && c <= z1) {
+      const perfect = c >= p0 && c <= p1;
+      this._fishReward(perfect);
+    } else {
+      this._fishMiss('Errou a zona verde... o peixe fugiu!');
+    }
+  }
+
+  /** Recompensa da pescaria (praia = mais pérola). */
+  _fishReward(perfect) {
+    const f = this._fishing;
     const beach = regionAt(this.player.tileX, this.player.tileY) === 'beach';
     const r = Math.random();
-    if (r < 0.5) {
+    f.phase = 'caught'; f.t = 0;
+    this._fishSplash(f.bobWX, f.bobWY, 10);
+    if (perfect && r < 0.45) {
+      this.inv.fish = (this.inv.fish || 0) + 2;
+      this.audio.sfx('catch');
+      toast('🐟🐟 FISGADA PERFEITA! +2 Peixes Frescos!');
+    } else if (r < 0.52) {
       this.inv.fish = (this.inv.fish || 0) + 1;
-      this.audio.sfx('item');
+      this.audio.sfx('catch');
       toast('🐟 Peixe Fresco pescado! (+1)');
     } else if (r < 0.66) {
       this.gold += 4;
-      this.audio.sfx('bump');
+      this.audio.sfx('plop');
       toast('🥾 Uma Bota Velha... (+4G de sucata)');
-    } else if (r < (beach ? 0.8 : 0.86)) {
-      this.audio.sfx('bump');
-      toast('...só algas. Tente de novo!');
+    } else if (r < (beach ? 0.78 : 0.86)) {
+      this.audio.sfx('plop');
+      toast('...só algas. Pelo menos a técnica foi boa!');
     } else {
-      const v = beach ? 60 : 40;
+      const v = (beach ? 60 : 40) + (perfect ? 20 : 0);
       this.gold += v;
       this.audio.sfx('levelup');
-      this.dialog.say([
-        { name: '', text: `(Algo brilha na ponta da linha... uma PÉROLA!)` },
-      ]);
+      this.dialog.say([{ name: '', text: `(Algo brilha na ponta da linha... uma PÉROLA!)` }]);
       toast(`🪙 Pérola vendida! (+${v}G)`);
     }
+  }
+
+  _fishMiss(msg) {
+    const f = this._fishing;
+    if (!f) return;
+    f.phase = 'miss'; f.t = 0; f.missMsg = msg;
+    this.audio.sfx('cancel');
+    toast(`🎣 ${msg}`);
+  }
+
+  _endFish() {
+    this._fishing = null;
+    this._fishCd = 1.2;
+  }
+
+  /** Atalho de teste: conclui a pescaria atual com sucesso imediato. @returns {boolean} */
+  _debugCatchFish() {
+    if (!this._fishing) return false;
+    this._fishReward(false);
+    this._endFish();
     return true;
+  }
+
+  _fishSplash(wx, wy, n) {
+    for (let i = 0; i < n && this._wx.length < 120; i++) {
+      const a = Math.random() * Math.PI * 2, sp = 30 + Math.random() * 90;
+      this._wx.push({
+        type: 'splash',
+        x: wx + this.camera.ox + (Math.random() - 0.5) * 8,
+        y: wy + this.camera.oy + (Math.random() - 0.5) * 6,
+        vx: Math.cos(a) * sp, vy: -40 - Math.random() * 90,
+        t: 0, life: 0.5 + Math.random() * 0.3, seed: Math.random() * 9,
+      });
+    }
+    this._fishRipple(wx, wy, 2);
+  }
+
+  _fishRipple(wx, wy, n) {
+    for (let i = 0; i < n && this._wx.length < 120; i++) {
+      this._wx.push({
+        type: 'ripple',
+        x: wx + this.camera.ox, y: wy + this.camera.oy,
+        vx: 0, vy: 0, t: -i * 0.18, life: 1.1, seed: Math.random() * 9,
+      });
+    }
   }
 
   /** Cristal restaurador: E por perto = cura total. */
@@ -6676,6 +6983,13 @@ class Engine {
     // baús do tesouro (fechado brilha; aberto mostra a tampa erguida)
     for (const c of CHESTS) this._drawChest(g, ox, oy, c);
 
+    // sombras suaves sob os atores (profundidade barata estilo 16-bit)
+    const shadow = (sx, sy, w) => {
+      g.fillStyle = 'rgba(0,0,10,.28)';
+      g.beginPath(); g.ellipse(sx, sy, w, w * 0.32, 0, 0, 7); g.fill();
+    };
+    for (const n of this.npcs) shadow(n.x + ox + 16, n.y + oy + 36, n.id === 'kid' ? 9 : 12);
+    shadow(p.x + ox + 12, p.y + oy + 26, 12);
     // entidades ordenadas por Y (Pip é criança: desenhado menor)
     /** @type {{y:number, draw:()=>void}[]} */
     const ents = [];
@@ -6685,10 +6999,27 @@ class Engine {
     }
     ents.push({ y: p.y, draw: () => this._drawActor(p.x + ox - 4, p.y + oy - 12, this.heroArt, p.dir, p.moving ? p.animT : 0, 1) });
     ents.sort((a, b) => a.y - b.y).forEach((e) => e.draw());
+    // vara de pescar por cima do jogador + linha e bóia
+    if (this._fishing) this._drawFishing(g, ox, oy);
     // copas por cima de quem está atrás das árvores
     this.map.drawCanopy(g, ox, oy, this.time);
     // clima/ambiente do bioma (chuva, neve, brasas, folhas, gaivotas...)
     this._drawWeather(g);
+    // luz ambiente: halo quente ao redor do jogador + vinheta viva
+    {
+      const lx = p.cx + ox, ly = p.cy + oy - 6;
+      const halo = g.createRadialGradient(lx, ly, 8, lx, ly, 150);
+      halo.addColorStop(0, 'rgba(255,230,160,.10)');
+      halo.addColorStop(0.5, 'rgba(255,230,160,.04)');
+      halo.addColorStop(1, 'transparent');
+      g.fillStyle = halo;
+      g.fillRect(lx - 150, ly - 150, 300, 300);
+      const vg = g.createRadialGradient(480, 270, 240, 480, 270, 620);
+      vg.addColorStop(0, 'transparent');
+      vg.addColorStop(1, `rgba(2,3,12,${(0.30 + 0.04 * Math.sin(this.time * 0.8)).toFixed(2)})`);
+      g.fillStyle = vg;
+      g.fillRect(0, 0, 960, 540);
+    }
     // marca do toque (para onde o jogador está indo)
     if (this._tapMark && this.time - this._tapMark.t < 0.6) {
       const k = (this.time - this._tapMark.t) / 0.6;
@@ -6733,6 +7064,157 @@ class Engine {
       g.strokeText('▼ E', bx - 8, by);
       g.fillText('▼ E', bx - 8, by);
     }
+    // dica de pesca: "🎣 E" pulsante sobre a água encarada (só fora da pescaria)
+    if (!this._fishing && !npc && !chest && this.state === 'FIELD' && !this.dialog.active && !this.menu.active) {
+      const ft = this.player.facingTile();
+      if (this.map.tile(ft.x, ft.y) === T.WATER) {
+        const fx = ft.x * TILE + ox + 16, fy = ft.y * TILE + oy - 6 + Math.sin(this.time * 5) * 2;
+        g.font = 'bold 19px monospace'; g.textAlign = 'center';
+        g.strokeStyle = '#000'; g.lineWidth = 4;
+        g.strokeText('🎣 E', fx, fy);
+        g.fillStyle = '#7fd4ff';
+        g.fillText('🎣 E', fx, fy);
+        g.textAlign = 'start';
+        // ondinhas convidativas no tile da água
+        g.strokeStyle = `rgba(180,230,255,${(0.45 + 0.25 * Math.sin(this.time * 4)).toFixed(2)})`;
+        g.lineWidth = 2;
+        g.beginPath(); g.ellipse(fx, fy + 12, 12, 4, 0, 0, 7); g.stroke();
+      }
+    }
+    // painel do mini-game de pesca (por cima de tudo no mundo)
+    if (this._fishing) this._drawFishGame(g);
+  }
+
+  /** Desenha vara na mão do jogador + linha até a bóia + bóia e mordida. */
+  _drawFishing(g, ox, oy) {
+    const f = this._fishing;
+    if (!f) return;
+    const p = this.player;
+    const px = p.x + ox + 12, py = p.y + oy + 2; // mãos
+    // ponta da vara conforme a direção (vara erguida p/ o lado da água)
+    const aim = { x: f.bobWX + ox, y: f.bobWY + oy };
+    const dx = aim.x - px, dy = aim.y - py;
+    const len = Math.max(1, Math.hypot(dx, dy));
+    const nx = dx / len, ny = dy / len;
+    // base da vara na mão, ponta 46px em direção à água + leve arco p/ cima
+    const bx = px, by = py - 6;
+    const tx = bx + nx * 46, ty = by + ny * 30 - 14;
+    // sombra da linha de voo durante o arremesso
+    const castK = f.phase === 'cast' ? Math.min(1, f.t / 0.45) : 1;
+    const tipX = bx + (tx - bx) * castK, tipY = by + (ty - by) * castK;
+    // vara: madeira com 3 segmentos + cabo escuro + molinete
+    g.strokeStyle = '#101018'; g.lineWidth = 5; g.lineCap = 'round';
+    g.beginPath(); g.moveTo(bx, by); g.lineTo(tipX, tipY); g.stroke();
+    g.strokeStyle = '#8a5a2b'; g.lineWidth = 3;
+    g.beginPath(); g.moveTo(bx, by); g.lineTo(tipX, tipY); g.stroke();
+    g.strokeStyle = '#c98d4e'; g.lineWidth = 1.5;
+    g.beginPath(); g.moveTo(bx, by); g.lineTo(tipX, tipY); g.stroke();
+    g.fillStyle = '#3a2412';
+    g.fillRect(bx - 3, by - 1, 7, 5);
+    g.fillStyle = '#c0c6d0';
+    g.beginPath(); g.arc(bx + nx * 10, by + 5, 3.4, 0, 7); g.fill();
+    g.fillStyle = '#5a6270';
+    g.beginPath(); g.arc(bx + nx * 10, by + 5, 1.6, 0, 7); g.fill();
+    if (castK < 1) return; // linha ainda não chegou na água
+    // linha: da ponta da vara até a bóia, com barriga
+    const bobX = f.bobWX + ox, bobY = f.bobWY + oy + Math.sin(this.time * 3.2) * 2;
+    const midX = (tipX + bobX) / 2, midY = (tipY + bobY) / 2 + 7;
+    g.strokeStyle = 'rgba(240,244,255,.9)'; g.lineWidth = 1.5;
+    g.beginPath(); g.moveTo(tipX, tipY);
+    g.quadraticCurveTo(midX, midY, bobX, bobY - 4);
+    g.stroke();
+    // ondulação ao redor da bóia
+    const rip = 0.5 + 0.5 * Math.sin(this.time * 4);
+    g.strokeStyle = `rgba(180,230,255,${(0.35 + rip * 0.3).toFixed(2)})`;
+    g.lineWidth = 2;
+    g.beginPath(); g.ellipse(bobX, bobY + 3, 10 + rip * 4, 4 + rip * 1.5, 0, 0, 7); g.stroke();
+    // bóia: branca em cima, vermelha embaixo + anteninha
+    const tug = f.phase === 'bite' ? Math.sin(this.time * 30) * 2 : 0;
+    g.fillStyle = 'rgba(0,0,10,.25)';
+    g.beginPath(); g.ellipse(bobX, bobY + 5, 5, 2, 0, 0, 7); g.fill();
+    g.fillStyle = '#f2f4ff';
+    g.beginPath(); g.arc(bobX, bobY + tug, 4.5, Math.PI, 0); g.fill();
+    g.fillStyle = '#d63b3b';
+    g.beginPath(); g.arc(bobX, bobY + tug, 4.5, 0, Math.PI); g.fill();
+    g.fillStyle = '#101018';
+    g.fillRect(bobX - 1, bobY - 9 + tug, 2, 5);
+    g.fillStyle = '#ffd75e';
+    g.fillRect(bobX - 1, bobY - 10 + tug, 2, 2);
+    // "!" da mordida + aro de tempo
+    if (f.phase === 'bite') {
+      const k = Math.max(0, f.biteLeft / 0.95);
+      const jx = bobX, jy = bobY - 30 + Math.sin(this.time * 12) * 2;
+      g.font = 'bold 30px monospace'; g.textAlign = 'center';
+      g.strokeStyle = '#000'; g.lineWidth = 5;
+      const scale = 1 + 0.12 * Math.sin(this.time * 14);
+      g.save(); g.translate(jx, jy); g.scale(scale, scale);
+      g.strokeText('!', 0, 0); g.fillStyle = '#ffd75e'; g.fillText('!', 0, 0);
+      g.restore();
+      // anel encolhendo = janela da fisgada
+      g.strokeStyle = `rgba(255,215,94,${(0.4 + 0.6 * k).toFixed(2)})`;
+      g.lineWidth = 3;
+      g.beginPath(); g.arc(bobX, bobY, 8 + (1 - k) * 16, 0, 7); g.stroke();
+      g.textAlign = 'start';
+      g.font = 'bold 15px monospace';
+      g.strokeText('E!', bobX + 12, bobY - 14);
+      g.fillStyle = '#fff'; g.fillText('E!', bobX + 12, bobY - 14);
+    } else if (f.phase === 'wait' || f.phase === 'cast') {
+      g.font = 'bold 13px monospace'; g.textAlign = 'center';
+      g.strokeStyle = '#000'; g.lineWidth = 3;
+      g.strokeText('...aguardando o peixe (Q sai)', bobX, bobY - 18);
+      g.fillStyle = '#cfe0ff'; g.fillText('...aguardando o peixe (Q sai)', bobX, bobY - 18);
+      g.textAlign = 'start';
+    }
+  }
+
+  /** Painel do mini-game: pare o cursor na zona verde (dourado = perfeito). */
+  _drawFishGame(g) {
+    const f = this._fishing;
+    if (!f || (f.phase !== 'reel' && f.phase !== 'caught' && f.phase !== 'miss')) return;
+    const W = 460, H = f.phase === 'reel' ? 104 : 64;
+    const x = (960 - W) / 2, y = 540 - H - 86;
+    // caixa
+    g.fillStyle = 'rgba(6,9,20,.92)';
+    g.strokeStyle = '#cdd6ff'; g.lineWidth = 2;
+    g.beginPath();
+    if (g.roundRect) g.roundRect(x, y, W, H, 10); else g.rect(x, y, W, H);
+    g.fill(); g.stroke();
+    g.fillStyle = 'rgba(27,47,158,.5)';
+    g.fillRect(x + 4, y + 4, W - 8, 20);
+    g.font = 'bold 14px monospace'; g.textAlign = 'center';
+    g.fillStyle = '#ffd75e';
+    const title = f.phase === 'reel' ? '🎣 FISGOU! Trave no VERDE com E!' : f.phase === 'caught' ? '🎣 BOA!' : '🎣 ...';
+    g.fillText(title, 480, y + 18);
+    g.textAlign = 'start';
+    if (f.phase !== 'reel') return;
+    const bx = x + 24, bw = W - 48, by = y + 44, bh = 22;
+    // trilho
+    g.fillStyle = '#05060f';
+    g.fillRect(bx, by, bw, bh);
+    g.strokeStyle = '#ffffff55'; g.lineWidth = 1;
+    g.strokeRect(bx + 0.5, by + 0.5, bw - 1, bh - 1);
+    // zona verde + núcleo dourado perfeito
+    const zx = bx + f.zoneX * bw, zw = f.zoneW * bw;
+    const px = bx + (f.zoneX + f.zoneW / 2 - f.perfectW / 2) * bw, pw = f.perfectW * bw;
+    g.fillStyle = '#1f9d55';
+    g.fillRect(zx, by + 2, zw, bh - 4);
+    g.fillStyle = 'rgba(255,215,94,.95)';
+    g.fillRect(px, by + 2, pw, bh - 4);
+    // marcas de 25/50/75
+    g.fillStyle = 'rgba(255,255,255,.25)';
+    for (const m of [0.25, 0.5, 0.75]) g.fillRect(bx + m * bw, by + 2, 1, bh - 4);
+    // cursor
+    const cx = bx + f.cursor * bw;
+    const blink = 0.7 + 0.3 * Math.sin(this.time * 10);
+    g.fillStyle = `rgba(255,255,255,${blink.toFixed(2)})`;
+    g.fillRect(cx - 2, by - 6, 4, bh + 12);
+    g.fillStyle = '#ff6b6b';
+    g.fillRect(cx - 2, by - 6, 4, 4);
+    g.fillRect(cx - 2, by + bh + 2, 4, 4);
+    // dica
+    g.font = '12px monospace'; g.fillStyle = '#9fb2ff'; g.textAlign = 'center';
+    g.fillText('E = fisgar   ·   Q = soltar   ·   dourado = PERFEITO (+bônus)', 480, by + bh + 16);
+    g.textAlign = 'start';
   }
 
   /** Desenha um baú: fechado com cadeado (e brilho) ou aberto com a tampa erguida. */
@@ -6782,6 +7264,7 @@ class Engine {
       q.x += q.vx * dt; q.y += q.vy * dt; q.t += dt;
       if (q.type === 'snow') q.x += Math.sin(q.t * 3 + q.seed) * 22 * dt;
       if (q.type === 'leaf') q.x += Math.sin(q.t * 2 + q.seed) * 32 * dt;
+      if (q.type === 'splash') q.vy += 420 * dt;
     }
     this._wx = this._wx.filter((q) => q.y < VIEW_H + 20 && q.x > -30 && q.x < VIEW_W + 30 && q.t < q.life);
   }
@@ -6843,6 +7326,19 @@ class Engine {
         const k = Math.min(1, q.t / q.life);
         g.fillStyle = `rgba(210,200,180,${(0.4 * (1 - k)).toFixed(2)})`;
         g.beginPath(); g.arc(q.x, q.y, 2 + k * 5, 0, 7); g.fill();
+      } else if (q.type === 'splash') {
+        const k = Math.min(1, q.t / q.life);
+        g.fillStyle = `rgba(190,225,255,${(0.9 * (1 - k)).toFixed(2)})`;
+        g.fillRect(q.x, q.y, 2.5, 2.5);
+        g.fillStyle = `rgba(255,255,255,${(0.7 * (1 - k)).toFixed(2)})`;
+        g.fillRect(q.x - 1, q.y - 2, 1.5, 1.5);
+      } else if (q.type === 'ripple') {
+        if (q.t < 0) { /* atraso escalonado */ } else {
+          const k = Math.min(1, q.t / q.life);
+          g.strokeStyle = `rgba(190,230,255,${(0.65 * (1 - k)).toFixed(2)})`;
+          g.lineWidth = 2;
+          g.beginPath(); g.ellipse(q.x, q.y + 3, 4 + k * 16, 2 + k * 6, 0, 0, 7); g.stroke();
+        }
       } else {
         g.fillStyle = q.col || '#7dd87d';
         g.fillRect(q.x, q.y, 3, 2);
@@ -6865,24 +7361,63 @@ class Engine {
   _drawTitleBg() {
     const g = this.g;
     const grad = g.createLinearGradient(0, 0, 0, VIEW_H);
-    grad.addColorStop(0, '#060913'); grad.addColorStop(1, '#131c5e');
+    grad.addColorStop(0, '#04060f'); grad.addColorStop(0.55, '#101c5c'); grad.addColorStop(0.78, '#1d3a6e'); grad.addColorStop(1, '#0a1a2e');
     g.fillStyle = grad;
     g.fillRect(0, 0, VIEW_W, VIEW_H);
-    // estrelas + grama decorativa
+    // lua + halo
+    const mx = 800, my = 110;
+    const halo = g.createRadialGradient(mx, my, 4, mx, my, 90);
+    halo.addColorStop(0, 'rgba(240,246,255,.9)'); halo.addColorStop(0.25, 'rgba(200,220,255,.35)'); halo.addColorStop(1, 'transparent');
+    g.fillStyle = halo;
+    g.fillRect(mx - 90, my - 90, 180, 180);
+    g.fillStyle = '#f2f6ff';
+    g.beginPath(); g.arc(mx, my, 22, 0, 7); g.fill();
+    g.fillStyle = '#c9d4ea';
+    g.beginPath(); g.arc(mx - 7, my - 4, 5, 0, 7); g.fill();
+    g.beginPath(); g.arc(mx + 6, my + 7, 3.5, 0, 7); g.fill();
+    // estrelas cintilantes
     g.fillStyle = '#fff';
-    for (let i = 0; i < 60; i++) {
+    for (let i = 0; i < 70; i++) {
       const x = (i * 173 + this.time * 8) % VIEW_W;
       const y = (i * 97) % 300;
-      g.globalAlpha = 0.4 + 0.6 * Math.abs(Math.sin(this.time + i));
-      g.fillRect(x, y, 2, 2);
+      g.globalAlpha = 0.35 + 0.6 * Math.abs(Math.sin(this.time * 1.4 + i * 1.7));
+      const s = i % 9 === 0 ? 3 : 2;
+      g.fillRect(x, y, s, s);
     }
     g.globalAlpha = 1;
+    // montanhas em 2 camadas + lago espelhando a lua
+    g.fillStyle = '#131f3d';
+    g.beginPath(); g.moveTo(0, 400);
+    for (let x = 0; x <= VIEW_W; x += 80) g.lineTo(x, 330 + 40 * Math.abs(Math.sin(x * 0.01 + 2)));
+    g.lineTo(VIEW_W, 400); g.closePath(); g.fill();
+    g.fillStyle = '#1d3a4e';
+    g.beginPath(); g.moveTo(0, 420);
+    for (let x = 0; x <= VIEW_W; x += 60) g.lineTo(x, 360 + 30 * Math.abs(Math.sin(x * 0.013)));
+    g.lineTo(VIEW_W, 420); g.closePath(); g.fill();
+    // neve nos picos
+    g.fillStyle = 'rgba(230,240,255,.8)';
+    for (let x = 40; x < VIEW_W; x += 160) g.fillRect(x, 344 + 8 * Math.sin(x), 14, 5);
+    g.fillStyle = '#14324a';
+    g.fillRect(0, 420, VIEW_W, 40);
+    // reflexo da lua na água
+    g.fillStyle = `rgba(200,225,255,${(0.25 + 0.1 * Math.sin(this.time * 2)).toFixed(2)})`;
+    for (let i = 0; i < 8; i++) {
+      const w = 60 - i * 6;
+      g.fillRect(mx - w / 2 + Math.sin(this.time * 2 + i) * 4, 428 + i * 8, w, 3);
+    }
     g.fillStyle = '#1d3a24';
-    g.fillRect(0, 400, VIEW_W, 140);
+    g.fillRect(0, 492, VIEW_W, 48);
     g.fillStyle = '#2c5a34';
     for (let x = 0; x < VIEW_W; x += 24) {
-      const h = 12 + 8 * Math.abs(Math.sin(x + this.time));
-      g.fillRect(x, 400 - h, 14, h + 140);
+      const h = 12 + 8 * Math.abs(Math.sin(x * 0.05 + this.time));
+      g.fillRect(x, 492 - h, 14, h + 48);
+    }
+    // vagalumes sobre a grama do título
+    for (let i = 0; i < 14; i++) {
+      const fx = (i * 137 + Math.sin(this.time * 0.7 + i) * 30 + 960) % 960;
+      const fy = 430 + ((i * 53) % 80);
+      g.fillStyle = `rgba(255,240,150,${(0.3 + 0.5 * Math.abs(Math.sin(this.time * 2 + i * 2))).toFixed(2)})`;
+      g.fillRect(fx, fy, 2, 2);
     }
   }
 }

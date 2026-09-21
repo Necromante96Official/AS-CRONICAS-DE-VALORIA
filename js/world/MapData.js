@@ -24,6 +24,8 @@ export const CHESTS = [
 ];
 /** Meta da quest de caça do Guarda Cato (slimes derrotados). */
 export const HUNT_GOAL = 6;
+/** Sentinela opcional do deserto: Golem Ancião (mini-chefe). */
+export const ELITE = { x: 60, y: 20, name: 'GOLEM ANCIÃO' };
 
 /** @returns {{tiles: Uint8Array, w: number, h: number}} */
 export function buildMap() {
@@ -192,6 +194,9 @@ export function buildMap() {
   set(53, 11, T.DARK_GRASS);
   set(52, 11, T.DARK_GRASS); set(53, 10, T.DARK_GRASS); set(53, 12, T.DARK_GRASS);
   set(74, 38, T.SAND);
+  // ---- Clareira do Golem Ancião (deserto): sentinela + arredores pisáveis ----
+  set(60, 20, T.SAND);
+  set(59, 20, T.SAND); set(61, 20, T.SAND); set(60, 19, T.SAND); set(60, 21, T.SAND);
 
   // ---- Altar do Caos (norte das ruínas) ----
   rect(51, 3, 57, 8, T.FLOOR);
@@ -274,6 +279,18 @@ export const NPC_DEFS = [
     lines: [
       'Bom dia! Aqui na Praia do Sol a água é calma e o peixe morde fácil.',
       'Dizem que PÉROLAS aparecem na linha de quem pesca na praia... Tente a sorte encarando a água!',
+    ],
+  },
+  {
+    id: 'nomad', x: 66, y: 37, name: 'Nômade Zara', kind: 'nomad', wander: false, shop: true,
+    lines: ['O deserto me dá de tudo! Pena de Fênix fresquinha, quem vai querer?'],
+  },
+  {
+    id: 'hunter', x: 30, y: 2, name: 'Caçadora Liv', kind: 'hunter', wander: false,
+    gift: 'antidote',
+    lines: [
+      'Frio bom p/ caçar! Fagulhas rondam a neve — chegue perto e seja rápido.',
+      'Se for ao pântano, cuidado com os Cogumelos: eles se curam com esporos!',
     ],
   },
 ];

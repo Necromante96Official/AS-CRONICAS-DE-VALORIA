@@ -13,12 +13,13 @@
 #hud-party { display: flex; gap: 6px; flex-wrap: wrap; }
 .hud-card {
   display: flex; gap: 7px; align-items: center;
-  background: #0a1030e6;
+  background: linear-gradient(180deg, #16236bee, #0a1030e6);
   border: 1px solid #ffffff55;
-  border-radius: 7px;
+  border-left: 3px solid var(--ff-yellow);
+  border-radius: 8px;
   padding: 4px 8px 4px 4px;
   min-width: 168px;
-  box-shadow: 0 2px 8px #000a;
+  box-shadow: 0 3px 10px #000b, inset 0 1px 0 #ffffff22;
 }
 .hud-face {
   width: 32px; height: 32px;
@@ -55,26 +56,34 @@
 #hud-gold { color: var(--ff-yellow); }
 #minimap {
   width: 104px; height: 78px;
-  border: 1px solid #ffffff44;
-  border-radius: 6px;
+  border: 2px solid #4fc3ff66;
+  border-radius: 8px;
   background: #000;
   image-rendering: pixelated;
   align-self: flex-end;
-  box-shadow: 0 2px 8px #000a;
+  box-shadow: 0 2px 10px #000c, 0 0 12px #4fc3ff33;
 }
 
 /* banner de região (estilo FF ao entrar num local novo) */
 #region-banner {
-  position: absolute; top: 16%; left: 0; right: 0;
+  position: absolute; top: 15%; left: 0; right: 0;
   z-index: 25;
   text-align: center;
   font-size: clamp(22px, 4.2vw, 40px);
   font-weight: bold;
   letter-spacing: 8px;
   color: var(--ff-yellow);
-  text-shadow: 0 0 18px #ffd75e88, 2px 2px 0 #000, -1px -1px 0 #000;
+  text-shadow: 0 0 22px #ffd75e99, 0 0 46px #4fc3ff55, 2px 2px 0 #000, -1px -1px 0 #000;
   pointer-events: none;
   animation: banner-in 2.4s ease-out forwards;
+}
+#region-banner::before, #region-banner::after {
+  content: '✦ ─── ✦';
+  display: block;
+  font-size: 12px;
+  letter-spacing: 6px;
+  color: #ffffffaa;
+  text-shadow: 1px 1px 0 #000;
 }
 #region-banner small {
   display: block;
@@ -104,9 +113,10 @@
 #dialog-face {
   width: 52px; height: 52px; flex: none;
   border: 2px solid var(--ff-yellow);
-  border-radius: 8px;
-  background: #0009;
+  border-radius: 10px;
+  background: linear-gradient(160deg, #1b2f9e, #000);
   image-rendering: pixelated;
+  box-shadow: 0 0 12px #ffd75e44, 0 3px 8px #000a;
 }
 #dialog-main { flex: 1; min-width: 0; overflow-y: auto; }
 #dialog-name {
@@ -171,8 +181,8 @@
   padding-top: 6px;
 }
 #menu-list { overflow-y: auto; max-height: 38vh; }
-#menu-list .opt { padding: 6px 8px; border-radius: 4px; border-left: 2px solid transparent; }
-#menu-list .opt.sel { background: #ffffff10; border-left-color: var(--ff-yellow); }
+#menu-list .opt { padding: 6px 8px; border-radius: 6px; border-left: 2px solid transparent; transition: background .12s, transform .12s; }
+#menu-list .opt.sel { background: linear-gradient(90deg, #ffffff1e, #ffffff08); border-left-color: var(--ff-yellow); transform: translateX(2px); }
 #menu-list .opt.sel::before { content: '▶ '; color: var(--ff-yellow); }
 #menu-list .list-head {
   color: var(--ff-yellow);
@@ -217,17 +227,29 @@
   font-size: clamp(30px, 7vw, 64px);
   letter-spacing: 6px;
   color: var(--ff-yellow);
-  text-shadow: 0 0 24px #ffd75e88, 3px 3px 0 #5a3c00, 6px 6px 0 #000;
+  background: linear-gradient(180deg, #fff3c4 8%, #ffd75e 38%, #c98d2e 62%, #ffd75e 85%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 0 22px #ffd75e66) drop-shadow(3px 3px 0 #000);
   line-height: 1.1;
+  animation: title-shine 4s ease-in-out infinite;
 }
+@keyframes title-shine { 50% { filter: drop-shadow(0 0 34px #ffd75eaa) drop-shadow(3px 3px 0 #000); } }
 #title .subtitle { opacity: .85; font-size: clamp(11px, 2vw, 15px); letter-spacing: 2px; }
 #title .version { opacity: .5; font-size: 11px; letter-spacing: 1px; }
 .title-crystal {
   width: 54px; height: 54px;
-  background: linear-gradient(135deg, #bff3ff, #4fc3ff 40%, #1b2f9e 75%, #bff3ff);
+  background: linear-gradient(135deg, #e8fbff, #4fc3ff 35%, #1b2f9e 70%, #bff3ff);
   clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
   animation: float 2.4s ease-in-out infinite;
-  filter: drop-shadow(0 0 18px #4fc3ff);
+  filter: drop-shadow(0 0 18px #4fc3ff) drop-shadow(0 0 42px #4fc3ff66);
+  position: relative;
+}
+.title-crystal::after {
+  content: ''; position: absolute; inset: 18% 42%;
+  background: linear-gradient(#ffffffee, transparent);
+  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
 }
 @keyframes float { 50% { transform: translateY(-10px) rotate(8deg); } }
 #title-list { min-width: min(78%, 320px); }

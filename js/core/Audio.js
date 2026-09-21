@@ -100,6 +100,11 @@ export class AudioMan {
       case 'step': T(190 + Math.random() * 40, 0.04, 'triangle', 0.025); break;
       case 'bump': T(120, 0.07, 'square', 0.04); break;
       case 'flee-fail': T(300, 0.15, 'square', 0.08); T(250, 0.2, 'square', 0.08, 0.12); break;
+      case 'splash': T(900, 0.08, 'sine', 0.08); T(500, 0.12, 'sine', 0.07, 0.05); T(300, 0.14, 'triangle', 0.06, 0.1); break;
+      case 'bite': T(1200, 0.07, 'square', 0.09); T(1500, 0.07, 'square', 0.09, 0.08); T(1800, 0.12, 'square', 0.09, 0.16); break;
+      case 'reel': T(400, 0.06, 'sawtooth', 0.06); T(600, 0.06, 'sawtooth', 0.06, 0.07); T(800, 0.08, 'sawtooth', 0.06, 0.14); break;
+      case 'catch': [659, 784, 880, 1047, 1319].forEach((f, i) => T(f, 0.12, 'square', 0.08, i * 0.08)); break;
+      case 'plop': T(250, 0.09, 'sine', 0.09); T(180, 0.12, 'sine', 0.07, 0.07); break;
     }
   }
 }

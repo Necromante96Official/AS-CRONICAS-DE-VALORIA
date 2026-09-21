@@ -66,18 +66,19 @@
   font-size: clamp(11px, 1.8vw, 14px);
   margin-bottom: 2px;
 }
-#boss-bar .bbar.hp.big { height: 8px; border: 1px solid #ffffff66; border-radius: 4px; background: #000a; overflow: hidden; }
-#boss-bar .bbar.hp.big > div { background: linear-gradient(90deg, #ff6b6b, #a00); transition: width .3s; }
+#boss-bar .bbar.hp.big { height: 9px; border: 1px solid #ffffff77; border-radius: 6px; background: #000c; overflow: hidden; box-shadow: 0 0 14px #ff6b6b55, 0 2px 8px #000a; }
+#boss-bar .bbar.hp.big > div { background: linear-gradient(90deg, #ffb36b, #ff6b6b 45%, #a00); transition: width .3s; }
 /* chips compactos: foto + barra */
 #battle-foes .bfoe, #battle-party .bchar {
   display: flex; gap: 6px; align-items: center;
-  background: #060913d9;
+  background: linear-gradient(180deg, #101a44e6, #060913e6);
   border: 1px solid #ffffff2e;
-  border-radius: 7px;
+  border-radius: 8px;
   padding: 3px 8px 3px 3px;
   font-size: clamp(10px, 1.7vw, 13px);
   line-height: 1.35;
-  transition: border-color .15s, background .15s;
+  box-shadow: 0 3px 10px #000a, inset 0 1px 0 #ffffff22;
+  transition: border-color .15s, background .15s, transform .12s;
 }
 #battle-foes .bfoe { flex-direction: row; }
 #battle-party .bchar { flex-direction: row-reverse; text-align: right; }
@@ -109,8 +110,8 @@
 #battle-menu { overflow-x: auto; overflow-y: hidden; }
 #battle-cmds { display: flex; align-items: center; gap: 3px; }
 #battle-cmds .cmd-title { color: var(--ff-yellow); font-weight: bold; letter-spacing: 1px; font-size: .85em; flex: none; margin-right: 2px; }
-#battle-cmds .opt { padding: 4px 9px; border-radius: 14px; font-size: clamp(11px, 1.8vw, 15px); border: 1px solid transparent; transition: background .12s; white-space: nowrap; flex: none; }
-#battle-cmds .opt.sel { background: #ffffff16; color: var(--ff-yellow); border-color: #ffd75e66; }
+#battle-cmds .opt { padding: 4px 10px; border-radius: 14px; font-size: clamp(11px, 1.8vw, 15px); border: 1px solid transparent; transition: background .12s, transform .1s; white-space: nowrap; flex: none; }
+#battle-cmds .opt.sel { background: linear-gradient(180deg, #ffffff26, #ffffff10); color: var(--ff-yellow); border-color: #ffd75e88; box-shadow: 0 0 10px #ffd75e44; transform: translateY(-1px); }
 #battle-cmds .opt.nomp { opacity: .4; }
 #battle-party .bchar.dead { opacity: .45; }
 #battle-cmds .opt .cost { color: var(--ff-mp); font-size: .8em; margin-left: 6px; }

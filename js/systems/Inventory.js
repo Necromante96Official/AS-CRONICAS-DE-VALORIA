@@ -8,12 +8,13 @@ export const ITEMS = {
   ether:     { name: 'Éter',       price: 120, mp: 20,    desc: 'Restaura 20 MP de um aliado', battle: true },
   antidote:  { name: 'Bomba Fumaça', price: 40, flee: true, desc: 'Garante fuga da batalha', battle: true },
   fish:      { name: 'Peixe Fresco', price: 12, heal: 35, desc: 'Pescado! Restaura 35 HP de um aliado', battle: true },
+  phoenix:   { name: 'Pena de Fênix', price: 200, revive: 0.5, desc: 'Revive um aliado caído com 50% do HP', battle: true },
 };
 
 /** @returns {Record<string, number>} */
-export const newInventory = () => ({ potion: 3, hipotion: 0, ether: 1, antidote: 0 });
+export const newInventory = () => ({ potion: 3, hipotion: 0, ether: 1, antidote: 0, phoenix: 0 });
 
-export const SHOP_STOCK = ['potion', 'hipotion', 'ether', 'antidote'];
+export const SHOP_STOCK = ['potion', 'hipotion', 'ether', 'antidote', 'phoenix'];
 
 /**
  * Usa um item num alvo.
@@ -25,6 +26,13 @@ export const SHOP_STOCK = ['potion', 'hipotion', 'ether', 'antidote'];
 export function useItem(inv, id, target) {
   if ((inv[id] || 0) <= 0) return { ok: false, msg: 'Você não tem esse item!' };
   const it = ITEMS[id];
+  if (it.revive) {
+    if (target.hp > 0) return { ok: false, msg: `${target.name} ainda está de pé!` };
+    inv[id]--;
+    const v = Math.ceil(target.maxHp * it.revive);
+    target.hp = v;
+    return { ok: true, msg: `${target.name} renasceu com ${v} HP!` };
+  }
   if (it.heal && target.hp >= target.maxHp) return { ok: false, msg: `${target.name} já está com HP cheio!` };
   if (it.heal && target.hp <= 0) return { ok: false, msg: `${target.name} está caído!` };
   if (it.mp && target.mp >= target.maxMp) return { ok: false, msg: `${target.name} já está com MP cheio!` };

@@ -33,6 +33,8 @@ const NPC_PALETTES = {
   guard:    { skin: '#e8b88a', hair: '#222222', tunic: '#8c8c9c', pants: '#3a3a4a' },
   hermit:   { skin: '#c89878', hair: '#eeeeee', tunic: '#5e4a7a', pants: '#2a2a3a' },
   fisher:   { skin: '#d89a6a', hair: '#3a2a1a', tunic: '#2e7d8c', pants: '#4a3a2a' },
+  nomad:    { skin: '#c89878', hair: '#1e1e1e', tunic: '#c2691e', pants: '#5e3a17' },
+  hunter:   { skin: '#e8b88a', hair: '#e8e8e8', tunic: '#3f6b4a', pants: '#2a2a3a' },
 };
 
 const HERO_PALETTES = {
@@ -92,6 +94,8 @@ export class Engine {
       'Guarda Cato': humanoidFace(this.npcArt.guard),
       'Eremita Sable': humanoidFace(this.npcArt.hermit),
       'Pescador Kai': humanoidFace(this.npcArt.fisher),
+      'Nômade Zara': humanoidFace(this.npcArt.nomad),
+      'Caçadora Liv': humanoidFace(this.npcArt.hunter),
       'DRAGÃO DO CAOS': dragonFace(this.dragonArt),
     };
     this.dialog.portraitProvider = (name) => this.faceCanvas[name] || null;
@@ -294,15 +298,20 @@ export class Engine {
       return;
     }
 
-    if (inp.pressed.menu || inp.pressed.cancel) {
+    // pescaria ativa: E fisga / confirma, Q/Esc cancela (prioridade sobre menu)
+    if (this._fishing) {
+      if (inp.pressed.menu || inp.pressed.cancel) { this._cancelFish(); return; }
+      if (inp.pressed.confirm) { this._fishPress(); return; }
+      // movimento cancelado: tick da pescaria roda mais abaixo junto do mundo parado
+    } else if (inp.pressed.menu || inp.pressed.cancel) {
       this.audio.unlock(); this.audio.sfx('confirm');
       this._path = null; this._tapAct = null;
-      this.menu.show({ party: this.party, inv: this.inv, gold: this.gold, time: this._fmtTime() }, (m) => toast(m), this._menuActions());
+      this.menu.show({ party: this.party, inv: this.inv, gold: this.gold, time: this._fmtTime(), flags: this.flags }, (m) => toast(m), this._menuActions());
       return;
     }
 
     // falar / altar do boss / cristal / brinquedo / baú / pesca
-    if (inp.pressed.confirm) {
+    if (!this._fishing && inp.pressed.confirm) {
       this._path = null; this._tapAct = null;
       if (this._tryBossInteract()) return;
       if (this._tryHealCrystal()) return;
@@ -321,6 +330,15 @@ export class Engine {
     // baús são sólidos (abertos ou não)
     for (const c of CHESTS) blockers.push({ x: c.x * TILE, y: c.y * TILE });
     if (this._fishCd > 0) this._fishCd -= dt;
+    // pescaria congela o movimento: só o tick da vara/bóia avança
+    if (this._fishing) {
+      for (const n of this.npcs) n.update(dt, this.map);
+      this.camera.follow(this.player.cx, this.player.cy, dt);
+      this.camera.update(dt);
+      this._wxTick(dt, regionAt(this.player.tileX, this.player.tileY));
+      this._tickFish(dt);
+      return;
+    }
     // toque-para-andar: input manual cancela a rota; sem input, a rota guia
     let ax = inp.axis;
     if (ax.x !== 0 || ax.y !== 0) { this._path = null; this._tapAct = null; }
@@ -522,7 +540,7 @@ export class Engine {
       this._tryChest();
     } else if (act.kind === 'fish') {
       this._faceToward(act.tx * TILE + 16, act.ty * TILE + 16);
-      this._tryFish();
+      this._tryFish(act.tx, act.ty);
     } else if (act.kind === 'spot') {
       if (act.which === 'boss') this._tryBossInteract();
       else if (act.which === 'crystal') this._tryHealCrystal();
@@ -676,35 +694,197 @@ export class Engine {
     return true;
   }
 
-  /** Pesca: E encarando a água. Na praia, chance maior de pérola. */
-  _tryFish() {
-    if (this._fishCd > 0) return false;
-    const ft = this.player.facingTile();
-    if (this.map.tile(ft.x, ft.y) !== T.WATER) return false;
-    this._fishCd = 1.5;
+  // ---------- pescaria com vara + mini-game ----------
+  /** Inicia a pescaria: E encarando a água (ou tocando a água). Retorna true se lançou a linha. */
+  _tryFish(forceTX, forceTY) {
+    if (this._fishing || this._fishCd > 0) return false;
+    let tx, ty;
+    if (forceTX !== undefined && forceTY !== undefined) {
+      tx = forceTX; ty = forceTY;
+      if (this.map.tile(tx, ty) !== T.WATER) return false;
+      this._faceToward(tx * TILE + 16, ty * TILE + 16);
+    } else {
+      const ft = this.player.facingTile();
+      tx = ft.x; ty = ft.y;
+      if (this.map.tile(tx, ty) !== T.WATER) return false;
+    }
+    this._path = null; this._tapAct = null;
+    this._fishing = {
+      phase: 'cast', t: 0,
+      tx, ty,
+      bobWX: tx * TILE + 16, bobWY: ty * TILE + 16,
+      fromX: this.player.cx, fromY: this.player.cy,
+      biteAt: 1.7 + Math.random() * 2.6,
+      biteLeft: 0, nibbleT: 0.4 + Math.random() * 1.2,
+      cursor: 0, cdir: 1, zoneX: 0.25 + Math.random() * 0.5, zoneW: 0.22, perfectW: 0.07,
+      reelT: 0, splashT: 0,
+    };
+    this.audio.sfx('reel');
+    return true;
+  }
+
+  /** E durante a pescaria: fisga na hora do "!" ou trava o cursor no mini-game. */
+  _fishPress() {
+    const f = this._fishing;
+    if (!f) return;
+    if (f.phase === 'bite') {
+      // fisgou! abre o mini-game da fisgada
+      f.phase = 'reel'; f.t = 0; f.reelT = 0;
+      f.cursor = Math.random();
+      f.cdir = Math.random() < 0.5 ? -1 : 1;
+      // zona alvo: praia = zona um pouco maior (pesca mais fácil)
+      const beach = regionAt(this.player.tileX, this.player.tileY) === 'beach';
+      f.zoneW = beach ? 0.24 : 0.19;
+      f.perfectW = 0.07;
+      f.zoneX = 0.08 + Math.random() * (0.84 - f.zoneW);
+      this.audio.sfx('bite');
+      this._fishSplash(f.bobWX, f.bobWY, 6);
+    } else if (f.phase === 'reel') {
+      this._fishStrike();
+    } else if (f.phase === 'caught' || f.phase === 'miss') {
+      this._endFish();
+    }
+    // cast/wait: E não faz nada (espera o peixe morder)
+  }
+
+  /** Cancela a pescaria (Q/Esc). */
+  _cancelFish() {
+    if (!this._fishing) return;
+    this._fishing = null;
+    this._fishCd = 0.5;
+    this.audio.sfx('cancel');
+    toast('🎣 Linha recolhida...');
+  }
+
+  /** Tick da pescaria (mundo parado, só vara/bóia/peixe vivem). */
+  _tickFish(dt) {
+    const f = this._fishing;
+    if (!f) return;
+    f.t += dt;
+    if (f.phase === 'cast') {
+      if (f.t >= 0.45) {
+        f.phase = 'wait'; f.t = 0;
+        this.audio.sfx('splash');
+        this._fishSplash(f.bobWX, f.bobWY, 5);
+      }
+    } else if (f.phase === 'wait') {
+      // mordidinhas falsas (só visual + plop baixo) antes da mordida real
+      f.nibbleT -= dt;
+      if (f.nibbleT <= 0 && f.t < f.biteAt - 0.6) {
+        f.nibbleT = 0.7 + Math.random() * 1.4;
+        this.audio.sfx('plop');
+        this._fishRipple(f.bobWX, f.bobWY, 1);
+      }
+      if (f.t >= f.biteAt) {
+        f.phase = 'bite'; f.t = 0; f.biteLeft = 0.95;
+        this.audio.sfx('bite');
+        this._fishSplash(f.bobWX, f.bobWY, 8);
+      }
+    } else if (f.phase === 'bite') {
+      f.biteLeft -= dt;
+      if (f.biteLeft <= 0) this._fishMiss('O peixe escapou... (fisgue no “!” com E)');
+    } else if (f.phase === 'reel') {
+      f.reelT += dt;
+      // cursor ping-pong cada vez mais rápido
+      const speed = 1.15 + Math.min(1.1, f.reelT * 0.18);
+      f.cursor += f.cdir * speed * dt;
+      if (f.cursor >= 1) { f.cursor = 1; f.cdir = -1; }
+      if (f.cursor <= 0) { f.cursor = 0; f.cdir = 1; }
+      if (f.reelT > 8) this._fishMiss('A linha arrebentou por demora...');
+    } else if (f.phase === 'caught' || f.phase === 'miss') {
+      if (f.t > (f.phase === 'caught' ? 1.5 : 1.1)) this._endFish();
+    }
+  }
+
+  /** Resolve a tentativa do mini-game (cursor dentro da zona = pega). */
+  _fishStrike() {
+    const f = this._fishing;
+    if (!f || f.phase !== 'reel') return;
+    const c = f.cursor;
+    const z0 = f.zoneX, z1 = f.zoneX + f.zoneW;
+    const p0 = f.zoneX + f.zoneW / 2 - f.perfectW / 2, p1 = p0 + f.perfectW;
+    if (c >= z0 && c <= z1) {
+      const perfect = c >= p0 && c <= p1;
+      this._fishReward(perfect);
+    } else {
+      this._fishMiss('Errou a zona verde... o peixe fugiu!');
+    }
+  }
+
+  /** Recompensa da pescaria (praia = mais pérola). */
+  _fishReward(perfect) {
+    const f = this._fishing;
     const beach = regionAt(this.player.tileX, this.player.tileY) === 'beach';
     const r = Math.random();
-    if (r < 0.5) {
+    f.phase = 'caught'; f.t = 0;
+    this._fishSplash(f.bobWX, f.bobWY, 10);
+    if (perfect && r < 0.45) {
+      this.inv.fish = (this.inv.fish || 0) + 2;
+      this.audio.sfx('catch');
+      toast('🐟🐟 FISGADA PERFEITA! +2 Peixes Frescos!');
+    } else if (r < 0.52) {
       this.inv.fish = (this.inv.fish || 0) + 1;
-      this.audio.sfx('item');
+      this.audio.sfx('catch');
       toast('🐟 Peixe Fresco pescado! (+1)');
     } else if (r < 0.66) {
       this.gold += 4;
-      this.audio.sfx('bump');
+      this.audio.sfx('plop');
       toast('🥾 Uma Bota Velha... (+4G de sucata)');
-    } else if (r < (beach ? 0.8 : 0.86)) {
-      this.audio.sfx('bump');
-      toast('...só algas. Tente de novo!');
+    } else if (r < (beach ? 0.78 : 0.86)) {
+      this.audio.sfx('plop');
+      toast('...só algas. Pelo menos a técnica foi boa!');
     } else {
-      const v = beach ? 60 : 40;
+      const v = (beach ? 60 : 40) + (perfect ? 20 : 0);
       this.gold += v;
       this.audio.sfx('levelup');
-      this.dialog.say([
-        { name: '', text: `(Algo brilha na ponta da linha... uma PÉROLA!)` },
-      ]);
+      this.dialog.say([{ name: '', text: `(Algo brilha na ponta da linha... uma PÉROLA!)` }]);
       toast(`🪙 Pérola vendida! (+${v}G)`);
     }
+  }
+
+  _fishMiss(msg) {
+    const f = this._fishing;
+    if (!f) return;
+    f.phase = 'miss'; f.t = 0; f.missMsg = msg;
+    this.audio.sfx('cancel');
+    toast(`🎣 ${msg}`);
+  }
+
+  _endFish() {
+    this._fishing = null;
+    this._fishCd = 1.2;
+  }
+
+  /** Atalho de teste: conclui a pescaria atual com sucesso imediato. @returns {boolean} */
+  _debugCatchFish() {
+    if (!this._fishing) return false;
+    this._fishReward(false);
+    this._endFish();
     return true;
+  }
+
+  _fishSplash(wx, wy, n) {
+    for (let i = 0; i < n && this._wx.length < 120; i++) {
+      const a = Math.random() * Math.PI * 2, sp = 30 + Math.random() * 90;
+      this._wx.push({
+        type: 'splash',
+        x: wx + this.camera.ox + (Math.random() - 0.5) * 8,
+        y: wy + this.camera.oy + (Math.random() - 0.5) * 6,
+        vx: Math.cos(a) * sp, vy: -40 - Math.random() * 90,
+        t: 0, life: 0.5 + Math.random() * 0.3, seed: Math.random() * 9,
+      });
+    }
+    this._fishRipple(wx, wy, 2);
+  }
+
+  _fishRipple(wx, wy, n) {
+    for (let i = 0; i < n && this._wx.length < 120; i++) {
+      this._wx.push({
+        type: 'ripple',
+        x: wx + this.camera.ox, y: wy + this.camera.oy,
+        vx: 0, vy: 0, t: -i * 0.18, life: 1.1, seed: Math.random() * 9,
+      });
+    }
   }
 
   /** Cristal restaurador: E por perto = cura total. */
@@ -983,6 +1163,13 @@ export class Engine {
     // baús do tesouro (fechado brilha; aberto mostra a tampa erguida)
     for (const c of CHESTS) this._drawChest(g, ox, oy, c);
 
+    // sombras suaves sob os atores (profundidade barata estilo 16-bit)
+    const shadow = (sx, sy, w) => {
+      g.fillStyle = 'rgba(0,0,10,.28)';
+      g.beginPath(); g.ellipse(sx, sy, w, w * 0.32, 0, 0, 7); g.fill();
+    };
+    for (const n of this.npcs) shadow(n.x + ox + 16, n.y + oy + 36, n.id === 'kid' ? 9 : 12);
+    shadow(p.x + ox + 12, p.y + oy + 26, 12);
     // entidades ordenadas por Y (Pip é criança: desenhado menor)
     /** @type {{y:number, draw:()=>void}[]} */
     const ents = [];
@@ -992,10 +1179,27 @@ export class Engine {
     }
     ents.push({ y: p.y, draw: () => this._drawActor(p.x + ox - 4, p.y + oy - 12, this.heroArt, p.dir, p.moving ? p.animT : 0, 1) });
     ents.sort((a, b) => a.y - b.y).forEach((e) => e.draw());
+    // vara de pescar por cima do jogador + linha e bóia
+    if (this._fishing) this._drawFishing(g, ox, oy);
     // copas por cima de quem está atrás das árvores
     this.map.drawCanopy(g, ox, oy, this.time);
     // clima/ambiente do bioma (chuva, neve, brasas, folhas, gaivotas...)
     this._drawWeather(g);
+    // luz ambiente: halo quente ao redor do jogador + vinheta viva
+    {
+      const lx = p.cx + ox, ly = p.cy + oy - 6;
+      const halo = g.createRadialGradient(lx, ly, 8, lx, ly, 150);
+      halo.addColorStop(0, 'rgba(255,230,160,.10)');
+      halo.addColorStop(0.5, 'rgba(255,230,160,.04)');
+      halo.addColorStop(1, 'transparent');
+      g.fillStyle = halo;
+      g.fillRect(lx - 150, ly - 150, 300, 300);
+      const vg = g.createRadialGradient(480, 270, 240, 480, 270, 620);
+      vg.addColorStop(0, 'transparent');
+      vg.addColorStop(1, `rgba(2,3,12,${(0.30 + 0.04 * Math.sin(this.time * 0.8)).toFixed(2)})`);
+      g.fillStyle = vg;
+      g.fillRect(0, 0, 960, 540);
+    }
     // marca do toque (para onde o jogador está indo)
     if (this._tapMark && this.time - this._tapMark.t < 0.6) {
       const k = (this.time - this._tapMark.t) / 0.6;
@@ -1040,6 +1244,157 @@ export class Engine {
       g.strokeText('▼ E', bx - 8, by);
       g.fillText('▼ E', bx - 8, by);
     }
+    // dica de pesca: "🎣 E" pulsante sobre a água encarada (só fora da pescaria)
+    if (!this._fishing && !npc && !chest && this.state === 'FIELD' && !this.dialog.active && !this.menu.active) {
+      const ft = this.player.facingTile();
+      if (this.map.tile(ft.x, ft.y) === T.WATER) {
+        const fx = ft.x * TILE + ox + 16, fy = ft.y * TILE + oy - 6 + Math.sin(this.time * 5) * 2;
+        g.font = 'bold 19px monospace'; g.textAlign = 'center';
+        g.strokeStyle = '#000'; g.lineWidth = 4;
+        g.strokeText('🎣 E', fx, fy);
+        g.fillStyle = '#7fd4ff';
+        g.fillText('🎣 E', fx, fy);
+        g.textAlign = 'start';
+        // ondinhas convidativas no tile da água
+        g.strokeStyle = `rgba(180,230,255,${(0.45 + 0.25 * Math.sin(this.time * 4)).toFixed(2)})`;
+        g.lineWidth = 2;
+        g.beginPath(); g.ellipse(fx, fy + 12, 12, 4, 0, 0, 7); g.stroke();
+      }
+    }
+    // painel do mini-game de pesca (por cima de tudo no mundo)
+    if (this._fishing) this._drawFishGame(g);
+  }
+
+  /** Desenha vara na mão do jogador + linha até a bóia + bóia e mordida. */
+  _drawFishing(g, ox, oy) {
+    const f = this._fishing;
+    if (!f) return;
+    const p = this.player;
+    const px = p.x + ox + 12, py = p.y + oy + 2; // mãos
+    // ponta da vara conforme a direção (vara erguida p/ o lado da água)
+    const aim = { x: f.bobWX + ox, y: f.bobWY + oy };
+    const dx = aim.x - px, dy = aim.y - py;
+    const len = Math.max(1, Math.hypot(dx, dy));
+    const nx = dx / len, ny = dy / len;
+    // base da vara na mão, ponta 46px em direção à água + leve arco p/ cima
+    const bx = px, by = py - 6;
+    const tx = bx + nx * 46, ty = by + ny * 30 - 14;
+    // sombra da linha de voo durante o arremesso
+    const castK = f.phase === 'cast' ? Math.min(1, f.t / 0.45) : 1;
+    const tipX = bx + (tx - bx) * castK, tipY = by + (ty - by) * castK;
+    // vara: madeira com 3 segmentos + cabo escuro + molinete
+    g.strokeStyle = '#101018'; g.lineWidth = 5; g.lineCap = 'round';
+    g.beginPath(); g.moveTo(bx, by); g.lineTo(tipX, tipY); g.stroke();
+    g.strokeStyle = '#8a5a2b'; g.lineWidth = 3;
+    g.beginPath(); g.moveTo(bx, by); g.lineTo(tipX, tipY); g.stroke();
+    g.strokeStyle = '#c98d4e'; g.lineWidth = 1.5;
+    g.beginPath(); g.moveTo(bx, by); g.lineTo(tipX, tipY); g.stroke();
+    g.fillStyle = '#3a2412';
+    g.fillRect(bx - 3, by - 1, 7, 5);
+    g.fillStyle = '#c0c6d0';
+    g.beginPath(); g.arc(bx + nx * 10, by + 5, 3.4, 0, 7); g.fill();
+    g.fillStyle = '#5a6270';
+    g.beginPath(); g.arc(bx + nx * 10, by + 5, 1.6, 0, 7); g.fill();
+    if (castK < 1) return; // linha ainda não chegou na água
+    // linha: da ponta da vara até a bóia, com barriga
+    const bobX = f.bobWX + ox, bobY = f.bobWY + oy + Math.sin(this.time * 3.2) * 2;
+    const midX = (tipX + bobX) / 2, midY = (tipY + bobY) / 2 + 7;
+    g.strokeStyle = 'rgba(240,244,255,.9)'; g.lineWidth = 1.5;
+    g.beginPath(); g.moveTo(tipX, tipY);
+    g.quadraticCurveTo(midX, midY, bobX, bobY - 4);
+    g.stroke();
+    // ondulação ao redor da bóia
+    const rip = 0.5 + 0.5 * Math.sin(this.time * 4);
+    g.strokeStyle = `rgba(180,230,255,${(0.35 + rip * 0.3).toFixed(2)})`;
+    g.lineWidth = 2;
+    g.beginPath(); g.ellipse(bobX, bobY + 3, 10 + rip * 4, 4 + rip * 1.5, 0, 0, 7); g.stroke();
+    // bóia: branca em cima, vermelha embaixo + anteninha
+    const tug = f.phase === 'bite' ? Math.sin(this.time * 30) * 2 : 0;
+    g.fillStyle = 'rgba(0,0,10,.25)';
+    g.beginPath(); g.ellipse(bobX, bobY + 5, 5, 2, 0, 0, 7); g.fill();
+    g.fillStyle = '#f2f4ff';
+    g.beginPath(); g.arc(bobX, bobY + tug, 4.5, Math.PI, 0); g.fill();
+    g.fillStyle = '#d63b3b';
+    g.beginPath(); g.arc(bobX, bobY + tug, 4.5, 0, Math.PI); g.fill();
+    g.fillStyle = '#101018';
+    g.fillRect(bobX - 1, bobY - 9 + tug, 2, 5);
+    g.fillStyle = '#ffd75e';
+    g.fillRect(bobX - 1, bobY - 10 + tug, 2, 2);
+    // "!" da mordida + aro de tempo
+    if (f.phase === 'bite') {
+      const k = Math.max(0, f.biteLeft / 0.95);
+      const jx = bobX, jy = bobY - 30 + Math.sin(this.time * 12) * 2;
+      g.font = 'bold 30px monospace'; g.textAlign = 'center';
+      g.strokeStyle = '#000'; g.lineWidth = 5;
+      const scale = 1 + 0.12 * Math.sin(this.time * 14);
+      g.save(); g.translate(jx, jy); g.scale(scale, scale);
+      g.strokeText('!', 0, 0); g.fillStyle = '#ffd75e'; g.fillText('!', 0, 0);
+      g.restore();
+      // anel encolhendo = janela da fisgada
+      g.strokeStyle = `rgba(255,215,94,${(0.4 + 0.6 * k).toFixed(2)})`;
+      g.lineWidth = 3;
+      g.beginPath(); g.arc(bobX, bobY, 8 + (1 - k) * 16, 0, 7); g.stroke();
+      g.textAlign = 'start';
+      g.font = 'bold 15px monospace';
+      g.strokeText('E!', bobX + 12, bobY - 14);
+      g.fillStyle = '#fff'; g.fillText('E!', bobX + 12, bobY - 14);
+    } else if (f.phase === 'wait' || f.phase === 'cast') {
+      g.font = 'bold 13px monospace'; g.textAlign = 'center';
+      g.strokeStyle = '#000'; g.lineWidth = 3;
+      g.strokeText('...aguardando o peixe (Q sai)', bobX, bobY - 18);
+      g.fillStyle = '#cfe0ff'; g.fillText('...aguardando o peixe (Q sai)', bobX, bobY - 18);
+      g.textAlign = 'start';
+    }
+  }
+
+  /** Painel do mini-game: pare o cursor na zona verde (dourado = perfeito). */
+  _drawFishGame(g) {
+    const f = this._fishing;
+    if (!f || (f.phase !== 'reel' && f.phase !== 'caught' && f.phase !== 'miss')) return;
+    const W = 460, H = f.phase === 'reel' ? 104 : 64;
+    const x = (960 - W) / 2, y = 540 - H - 86;
+    // caixa
+    g.fillStyle = 'rgba(6,9,20,.92)';
+    g.strokeStyle = '#cdd6ff'; g.lineWidth = 2;
+    g.beginPath();
+    if (g.roundRect) g.roundRect(x, y, W, H, 10); else g.rect(x, y, W, H);
+    g.fill(); g.stroke();
+    g.fillStyle = 'rgba(27,47,158,.5)';
+    g.fillRect(x + 4, y + 4, W - 8, 20);
+    g.font = 'bold 14px monospace'; g.textAlign = 'center';
+    g.fillStyle = '#ffd75e';
+    const title = f.phase === 'reel' ? '🎣 FISGOU! Trave no VERDE com E!' : f.phase === 'caught' ? '🎣 BOA!' : '🎣 ...';
+    g.fillText(title, 480, y + 18);
+    g.textAlign = 'start';
+    if (f.phase !== 'reel') return;
+    const bx = x + 24, bw = W - 48, by = y + 44, bh = 22;
+    // trilho
+    g.fillStyle = '#05060f';
+    g.fillRect(bx, by, bw, bh);
+    g.strokeStyle = '#ffffff55'; g.lineWidth = 1;
+    g.strokeRect(bx + 0.5, by + 0.5, bw - 1, bh - 1);
+    // zona verde + núcleo dourado perfeito
+    const zx = bx + f.zoneX * bw, zw = f.zoneW * bw;
+    const px = bx + (f.zoneX + f.zoneW / 2 - f.perfectW / 2) * bw, pw = f.perfectW * bw;
+    g.fillStyle = '#1f9d55';
+    g.fillRect(zx, by + 2, zw, bh - 4);
+    g.fillStyle = 'rgba(255,215,94,.95)';
+    g.fillRect(px, by + 2, pw, bh - 4);
+    // marcas de 25/50/75
+    g.fillStyle = 'rgba(255,255,255,.25)';
+    for (const m of [0.25, 0.5, 0.75]) g.fillRect(bx + m * bw, by + 2, 1, bh - 4);
+    // cursor
+    const cx = bx + f.cursor * bw;
+    const blink = 0.7 + 0.3 * Math.sin(this.time * 10);
+    g.fillStyle = `rgba(255,255,255,${blink.toFixed(2)})`;
+    g.fillRect(cx - 2, by - 6, 4, bh + 12);
+    g.fillStyle = '#ff6b6b';
+    g.fillRect(cx - 2, by - 6, 4, 4);
+    g.fillRect(cx - 2, by + bh + 2, 4, 4);
+    // dica
+    g.font = '12px monospace'; g.fillStyle = '#9fb2ff'; g.textAlign = 'center';
+    g.fillText('E = fisgar   ·   Q = soltar   ·   dourado = PERFEITO (+bônus)', 480, by + bh + 16);
+    g.textAlign = 'start';
   }
 
   /** Desenha um baú: fechado com cadeado (e brilho) ou aberto com a tampa erguida. */
@@ -1089,6 +1444,7 @@ export class Engine {
       q.x += q.vx * dt; q.y += q.vy * dt; q.t += dt;
       if (q.type === 'snow') q.x += Math.sin(q.t * 3 + q.seed) * 22 * dt;
       if (q.type === 'leaf') q.x += Math.sin(q.t * 2 + q.seed) * 32 * dt;
+      if (q.type === 'splash') q.vy += 420 * dt;
     }
     this._wx = this._wx.filter((q) => q.y < VIEW_H + 20 && q.x > -30 && q.x < VIEW_W + 30 && q.t < q.life);
   }
@@ -1150,6 +1506,19 @@ export class Engine {
         const k = Math.min(1, q.t / q.life);
         g.fillStyle = `rgba(210,200,180,${(0.4 * (1 - k)).toFixed(2)})`;
         g.beginPath(); g.arc(q.x, q.y, 2 + k * 5, 0, 7); g.fill();
+      } else if (q.type === 'splash') {
+        const k = Math.min(1, q.t / q.life);
+        g.fillStyle = `rgba(190,225,255,${(0.9 * (1 - k)).toFixed(2)})`;
+        g.fillRect(q.x, q.y, 2.5, 2.5);
+        g.fillStyle = `rgba(255,255,255,${(0.7 * (1 - k)).toFixed(2)})`;
+        g.fillRect(q.x - 1, q.y - 2, 1.5, 1.5);
+      } else if (q.type === 'ripple') {
+        if (q.t < 0) { /* atraso escalonado */ } else {
+          const k = Math.min(1, q.t / q.life);
+          g.strokeStyle = `rgba(190,230,255,${(0.65 * (1 - k)).toFixed(2)})`;
+          g.lineWidth = 2;
+          g.beginPath(); g.ellipse(q.x, q.y + 3, 4 + k * 16, 2 + k * 6, 0, 0, 7); g.stroke();
+        }
       } else {
         g.fillStyle = q.col || '#7dd87d';
         g.fillRect(q.x, q.y, 3, 2);
@@ -1172,24 +1541,63 @@ export class Engine {
   _drawTitleBg() {
     const g = this.g;
     const grad = g.createLinearGradient(0, 0, 0, VIEW_H);
-    grad.addColorStop(0, '#060913'); grad.addColorStop(1, '#131c5e');
+    grad.addColorStop(0, '#04060f'); grad.addColorStop(0.55, '#101c5c'); grad.addColorStop(0.78, '#1d3a6e'); grad.addColorStop(1, '#0a1a2e');
     g.fillStyle = grad;
     g.fillRect(0, 0, VIEW_W, VIEW_H);
-    // estrelas + grama decorativa
+    // lua + halo
+    const mx = 800, my = 110;
+    const halo = g.createRadialGradient(mx, my, 4, mx, my, 90);
+    halo.addColorStop(0, 'rgba(240,246,255,.9)'); halo.addColorStop(0.25, 'rgba(200,220,255,.35)'); halo.addColorStop(1, 'transparent');
+    g.fillStyle = halo;
+    g.fillRect(mx - 90, my - 90, 180, 180);
+    g.fillStyle = '#f2f6ff';
+    g.beginPath(); g.arc(mx, my, 22, 0, 7); g.fill();
+    g.fillStyle = '#c9d4ea';
+    g.beginPath(); g.arc(mx - 7, my - 4, 5, 0, 7); g.fill();
+    g.beginPath(); g.arc(mx + 6, my + 7, 3.5, 0, 7); g.fill();
+    // estrelas cintilantes
     g.fillStyle = '#fff';
-    for (let i = 0; i < 60; i++) {
+    for (let i = 0; i < 70; i++) {
       const x = (i * 173 + this.time * 8) % VIEW_W;
       const y = (i * 97) % 300;
-      g.globalAlpha = 0.4 + 0.6 * Math.abs(Math.sin(this.time + i));
-      g.fillRect(x, y, 2, 2);
+      g.globalAlpha = 0.35 + 0.6 * Math.abs(Math.sin(this.time * 1.4 + i * 1.7));
+      const s = i % 9 === 0 ? 3 : 2;
+      g.fillRect(x, y, s, s);
     }
     g.globalAlpha = 1;
+    // montanhas em 2 camadas + lago espelhando a lua
+    g.fillStyle = '#131f3d';
+    g.beginPath(); g.moveTo(0, 400);
+    for (let x = 0; x <= VIEW_W; x += 80) g.lineTo(x, 330 + 40 * Math.abs(Math.sin(x * 0.01 + 2)));
+    g.lineTo(VIEW_W, 400); g.closePath(); g.fill();
+    g.fillStyle = '#1d3a4e';
+    g.beginPath(); g.moveTo(0, 420);
+    for (let x = 0; x <= VIEW_W; x += 60) g.lineTo(x, 360 + 30 * Math.abs(Math.sin(x * 0.013)));
+    g.lineTo(VIEW_W, 420); g.closePath(); g.fill();
+    // neve nos picos
+    g.fillStyle = 'rgba(230,240,255,.8)';
+    for (let x = 40; x < VIEW_W; x += 160) g.fillRect(x, 344 + 8 * Math.sin(x), 14, 5);
+    g.fillStyle = '#14324a';
+    g.fillRect(0, 420, VIEW_W, 40);
+    // reflexo da lua na água
+    g.fillStyle = `rgba(200,225,255,${(0.25 + 0.1 * Math.sin(this.time * 2)).toFixed(2)})`;
+    for (let i = 0; i < 8; i++) {
+      const w = 60 - i * 6;
+      g.fillRect(mx - w / 2 + Math.sin(this.time * 2 + i) * 4, 428 + i * 8, w, 3);
+    }
     g.fillStyle = '#1d3a24';
-    g.fillRect(0, 400, VIEW_W, 140);
+    g.fillRect(0, 492, VIEW_W, 48);
     g.fillStyle = '#2c5a34';
     for (let x = 0; x < VIEW_W; x += 24) {
-      const h = 12 + 8 * Math.abs(Math.sin(x + this.time));
-      g.fillRect(x, 400 - h, 14, h + 140);
+      const h = 12 + 8 * Math.abs(Math.sin(x * 0.05 + this.time));
+      g.fillRect(x, 492 - h, 14, h + 48);
+    }
+    // vagalumes sobre a grama do título
+    for (let i = 0; i < 14; i++) {
+      const fx = (i * 137 + Math.sin(this.time * 0.7 + i) * 30 + 960) % 960;
+      const fy = 430 + ((i * 53) % 80);
+      g.fillStyle = `rgba(255,240,150,${(0.3 + 0.5 * Math.abs(Math.sin(this.time * 2 + i * 2))).toFixed(2)})`;
+      g.fillRect(fx, fy, 2, 2);
     }
   }
 }

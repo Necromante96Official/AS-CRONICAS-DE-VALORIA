@@ -8,6 +8,7 @@ import { SPELLS, aliveHeroes } from '../entities/Party.js';
 import { xpForLevel } from '../core/Config.js';
 import { SPEED_ORDER } from '../systems/Settings.js';
 import { SaveSystem } from '../systems/SaveSystem.js';
+import { HUNT_GOAL, CHESTS } from '../world/MapData.js';
 
 const TABS = [
   { id: 'items', label: '🎒 Itens' },
@@ -15,6 +16,7 @@ const TABS = [
   { id: 'status', label: '📊 Status' },
   { id: 'config', label: '⚙ Config' },
   { id: 'save', label: '💾 Salvar' },
+  { id: 'quests', label: '📜 Quests' },
 ];
 
 export class Menu {
@@ -173,8 +175,40 @@ export class Menu {
         return `<div class="opt ${i === this.sel ? 'sel' : ''}">Slot ${s}${armed}<br/><span class="row-sub">${info || '(vazio)'}</span></div>`;
       }).join('');
       this.detailEl.innerHTML = `<h3>Salvar progresso</h3>Grava posição, grupo, itens e ouro.<br/><span class="row-sub">Slot ocupado pede confirmação. Q volta sem salvar.</span>`;
+    } else if (tabId === 'quests') {
+      const qs = this._questList();
+      this._quests = qs;
+      this.rows = qs.map((_, i) => i);
+      this.listEl.innerHTML = qs.map((q, i) =>
+        `<div class="opt ${i === this.sel ? 'sel' : ''}">${q.done ? '✔' : '⏳'} ${q.t}</div>`).join('');
+      const q = qs[this.sel];
+      this.detailEl.innerHTML = q ? `<h3>${q.t}</h3>${q.d}` : '<span class="row-sub">Nenhuma quest.</span>';
     }
     this._foot(gold, time);
+  }
+
+  /** Diário: deriva o estado das quests a partir das flags do save. */
+  _questList() {
+    const f = this.ctx?.flags || {};
+    const qs = [];
+    if (f.toyRewarded) qs.push({ t: 'Boneco do Pip', d: 'Devolvido! Pip vai ser mago.', done: true });
+    else if (f.toyFound) qs.push({ t: 'Boneco do Pip', d: 'Leve o boneco ao Pip, na Vila Lumen.', done: false });
+    else if (f.toyQuest) qs.push({ t: 'Boneco do Pip', d: 'Brilha na grama alta, a leste da vila.', done: false });
+    else qs.push({ t: '???', d: 'Fale com todos na Vila Lumen. Alguém precisa de ajuda...', done: false });
+    const hc = f.huntCount || 0;
+    if (f.huntRewarded) qs.push({ t: 'Caça aos slimes', d: 'Ponte segura graças a você!', done: true });
+    else if (!f.huntQuest) qs.push({ t: '???', d: 'O Guarda Cato, na ponte, parece preocupado...', done: false });
+    else if (hc >= HUNT_GOAL) qs.push({ t: 'Caça aos slimes', d: 'Meta batida! Volte ao Guarda Cato.', done: false });
+    else qs.push({ t: 'Caça aos slimes', d: `${hc}/${HUNT_GOAL} slimes derrotados.`, done: false });
+    if (f.eliteDefeated) qs.push({ t: 'Golem Ancião', d: 'O deserto respira aliviado.', done: true });
+    else qs.push({ t: 'Golem Ancião', d: 'Um colosso ronda o Deserto Dourado, a leste do rio.', done: false });
+    const opened = CHESTS.filter((c) => f[`chest_${c.id}`]).length;
+    qs.push(opened >= CHESTS.length
+      ? { t: `Baús do tesouro`, d: 'Todos abertos! Olho de águia.', done: true }
+      : { t: `Baús: ${opened}/${CHESTS.length}`, d: 'Espalhados por Valoria. Um brilha no escuro...', done: false });
+    if (f.bossDefeated) qs.push({ t: 'Dragão do Caos', d: 'O cristal renasceu. Lenda!', done: true });
+    else qs.push({ t: 'Dragão do Caos', d: 'Nas Ruínas ao nordeste, além da ponte.', done: false });
+    return qs;
   }
 
   _foot(gold, time) {
@@ -215,7 +249,9 @@ export class Menu {
     if (this.sub) {
       const h = party[this.sel];
       if (this.sub.kind === 'item') {
-        if (ITEMS[this.sub.id].heal && h.hp <= 0) { this.notify(`${h.name} está caído!`); this.audio.sfx('flee-fail'); return; }
+        const it = ITEMS[this.sub.id];
+        if (it.revive && h.hp > 0) { this.notify(`${h.name} ainda está de pé!`); this.audio.sfx('flee-fail'); return; }
+        if (it.heal && h.hp <= 0) { this.notify(`${h.name} está caído! Use uma Pena de Fênix.`); this.audio.sfx('flee-fail'); return; }
         actions.useItem(this.sub.id, this.sel);
       } else {
         if (h.hp <= 0) { this.notify(`${h.name} está caído!`); this.audio.sfx('flee-fail'); return; }
@@ -247,6 +283,9 @@ export class Menu {
       this.notify(`${party[this.sel].name}: pronto para a aventura!`);
     } else if (tabId === 'config') {
       actions.cycleConfig(this.rows[this.sel]);
+    } else if (tabId === 'quests') {
+      const q = this._quests?.[this.sel];
+      this.notify(q ? `${q.t} — ${q.d}` : 'Sem quests.');
     } else if (tabId === 'save') {
       const slot = this.rows[this.sel];
       if (SaveSystem.info(slot) && this._armSave !== slot) {

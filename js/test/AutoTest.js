@@ -422,15 +422,26 @@ export async function runAutoTest(game) {
       log(game.flags.chest_plain === true && game.gold === g0 + 80 && (game.inv.potion || 0) >= 1, 'bau-loot');
       log(game._tryChest() === true && game.flags.chest_plain === true, 'bau-vazio-reabre');
     }
-    // pesca: de frente para a água pesca; com cooldown bloqueia em seguida
+    // pesca: vara + mini-game (lança, fisga no "!" e trava no verde)
     {
       teleport(43, 35, 'right');
       await frames(3);
-      game._fishCd = 0;
+      game._fishCd = 0; game._fishing = null;
       const fish0 = game.inv.fish || 0, gold0 = game.gold;
       log(game._tryFish() === true, 'pesca-funciona');
+      log(!!game._fishing, 'pesca-vara-visivel');
       log(game._tryFish() === false, 'pesca-cooldown');
+      // simula a mordida e a fisgada com E
+      game._fishing.phase = 'bite'; game._fishing.biteLeft = 0.9;
+      game._fishPress();
+      log(!!game._fishing && game._fishing.phase === 'reel', 'pesca-minigame');
+      // trava o cursor no centro da zona verde
+      game._fishing.cursor = game._fishing.zoneX + game._fishing.zoneW / 2;
+      game._fishPress();
       log((game.inv.fish || 0) >= fish0 && game.gold >= gold0, 'pesca-recompensa');
+      log(!!game._fishing && game._fishing.phase === 'caught', 'pesca-peixe-fisgado');
+      game._endFish();
+      log(!game._fishing && game._fishCd > 0, 'pesca-encerra');
       await dismissDialog(); // limpa possível diálogo de pérola
     }
     // quest de caça do Guarda Cato: aceita, conta 6 slimes, recompensa
@@ -480,13 +491,14 @@ export async function runAutoTest(game) {
       log(ok, 'tap-usa-ponte', `${(game._path?.length || 0)} passos`);
       game._path = null; game._tapAct = null;
     }
-    // toque na água: mira o pisável vizinho e prepara a pesca
+    // toque na água: mira o pisável vizinho e prepara a pesca (abre a vara)
     {
       teleport(43, 35, 'right');
       await frames(3);
-      game._fishCd = 0;
+      game._fishCd = 0; game._fishing = null;
       game._tapWorld(44 * TILE + 16, 35 * TILE + 16);
-      log(game._fishCd > 0, 'tap-pesca-chegou');
+      log(!!game._fishing, 'tap-pesca-chegou');
+      game._cancelFish();
       await dismissDialog();
     }
 

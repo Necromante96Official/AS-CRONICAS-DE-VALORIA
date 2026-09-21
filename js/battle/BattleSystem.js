@@ -337,8 +337,14 @@ export class BattleSystem {
       if (this.sel >= this.party.length) { this.menu = this.pending?.type === 'item' ? 'item' : 'magic'; this.sel = 0; }
       else {
         const t = this.party[this.sel];
-        if (t.hp <= 0) {
-          this._log(`${t.name} está caído! Itens e Cura não funcionam em aliados caídos.`);
+        const isRevive = this.pending?.type === 'item' && !!ITEMS[this.pending.item]?.revive;
+        if (t.hp <= 0 && !isRevive) {
+          this._log(`${t.name} está caído! Só uma Pena de Fênix o traz de volta.`);
+          this.audio.sfx('flee-fail');
+          return true;
+        }
+        if (t.hp > 0 && isRevive) {
+          this._log(`${t.name} ainda está de pé!`);
           this.audio.sfx('flee-fail');
           return true;
         }
@@ -613,6 +619,22 @@ export class BattleSystem {
     } else if (act.type === 'item') {
       const it = ITEMS[act.item];
       let ti = act.target ?? 0;
+      if (it.revive) {
+        // Fênix mira o caído exato (sem redirecionar p/ vivos)
+        const a = this.party[ti];
+        if (!a || a.hp > 0) { this._log('Sem alvo caído para a Pena de Fênix!'); this.audio.sfx('flee-fail'); return; }
+        this.inv[act.item]--;
+        const v = Math.min(Math.ceil(a.maxHp * it.revive), a.maxHp);
+        a.hp = v;
+        this.audio.sfx('levelup');
+        this.anim = { who: 'hero', idx: hi, t: 0.4, dur: 0.4 };
+        this._healFx(this.heroPos(ti), '#ffd75e');
+        this._ringFx(this.heroPos(ti), '#ffd75e');
+        this._floatDmg(this.heroPos(ti), `+${v}`, '#ffd75e', false);
+        this._log(`${h.name} usa ${it.name} em ${a.name}! Renasceu com ${v} HP!`);
+        this._renderAll();
+        return;
+      }
       if (!this.party[ti] || this.party[ti].hp <= 0) {
         const alt = [...this.party.keys()].filter((i) => this.party[i].hp > 0)
           .sort((a, b) => (this.party[a].hp / this.party[a].maxHp) - (this.party[b].hp / this.party[b].maxHp))[0];

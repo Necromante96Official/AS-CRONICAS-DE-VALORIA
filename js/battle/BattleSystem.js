@@ -4,6 +4,7 @@
  */
 import { SPELLS, grantXp, aliveHeroes, partyWiped } from '../entities/Party.js';
 import { ITEMS } from '../systems/Inventory.js';
+import { ic } from '../ui/ItemIcons.js';
 import { makeHumanoid, makeSlime, makeBat, makeGolem, makeDragon, makeKing, makeWisp, makeCrab, makeScorpion, makeShroom } from '../core/SpriteFactory.js';
 
 const PALETTES = {
@@ -243,22 +244,25 @@ export class BattleSystem {
     if (this.phase !== 'command') return;
     const h = this.party[this.heroIdx];
     let opts = [];
-    if (this.menu === 'main') opts = ['⚔ Atacar', '✨ Magia', '🎒 Item', '🔍 Analisar', '🏃 Fugir', '🛡 Defender'];
+    if (this.menu === 'main') opts = [
+      `${ic('attack')} Atacar`, `${ic('magic')} Magia`, `${ic('item')} Item`,
+      `${ic('scan')} Analisar`, `${ic('flee')} Fugir`, `${ic('guard')} Defender`,
+    ];
     else if (this.menu === 'magic') opts = [...h.spells.map((s) => ({
-      html: `${SPELLS[s].name}<span class="cost">${SPELLS[s].mp}MP</span><span class="row-sub"> — ${SPELLS[s].desc}</span>`,
+      html: `${ic(s)}${SPELLS[s].name}<span class="cost">${SPELLS[s].mp}MP</span><span class="row-sub"> — ${SPELLS[s].desc}</span>`,
       cls: h.mp < SPELLS[s].mp ? ' nomp' : '',
     })), { html: '« Voltar', cls: '' }];
-    else if (this.menu === 'item') opts = [...Object.keys(ITEMS).filter((id) => (this.inv[id] || 0) > 0 && ITEMS[id].battle).map((id) => `${ITEMS[id].name}<span class="count">×${this.inv[id]}</span>`), '« Voltar'];
+    else if (this.menu === 'item') opts = [...Object.keys(ITEMS).filter((id) => (this.inv[id] || 0) > 0 && ITEMS[id].battle).map((id) => `${ic(id)}${ITEMS[id].name}<span class="count">×${this.inv[id]}</span>`), '« Voltar'];
     else if (this.menu === 'targetE') {
       // Derrotados somem da seleção: lista só os vivos + « Voltar.
       this._clampTargetCursor();
       opts = [...this._aliveFoes().map((idx) => {
         const e = this.enemies[idx];
-        const tags = `${e.burn > 0 ? '🔥' : ''}${e.stun ? '💫' : ''}${e.charge ? '⚡' : ''}`;
+        const tags = `${e.burn > 0 ? ic('fire', 16) : ''}${e.stun ? ic('magic', 16) : ''}${e.charge ? ic('thunder', 16) : ''}`;
         return `<span>${tags}${e.name}</span><span class="foe-hp">${Math.max(0, Math.ceil(e.hp))}/${e.maxHp}</span>`;
       }), '« Voltar'];
     }
-    else if (this.menu === 'targetA') opts = [...this.party.map((a) => `${a.hp <= 0 ? '✝ ' : ''}${a.guard ? '🛡' : ''}${a.name}<span class="foe-hp">${Math.max(0, Math.ceil(a.hp))}/${a.maxHp}</span>`), '« Voltar'];
+    else if (this.menu === 'targetA') opts = [...this.party.map((a) => `${a.hp <= 0 ? '✝ ' : ''}${a.guard ? ic('guard', 16) : ''}${a.name}<span class="foe-hp">${Math.max(0, Math.ceil(a.hp))}/${a.maxHp}</span>`), '« Voltar'];
     this.cmdEl.innerHTML = `<div class="cmd-title">${h.name} ❯</div>` +
       opts.map((o, i) => {
         const html = typeof o === 'string' ? o : o.html;

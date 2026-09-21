@@ -53,7 +53,26 @@
   white-space: nowrap;
 }
 #hud-location { color: var(--ff-dim); font-size: 11px; letter-spacing: 1px; text-transform: uppercase; }
-#hud-gold { color: var(--ff-yellow); }
+#hud-gold { color: var(--ff-yellow); display: inline-flex; align-items: center; gap: 6px; }
+#hud-gold .ic { margin: 0; }
+
+/* Ícones procedurais do jogo: medalhão com luz, sombra e borda de raridade */
+.ic {
+  image-rendering: auto;
+  vertical-align: -5px;
+  margin-right: 7px;
+  border-radius: 6px;
+  filter: drop-shadow(0 2px 2px rgba(0,0,0,.55));
+}
+#menu-list .opt.sel .ic, #battle-cmds .opt.sel .ic,
+#dlg-opts .opt.sel .ic, #menu-tabs .tab.sel .ic {
+  filter: drop-shadow(0 0 5px rgba(255,215,94,.75)) drop-shadow(0 2px 2px rgba(0,0,0,.55));
+}
+#menu-tabs .tab .ic { margin-right: 4px; vertical-align: -4px; }
+#menu-detail h3 .ic { vertical-align: -13px; margin-right: 6px; }
+#menu-foot .ic { vertical-align: -5px; margin-right: 2px; }
+.shop-price .ic { margin: 0 3px 0 0; vertical-align: -4px; }
+.cmd-title .ic { margin-right: 4px; }
 #minimap {
   width: 104px; height: 78px;
   border: 2px solid #4fc3ff66;

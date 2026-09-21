@@ -3,6 +3,7 @@
  * @module ui/HUD
  */
 import { LOCATIONS } from '../core/Config.js';
+import { ic } from './ItemIcons.js';
 
 export class HUD {
   constructor() {
@@ -39,7 +40,7 @@ export class HUD {
       </div>`;
     }).join('');
     this.locEl.textContent = LOCATIONS[region] || region;
-    this.goldEl.textContent = `${muted ? '🔇' : '💰'} ${gold} G`;
+    this.goldEl.innerHTML = `${ic(muted ? 'mute' : 'gold', 20)}<span>${gold} G</span>`;
   }
 
   /**

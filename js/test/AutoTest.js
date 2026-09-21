@@ -247,10 +247,30 @@ export async function runAutoTest(game) {
     // ---- 6c. tecla M alterna mudo (e o HUD reflete) ----
     await key('KeyM');
     await frames(6);
-    log(game.audio.muted === true && game.hud.goldEl.textContent.includes('🔇'), 'mute-on');
+    log(game.audio.muted === true && game.hud.goldEl.querySelector('img.ic') !== null, 'mute-on');
     await key('KeyM');
     await frames(6);
-    log(game.audio.muted === false && game.hud.goldEl.textContent.includes('💰'), 'mute-off');
+    log(game.audio.muted === false && game.hud.goldEl.querySelector('img.ic') !== null, 'mute-off');
+
+    // ---- 6d. ícones procedurais (todos os itens + comandos + magias) ----
+    {
+      const { iconURL, ic } = await import('../ui/ItemIcons.js');
+      const ids = [...Object.keys(game.inv), 'fish', 'goldfish', 'fire', 'thunder', 'cure',
+        'attack', 'magic', 'item', 'scan', 'flee', 'guard', 'gold', 'bed', 'save', 'quest',
+        'status', 'config', 'sound', 'mute', 'slot', 'qdone', 'qtodo'];
+      const ok = ids.every((id) => {
+        try {
+          const u = iconURL(id);
+          return typeof u === 'string' && u.startsWith('data:image/png;base64,') && u.length > 500;
+        } catch { return false; }
+      });
+      log(ok, 'icones-todos');
+      log(ic('potion').includes('<img') && ic('goldfish').includes('class="ic"'), 'icones-img-tag');
+      game.menu.show({ party: game.party, inv: game.inv, gold: game.gold, time: '00:00', flags: game.flags }, () => {}, game._menuActions());
+      await frames(3);
+      log(document.getElementById('menu-list').querySelector('img.ic') !== null, 'icones-menu-itens');
+      log(await closeMenu(), 'icones-menu-fecha');
+    }
 
     // ---- 7. save/load ----
     game.gold = 777;

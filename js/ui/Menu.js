@@ -9,14 +9,15 @@ import { xpForLevel } from '../core/Config.js';
 import { SPEED_ORDER } from '../systems/Settings.js';
 import { SaveSystem } from '../systems/SaveSystem.js';
 import { HUNT_GOAL, CHESTS } from '../world/MapData.js';
+import { ic } from './ItemIcons.js';
 
 const TABS = [
-  { id: 'items', label: '🎒 Itens' },
-  { id: 'magic', label: '✨ Magia' },
-  { id: 'status', label: '📊 Status' },
-  { id: 'config', label: '⚙ Config' },
-  { id: 'save', label: '💾 Salvar' },
-  { id: 'quests', label: '📜 Quests' },
+  { id: 'items', label: `${ic('item', 18)} Itens` },
+  { id: 'magic', label: `${ic('magic', 18)} Magia` },
+  { id: 'status', label: `${ic('status', 18)} Status` },
+  { id: 'config', label: `${ic('config', 18)} Config` },
+  { id: 'save', label: `${ic('save', 18)} Salvar` },
+  { id: 'quests', label: `${ic('quest', 18)} Quests` },
 ];
 
 export class Menu {
@@ -114,10 +115,11 @@ export class Menu {
 
     if (this.sub) {
       const what = this.sub.kind === 'item' ? ITEMS[this.sub.id].name : SPELLS[this.sub.spell].name;
+      const whatIc = this.sub.kind === 'item' ? ic(this.sub.id) : ic(this.sub.spell);
       this.rows = party.map((_, i) => i);
-      this.listEl.innerHTML = `<div class="list-head">Usar ${what} em quem?</div>` +
+      this.listEl.innerHTML = `<div class="list-head">Usar ${whatIc} ${what} em quem?</div>` +
         party.map((h, i) => `<div class="opt ${i === this.sel ? 'sel' : ''}">${this._heroLine(h)}${h.hp <= 0 ? ' <span class="row-sub">(CAÍDO)</span>' : ''}</div>`).join('');
-      this.detailEl.innerHTML = `<h3>${what}</h3>Q cancela a escolha.`;
+      this.detailEl.innerHTML = `<h3>${whatIc} ${what}</h3>Q cancela a escolha.`;
       this._foot(gold, time);
       return;
     }
@@ -126,9 +128,10 @@ export class Menu {
       const ids = Object.keys(ITEMS);
       this.rows = ids;
       this.listEl.innerHTML = ids.map((id, i) =>
-        `<div class="opt ${i === this.sel ? 'sel' : ''}">${ITEMS[id].name}<span class="count">×${inv[id] || 0}</span></div>`).join('');
-      const it = ITEMS[ids[this.sel]];
-      this.detailEl.innerHTML = `<h3>${it.name}</h3>${it.desc}<br/><span class="row-sub">Preço na loja: ${it.price}G</span>`;
+        `<div class="opt ${i === this.sel ? 'sel' : ''}">${ic(id)}${ITEMS[id].name}<span class="count">×${inv[id] || 0}</span></div>`).join('');
+      const selId = ids[this.sel];
+      const it = ITEMS[selId];
+      this.detailEl.innerHTML = `<h3>${ic(selId, 44)} ${it.name}</h3>${it.desc}<br/><span class="row-sub">Preço na loja: ${it.price}G · possui ×${inv[selId] || 0}</span>`;
     } else if (tabId === 'magic') {
       if (this.spellHero == null) {
         this.rows = party.map((_, i) => i);
@@ -136,15 +139,15 @@ export class Menu {
           `<div class="opt ${i === this.sel ? 'sel' : ''}">${h.name}<span class="row-cost">${Math.ceil(h.mp)}/${h.maxMp} MP</span></div>`).join('');
         const h = party[this.sel];
         this.detailEl.innerHTML = `<h3>Magias de ${h.name}</h3>` +
-          (h.spells.length ? h.spells.map((s) => `${SPELLS[s].name} <span class="row-cost">${SPELLS[s].mp}MP</span>`).join('<br/>') : '<span class="row-sub">Nenhuma magia ainda.</span>');
+          (h.spells.length ? h.spells.map((s) => `${ic(s, 20)} ${SPELLS[s].name} <span class="row-cost">${SPELLS[s].mp}MP</span>`).join('<br/>') : '<span class="row-sub">Nenhuma magia ainda.</span>');
       } else {
         const h = party[this.spellHero];
         this.rows = h.spells;
         this.listEl.innerHTML = `<div class="list-head">◀ ${h.name}</div>` +
           h.spells.map((s, i) =>
-            `<div class="opt ${i === this.sel ? 'sel' : ''}">${SPELLS[s].name}<span class="row-cost">${SPELLS[s].mp}MP</span></div>`).join('');
+            `<div class="opt ${i === this.sel ? 'sel' : ''}">${ic(s)}${SPELLS[s].name}<span class="row-cost">${SPELLS[s].mp}MP</span></div>`).join('');
         const s = h.spells[this.sel];
-        this.detailEl.innerHTML = s ? `<h3>${SPELLS[s].name}</h3>${SPELLS[s].desc}<br/><span class="row-sub">Custo: ${SPELLS[s].mp} MP</span>` : '';
+        this.detailEl.innerHTML = s ? `<h3>${ic(s, 44)} ${SPELLS[s].name}</h3>${SPELLS[s].desc}<br/><span class="row-sub">Custo: ${SPELLS[s].mp} MP</span>` : '';
       }
     } else if (tabId === 'status') {
       this.rows = party.map((_, i) => i);
@@ -163,26 +166,27 @@ export class Menu {
     } else if (tabId === 'config') {
       const cfg = this._actions?.getConfig() || { sound: 'Ligado', speed: 'normal' };
       this.rows = ['sound', 'speed'];
-      const labels = { sound: '🔊 Som', speed: '📝 Texto' };
+      const sndIc = cfg.sound === 'Desligado' ? ic('mute') : ic('sound');
+      const labels = { sound: `${sndIc} Som`, speed: `${ic('quest')} Texto` };
       this.listEl.innerHTML = this.rows.map((id, i) =>
         `<div class="opt ${i === this.sel ? 'sel' : ''}">${labels[id]}<span class="count">${id === 'sound' ? cfg.sound : cfg.speed}</span></div>`).join('');
-      this.detailEl.innerHTML = `<h3>Configurações</h3>E ou ←→ alterna o valor.<br/><span class="row-sub">Texto controla a velocidade do typewriter.</span>`;
+      this.detailEl.innerHTML = `<h3>${ic('config', 44)} Configurações</h3>E ou ←→ alterna o valor.<br/><span class="row-sub">Texto controla a velocidade do typewriter.</span>`;
     } else if (tabId === 'save') {
       this.rows = [1, 2, 3];
       this.listEl.innerHTML = this.rows.map((s, i) => {
         const info = SaveSystem.info(s);
         const armed = this._armSave === s ? ' <span class="count">confirma?</span>' : '';
-        return `<div class="opt ${i === this.sel ? 'sel' : ''}">Slot ${s}${armed}<br/><span class="row-sub">${info || '(vazio)'}</span></div>`;
+        return `<div class="opt ${i === this.sel ? 'sel' : ''}">${ic('slot')} Slot ${s}${armed}<br/><span class="row-sub">${info || '(vazio)'}</span></div>`;
       }).join('');
-      this.detailEl.innerHTML = `<h3>Salvar progresso</h3>Grava posição, grupo, itens e ouro.<br/><span class="row-sub">Slot ocupado pede confirmação. Q volta sem salvar.</span>`;
+      this.detailEl.innerHTML = `<h3>${ic('save', 44)} Salvar progresso</h3>Grava posição, grupo, itens e ouro.<br/><span class="row-sub">Slot ocupado pede confirmação. Q volta sem salvar.</span>`;
     } else if (tabId === 'quests') {
       const qs = this._questList();
       this._quests = qs;
       this.rows = qs.map((_, i) => i);
       this.listEl.innerHTML = qs.map((q, i) =>
-        `<div class="opt ${i === this.sel ? 'sel' : ''}">${q.done ? '✔' : '⏳'} ${q.t}</div>`).join('');
+        `<div class="opt ${i === this.sel ? 'sel' : ''}">${ic(q.done ? 'qdone' : 'qtodo')}${q.t}</div>`).join('');
       const q = qs[this.sel];
-      this.detailEl.innerHTML = q ? `<h3>${q.t}</h3>${q.d}` : '<span class="row-sub">Nenhuma quest.</span>';
+      this.detailEl.innerHTML = q ? `<h3>${ic(q.done ? 'qdone' : 'qtodo', 40)} ${q.t}</h3>${q.d}` : '<span class="row-sub">Nenhuma quest.</span>';
     }
     this._foot(gold, time);
   }
@@ -212,7 +216,7 @@ export class Menu {
   }
 
   _foot(gold, time) {
-    this.footEl.innerHTML = `<span class="gold">💰 ${gold} G · ⏱ ${time || ''}</span><span>←→ abas · ↑↓ navegar · E confirmar · Q fechar</span>`;
+    this.footEl.innerHTML = `<span class="gold">${ic('gold', 20)} ${gold} G · ⏱ ${time || ''}</span><span>←→ abas · ↑↓ navegar · E confirmar · Q fechar</span>`;
   }
 
   /** @param {import('../core/Input.js').Input} input @param {any} actions */

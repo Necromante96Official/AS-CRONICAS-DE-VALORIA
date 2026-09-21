@@ -23,6 +23,7 @@ import { TitleScreen } from '../ui/TitleScreen.js';
 import { Transition, toast } from '../ui/Transition.js';
 import { BattleSystem } from '../battle/BattleSystem.js';
 import { makeHumanoid, makeDragon, makeCrystal, humanoidFace, dragonFace } from './SpriteFactory.js';
+import { ic, preloadIcons } from '../ui/ItemIcons.js';
 import { SPELLS } from '../entities/Party.js';
 
 const NPC_PALETTES = {
@@ -151,6 +152,7 @@ export class Engine {
     this.map = new TileMap(buildMap());
     this._buildMinimap();
     this._newGameState();
+    try { preloadIcons(); } catch { /* canvas indisponível */ }
     this.title.onPick = (action, slot) => this._onTitlePick(action, slot);
     document.getElementById('btn-retry')?.addEventListener('click', () => this._toTitle());
     document.getElementById('btn-ending')?.addEventListener('click', () => this._toTitle());
@@ -998,9 +1000,9 @@ export class Engine {
 
   _openShop(npc) {
     const opts = SHOP_STOCK.map((id) => ({
-      label: `${ITEMS[id].name}<span class="shop-price">${ITEMS[id].price}G</span><span class="shop-own">possui ${this.inv[id] || 0}</span>`,
+      label: `${ic(id)}${ITEMS[id].name}<span class="shop-price">${ic('gold', 16)}${ITEMS[id].price}G</span><span class="shop-own">possui ${this.inv[id] || 0}</span>`,
       value: id,
-    })).concat([{ label: 'Sair', value: null }]);
+    })).concat([{ label: '« Sair', value: null }]);
     this.dialog.say(
       [{ name: npc.name, text: `Ouro: ${this.gold}G. O que vai querer?`, options: opts }],
       null,
@@ -1023,7 +1025,7 @@ export class Engine {
 
   _openInn(npc) {
     this.dialog.say(
-      [{ name: npc.name, text: `Descansar até amanhã? Cura total por 20G. (Ouro: ${this.gold}G)`, options: [{ label: 'Descansar — 20G', value: 'yes' }, { label: 'Agora não', value: null }] }],
+      [{ name: npc.name, text: `Descansar até amanhã? Cura total por 20G. (Ouro: ${this.gold}G)`, options: [{ label: `${ic('bed')}Descansar — 20G`, value: 'yes' }, { label: 'Agora não', value: null }] }],
       null,
       (val) => {
         if (val !== 'yes') return;
@@ -1046,7 +1048,7 @@ export class Engine {
     if (d > TILE * 2.2) return false;
     this.audio.sfx('encounter');
     this.dialog.say(
-      [{ name: 'DRAGÃO DO CAOS', text: 'QUEM OUSA PISAR NO MEU ALTAR? O CRISTAL SERÁ MEU COMBUSTÍVEL! Venha, pequenos heróis... QUEIMEM!', options: [{ label: '⚔ LUTAR!', value: 'fight' }, { label: 'Recuar', value: null }] }],
+      [{ name: 'DRAGÃO DO CAOS', text: 'QUEM OUSA PISAR NO MEU ALTAR? O CRISTAL SERÁ MEU COMBUSTÍVEL! Venha, pequenos heróis... QUEIMEM!', options: [{ label: `${ic('attack')} LUTAR!`, value: 'fight' }, { label: `${ic('flee')} Recuar`, value: null }] }],
       null,
       (v) => { if (v === 'fight') this._startBossBattle(); }
     );

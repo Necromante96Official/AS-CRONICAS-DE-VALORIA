@@ -4,34 +4,34 @@
 #hud {
   position: absolute; top: 0; left: 0; right: 0;
   display: flex; justify-content: space-between; align-items: flex-start;
-  gap: 8px;
-  padding: 8px 10px;
+  gap: 10px;
+  padding: 10px 14px;
   z-index: 20;
   pointer-events: none;
-  font-size: 13px;
+  font-size: 15px;
 }
-#hud-party { display: flex; gap: 6px; flex-wrap: wrap; }
+#hud-party { display: flex; gap: 8px; flex-wrap: wrap; }
 .hud-card {
-  display: flex; gap: 7px; align-items: center;
+  display: flex; gap: 9px; align-items: center;
   background: linear-gradient(180deg, #16236bee, #0a1030e6);
   border: 1px solid #ffffff55;
   border-left: 3px solid var(--ff-yellow);
-  border-radius: 8px;
-  padding: 4px 8px 4px 4px;
-  min-width: 168px;
+  border-radius: 10px;
+  padding: 6px 12px 6px 6px;
+  min-width: 218px;
   box-shadow: 0 3px 10px #000b, inset 0 1px 0 #ffffff22;
 }
 .hud-face {
-  width: 32px; height: 32px;
-  border-radius: 6px;
+  width: 42px; height: 42px;
+  border-radius: 8px;
   border: 1px solid #ffffff44;
   background: #0008;
   flex: none;
 }
 .hud-info { flex: 1; min-width: 0; }
-.hud-card .nm { font-weight: bold; font-size: 12px; }
-.hud-card .lv { color: var(--ff-yellow); font-size: 11px; margin-left: 6px; }
-.bar { position: relative; height: 8px; border-radius: 4px; background: #000000a6; margin-top: 2px; overflow: hidden; }
+.hud-card .nm { font-weight: bold; font-size: 14px; }
+.hud-card .lv { color: var(--ff-yellow); font-size: 12px; margin-left: 6px; }
+.bar { position: relative; height: 10px; border-radius: 5px; background: #000000a6; margin-top: 3px; overflow: hidden; }
 .bar > div { height: 100%; transition: width .25s; }
 .bar.hp > div { background: linear-gradient(90deg, #37e08b, #0f9d58); }
 .bar.hp.low > div { background: linear-gradient(90deg, #ff6b6b, #c81e1e); }
@@ -40,17 +40,18 @@
 .bar.mp > div { background: linear-gradient(90deg, #6bb8ff, #2456e0); }
 .bar span {
   position: absolute; inset: 0;
-  font-size: 8px; line-height: 10px; text-align: center;
+  font-size: 9px; line-height: 12px; text-align: center;
   color: #fff; text-shadow: 1px 1px 0 #000;
 }
-#hud-right { text-align: right; display: flex; flex-direction: column; gap: 5px; }
+#hud-right { text-align: right; display: flex; flex-direction: column; gap: 6px; }
 #hud-location, #hud-gold {
   background: #0a1030d9;
   border: 1px solid #ffffff44;
-  border-radius: 6px;
-  padding: 4px 9px;
+  border-radius: 8px;
+  padding: 6px 12px;
   font-weight: bold;
   white-space: nowrap;
+  font-size: 14px;
 }
 #hud-location { color: var(--ff-dim); font-size: 11px; letter-spacing: 1px; text-transform: uppercase; }
 #hud-gold { color: var(--ff-yellow); display: inline-flex; align-items: center; gap: 6px; }
@@ -74,9 +75,9 @@
 .shop-price .ic { margin: 0 3px 0 0; vertical-align: -4px; }
 .cmd-title .ic { margin-right: 4px; }
 #minimap {
-  width: 104px; height: 78px;
+  width: 150px; height: 112px;
   border: 2px solid #4fc3ff66;
-  border-radius: 8px;
+  border-radius: 10px;
   background: #000;
   image-rendering: pixelated;
   align-self: flex-end;
@@ -120,19 +121,20 @@
 
 /* ---------- Diálogo ---------- */
 #dialog {
-  position: absolute; left: 4%; right: 4%; bottom: 4%;
-  min-height: 22%;
-  max-height: 52%;
+  position: absolute; left: 3%; right: 3%; bottom: 3%;
+  min-height: 20%;
+  max-height: 46%;
   z-index: 30;
-  font-size: clamp(13px, 2.1vw, 18px);
-  line-height: 1.45;
-  display: flex; gap: 10px; align-items: flex-start;
+  font-size: clamp(15px, 1.6vw, 21px);
+  line-height: 1.55;
+  display: flex; gap: 14px; align-items: flex-start;
   animation: panel-in .22s ease-out;
+  padding: 16px 20px;
 }
 #dialog-face {
-  width: 52px; height: 52px; flex: none;
+  width: 72px; height: 72px; flex: none;
   border: 2px solid var(--ff-yellow);
-  border-radius: 10px;
+  border-radius: 12px;
   background: linear-gradient(160deg, #1b2f9e, #000);
   image-rendering: pixelated;
   box-shadow: 0 0 12px #ffd75e44, 0 3px 8px #000a;
@@ -165,24 +167,25 @@
 
 /* ---------- Menu com abas (minimalista) ---------- */
 #menu {
-  position: absolute; top: 5%; left: 5%;
-  width: min(62%, 580px); max-height: 90%;
+  position: absolute; top: 4%; left: 4%;
+  width: min(58%, 720px); max-height: 92%;
   z-index: 35;
-  display: flex; flex-direction: column; gap: 6px;
-  padding: 10px 12px;
+  display: flex; flex-direction: column; gap: 8px;
+  padding: 16px 20px;
   animation: panel-in .22s ease-out;
+  font-size: 15px;
 }
 #menu-body.tab-enter { animation: panel-fade .22s ease-out; }
-#menu h2 { color: var(--ff-yellow); letter-spacing: 3px; font-size: 15px; text-align: center; font-weight: bold; }
+#menu h2 { color: var(--ff-yellow); letter-spacing: 3px; font-size: 18px; text-align: center; font-weight: bold; }
 #menu-tabs {
   display: flex; gap: 4px; justify-content: center; flex-wrap: wrap;
 }
 #menu-tabs .tab {
-  padding: 5px 11px;
+  padding: 7px 16px;
   border: 1px solid transparent;
   border-radius: 20px;
   background: transparent;
-  font-size: clamp(11px, 1.7vw, 13px);
+  font-size: clamp(13px, 1.2vw, 15px);
   font-weight: bold;
   color: var(--ff-dim);
 }
@@ -199,7 +202,7 @@
   border-top: 1px solid #ffffff1f;
   padding-top: 6px;
 }
-#menu-list { overflow-y: auto; max-height: 38vh; }
+#menu-list { overflow-y: auto; max-height: 44vh; font-size: 15px; }
 #menu-list .opt { padding: 6px 8px; border-radius: 6px; border-left: 2px solid transparent; transition: background .12s, transform .12s; }
 #menu-list .opt.sel { background: linear-gradient(90deg, #ffffff1e, #ffffff08); border-left-color: var(--ff-yellow); transform: translateX(2px); }
 #menu-list .opt.sel::before { content: '▶ '; color: var(--ff-yellow); }
@@ -214,9 +217,9 @@
 #menu-list .row-cost { color: var(--ff-mp); font-size: .8em; float: right; }
 #menu-list .count { color: var(--ff-yellow); font-weight: bold; float: right; }
 #menu-detail {
-  font-size: clamp(11px, 1.7vw, 13px); line-height: 1.6;
-  border-left: 1px solid #ffffff1f; padding-left: 10px;
-  overflow-y: auto; max-height: 38vh;
+  font-size: clamp(13px, 1.2vw, 15px); line-height: 1.65;
+  border-left: 1px solid #ffffff1f; padding-left: 14px;
+  overflow-y: auto; max-height: 44vh;
 }
 #menu-detail h3 { color: var(--ff-yellow); font-size: 1em; margin-bottom: 3px; }
 #menu-detail .dead { color: var(--ff-red); }

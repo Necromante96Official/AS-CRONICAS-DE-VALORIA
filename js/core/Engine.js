@@ -7,7 +7,7 @@ import { Input } from './Input.js';
 import { AudioMan } from './Audio.js';
 import { Camera } from './Camera.js';
 import { TileMap } from '../world/TileMap.js';
-import { buildMap, regionAt, SPAWN, NPC_DEFS, BOSS_ALTAR, TOY_SPOT, HEAL_CRYSTAL, CHESTS, HUNT_GOAL, HERB_GOAL, ELITE } from '../world/MapData.js';
+import { buildMap, regionAt, SPAWN, NPC_DEFS, BOSS_ALTAR, TOY_SPOT, HEAL_CRYSTAL, CHESTS, HUNT_GOAL, HERB_GOAL, ELITE, HOUSES, INTERIOR_SPAWN, INTERIOR_DOOR, buildInterior, INTERIOR_NPCS, placeName } from '../world/MapData.js';
 import { isEncounterTile, tileColor, T } from '../world/Tiles.js';
 import { NPC } from '../world/NPCs.js';
 import { Player } from '../entities/Player.js';
@@ -135,6 +135,10 @@ export class Engine {
       'Sábia Sella': humanoidFace(this.npcArt.sage),
       'Herbalista Yara': humanoidFace(this.npcArt.herbalist),
       'Eremita Ash': humanoidFace(this.npcArt.hermit),
+      'Lia (Aprendiz)': humanoidFace(this.npcArt.sage),
+      'Viajante Nia': humanoidFace(this.npcArt.nomad),
+      'Hóspede Tom': humanoidFace(this.npcArt.fisher),
+      'Sana (Aprendiz)': humanoidFace(this.npcArt.hunter),
       'GOLEM ANCIÃO': makePortrait(this.ancientArt, 8, 0, 72, 62),
       'DRAGÃO DO CAOS': dragonFace(this.dragonArt),
     };
@@ -168,7 +172,11 @@ export class Engine {
   }
 
   init() {
-    this.map = new TileMap(buildMap());
+    this.worldMap = new TileMap(buildMap());
+    this.map = this.worldMap;
+    this.interiorMaps = {};
+    this.interiorNpcs = {};
+    this.place = { kind: 'world' };
     this._buildMinimap();
     this._newGameState();
     try { preloadIcons(); } catch { /* canvas indisponível */ }
@@ -190,17 +198,130 @@ export class Engine {
     this.gold = 120;
     this.flags = { bossDefeated: false, metElder: false };
     this._lastRegion = null;
+    this.worldMap = new TileMap(buildMap());
+    this.map = this.worldMap;
+    this.interiorMaps = {};
+    this.interiorNpcs = {};
+    this.place = { kind: 'world' };
     this.npcs = NPC_DEFS.map((d) => new NPC(d));
-    this.camera.snap(this.player.cx, this.player.cy);
+    this.worldNpcs = this.npcs;
+    this.camera.snap(this.player.cx, this.player.cy, this.map.w * TILE, this.map.h * TILE);
   }
 
-  /** Pré-renderiza o minimapa (2px por tile). */
+  /** Mapa atual (mundo ou interior). */
+  _curMap() { return this.map; }
+  /** Largura/altura do mapa atual em px (p/ a câmera). */
+  _mapPx() { return [this.map.w * TILE, this.map.h * TILE]; }
+  /** Está dentro de alguma casa? */
+  _isInterior() { return !!this.place && this.place.kind === 'interior'; }
+  /** Região atual (id do interior ou regionAt do mundo). */
+  _curRegion() {
+    if (this._isInterior()) return this.place.id;
+    return regionAt(this.player.tileX, this.player.tileY);
+  }
+
+  /** Entra na casa `id`: troca de cena com fade, reposiciona o jogador e os NPCs. */
+  async _enterHouse(id) {
+    if (this._busy || this._isInterior()) return;
+    const house = HOUSES.find((h) => h.id === id);
+    if (!house) return;
+    this._busy = true;
+    try {
+      this.audio.sfx('door');
+      await Transition.fadeOut(220);
+      this._returnPos = { x: this.player.x, y: this.player.y, dir: this.player.dir };
+      if (!this.interiorMaps[id]) {
+        this.interiorMaps[id] = new TileMap(buildInterior(id));
+        this.interiorNpcs[id] = (INTERIOR_NPCS[id] || []).map((d) => new NPC(d));
+      }
+      this.worldNpcs = this.npcs;
+      this.place = { kind: 'interior', id };
+      this.map = this.interiorMaps[id];
+      this.npcs = this.interiorNpcs[id];
+      this.player.x = INTERIOR_SPAWN.x * TILE + 4;
+      this.player.y = INTERIOR_SPAWN.y * TILE;
+      this.player.dir = 'up';
+      this.player.slideX = 0; this.player.slideY = 0;
+      this._path = null; this._tapAct = null; this._tapMark = null;
+      this._fishing = null;
+      const [mw, mh] = this._mapPx();
+      this.camera.snap(this.player.cx, this.player.cy, mw, mh);
+      this._lastRegion = id;
+      this._showBanner(id);
+      await Transition.fadeIn(280);
+      toast(`🚪 ${house.name}`);
+    } finally {
+      this._busy = false;
+    }
+  }
+
+  /** Sai da casa atual de volta à porta de origem no mundo. */
+  async _exitHouse() {
+    if (this._busy || !this._isInterior()) return false;
+    const house = HOUSES.find((h) => h.id === this.place.id);
+    this._busy = true;
+    try {
+      this.audio.sfx('door');
+      await Transition.fadeOut(220);
+      this.place = { kind: 'world' };
+      this.map = this.worldMap;
+      this.npcs = this.worldNpcs || this.npcs;
+      const fx = house ? house.front : null;
+      if (fx) {
+        this.player.x = fx.x * TILE + 4;
+        this.player.y = fx.y * TILE;
+      } else if (this._returnPos) {
+        this.player.x = this._returnPos.x; this.player.y = this._returnPos.y;
+      }
+      this.player.dir = 'down';
+      this.player.slideX = 0; this.player.slideY = 0;
+      this._path = null; this._tapAct = null; this._tapMark = null;
+      this._fishing = null;
+      const [mw, mh] = this._mapPx();
+      this.camera.snap(this.player.cx, this.player.cy, mw, mh);
+      this._lastRegion = regionAt(this.player.tileX, this.player.tileY);
+      await Transition.fadeIn(280);
+      return true;
+    } finally {
+      this._busy = false;
+    }
+  }
+
+  /** Casa cuja porta está no tile (usado pelo E e pelo toque). */
+  _houseAt(tx, ty) {
+    return HOUSES.find((h) => h.door.x === tx && h.door.y === ty) || null;
+  }
+
+  /** Tenta entrar na casa (E encarando a porta ou em cima dela). Retorna true se consumiu. */
+  _tryHouseEnter() {
+    if (this._isInterior()) return false;
+    const ft = this.player.facingTile();
+    let h = this._houseAt(ft.x, ft.y);
+    if (!h) h = this._houseAt(this.player.tileX, this.player.tileY);
+    if (!h) return false;
+    this._faceToward(h.door.x * TILE + 16, h.door.y * TILE + 16);
+    this._enterHouse(h.id);
+    return true;
+  }
+
+  /** Tenta sair da casa (E encarando/em cima da porta interna). */
+  _tryHouseExit() {
+    if (!this._isInterior()) return false;
+    const ft = this.player.facingTile();
+    const onDoor = this.player.tileX === INTERIOR_DOOR.x && this.player.tileY === INTERIOR_DOOR.y;
+    const faceDoor = ft.x === INTERIOR_DOOR.x && ft.y === INTERIOR_DOOR.y;
+    if (!onDoor && !faceDoor) return false;
+    this._exitHouse();
+    return true;
+  }
+
+  /** Pré-renderiza o minimapa (2px por tile, sempre do mundo). */
   _buildMinimap() {
     const c = document.createElement('canvas');
-    c.width = this.map.w * 2; c.height = this.map.h * 2;
+    c.width = this.worldMap.w * 2; c.height = this.worldMap.h * 2;
     const g = c.getContext('2d');
-    for (let y = 0; y < this.map.h; y++) for (let x = 0; x < this.map.w; x++) {
-      g.fillStyle = tileColor(this.map.tile(x, y));
+    for (let y = 0; y < this.worldMap.h; y++) for (let x = 0; x < this.worldMap.w; x++) {
+      g.fillStyle = tileColor(this.worldMap.tile(x, y));
       g.fillRect(x * 2, y * 2, 2, 2);
     }
     this.mmBase = c;
@@ -210,8 +331,8 @@ export class Engine {
   _showBanner(region) {
     const el = document.getElementById('region-banner');
     if (!el) return;
-    const names = { town: 'Vila Lumen', field: 'Planície Verdejante', forest: 'Bosque Sombrio', dungeon: 'Ruínas do Cristal', altar: 'Altar do Caos', beach: 'Praia do Sol', snow: 'Pico Nevado', desert: 'Deserto Dourado', swamp: 'Pântano Sombrio' };
-    const subs = { town: 'povoado pacato', field: 'cuidado com a grama alta', forest: 'feras entre as árvores', dungeon: 'o cristal o aguarda', altar: 'NÃO HÁ VOLTA', beach: 'águas calmas — bom p/ pescar', snow: 'o frio morde — feras fortes', desert: 'o oásis esconde um baú', swamp: 'não beba a água' };
+    const names = { town: 'Vila Lumen', elder: 'Casa do Ancião', shop: 'Loja da Mira', inn: 'Estalagem do Bram', smith: 'Ferraria do Rurik', field: 'Planície Verdejante', forest: 'Bosque Sombrio', dungeon: 'Ruínas do Cristal', altar: 'Altar do Caos', beach: 'Praia do Sol', snow: 'Pico Nevado', desert: 'Deserto Dourado', swamp: 'Pântano Sombrio' };
+    const subs = { town: 'povoado pacato', elder: 'o ancião o aguarda', shop: 'ouro na mão, poção na sacola', inn: 'cama quente por 20G', smith: 'martelo quente, lâmina fria', field: 'cuidado com a grama alta', forest: 'feras entre as árvores', dungeon: 'o cristal o aguarda', altar: 'NÃO HÁ VOLTA', beach: 'águas calmas — bom p/ pescar', snow: 'o frio morde — feras fortes', desert: 'o oásis esconde um baú', swamp: 'não beba a água' };
     el.innerHTML = `${names[region] || region}<small>${subs[region] || ''}</small>`;
     el.classList.remove('hidden');
     void el.offsetWidth;
@@ -244,11 +365,27 @@ export class Engine {
     this.gold = d.gold;
     this.flags = d.flags;
     this.playSec = d.playSec || 0;
+    this.worldMap = new TileMap(buildMap());
+    this.interiorMaps = {};
+    this.interiorNpcs = {};
+    this._buildMinimap();
     this.npcs = NPC_DEFS.map((def) => new NPC(def));
+    this.worldNpcs = this.npcs;
     for (const n of this.npcs) {
       if (n.gift && (d.flags[`gift_${n.id}`] || (n.id === 'hermit' && d.flags.giftTaken))) n.giftGiven = true;
     }
-    this.camera.snap(this.player.cx, this.player.cy);
+    // save feito dentro de casa: volta para a porta da casa no mundo
+    this.place = { kind: 'world' };
+    this.map = this.worldMap;
+    if (d.place && d.place.kind === 'interior') {
+      const house = HOUSES.find((h) => h.id === d.place.id);
+      if (house) {
+        this.player.x = house.front.x * TILE + 4;
+        this.player.y = house.front.y * TILE;
+      }
+    }
+    const [mw, mh] = [this.map.w * TILE, this.map.h * TILE];
+    this.camera.snap(this.player.cx, this.player.cy, mw, mh);
   }
 
   _snapshot() {
@@ -257,6 +394,7 @@ export class Engine {
       party: serializeParty(this.party), inv: { ...this.inv },
       gold: this.gold, flags: { ...this.flags, giftTaken: this.npcs.find((n) => n.id === 'hermit')?.giftGiven, ...Object.fromEntries(this.npcs.filter((n) => n.gift).map((n) => [`gift_${n.id}`, !!n.giftGiven])) },
       playSec: Math.floor(this._elapsed()),
+      place: this._isInterior() ? { ...this.place } : { kind: 'world' },
     };
   }
 
@@ -351,33 +489,40 @@ export class Engine {
       return;
     }
 
-    // falar / altar do boss / cristal / brinquedo / baú / pesca
+    // falar / portas de casas / altar do boss / cristal / brinquedo / baú / pesca
     if (!this._fishing && inp.pressed.confirm) {
       this._path = null; this._tapAct = null;
-      if (this._tryBossInteract()) return;
-      if (this._tryEliteInteract()) return;
-      if (this._tryHealCrystal()) return;
-      if (this._tryToyPickup()) return;
-      if (this._tryChest()) return;
+      if (this._tryHouseExit()) return;
+      if (this._tryHouseEnter()) return;
+      if (!this._isInterior()) {
+        if (this._tryBossInteract()) return;
+        if (this._tryEliteInteract()) return;
+        if (this._tryHealCrystal()) return;
+        if (this._tryToyPickup()) return;
+        if (this._tryChest()) return;
+      }
       const npc = this._facingNpc();
       if (npc) { this._talk(npc); return; }
-      if (this._tryFish()) return;
+      if (!this._isInterior() && this._tryFish()) return;
     }
 
     // movimento (Shift = correr)
     // NPCs NÃO bloqueiam: dá para atravessar sem travar (falar continua pelo E)
     const blockers = [];
-    // dragão bloqueia o altar até ser derrotado
-    if (!this.flags.bossDefeated) blockers.push({ x: BOSS_ALTAR.x * TILE, y: BOSS_ALTAR.y * TILE });
-    // baús são sólidos (abertos ou não)
-    for (const c of CHESTS) blockers.push({ x: c.x * TILE, y: c.y * TILE });
+    if (!this._isInterior()) {
+      // dragão bloqueia o altar até ser derrotado
+      if (!this.flags.bossDefeated) blockers.push({ x: BOSS_ALTAR.x * TILE, y: BOSS_ALTAR.y * TILE });
+      // baús são sólidos (abertos ou não)
+      for (const c of CHESTS) blockers.push({ x: c.x * TILE, y: c.y * TILE });
+    }
     if (this._fishCd > 0) this._fishCd -= dt;
     // pescaria congela o movimento: só o tick da vara/bóia avança
     if (this._fishing) {
       for (const n of this.npcs) n.update(dt, this.map);
-      this.camera.follow(this.player.cx, this.player.cy, dt);
+      const [fmw, fmh] = this._mapPx();
+      this.camera.follow(this.player.cx, this.player.cy, dt, fmw, fmh);
       this.camera.update(dt);
-      this._wxTick(dt, regionAt(this.player.tileX, this.player.tileY));
+      this._wxTick(dt, this._curRegion());
       this._tickFish(dt);
       return;
     }
@@ -412,14 +557,15 @@ export class Engine {
         });
       }
     }
-    this.camera.follow(this.player.cx, this.player.cy, dt);
+    const [mmw, mmh] = this._mapPx();
+    this.camera.follow(this.player.cx, this.player.cy, dt, mmw, mmh);
     this.camera.update(dt);
     // clima/ambiente do bioma atual (só visual, sem gameplay)
-    this._wxTick(dt, regionAt(this.player.tileX, this.player.tileY));
+    this._wxTick(dt, this._curRegion());
 
-    // encontros aleatórios na grama
+    // encontros aleatórios na grama (só no mundo, nunca dentro de casa)
     const steps = this.player.consumeSteps();
-    if (steps > 0) {
+    if (steps > 0 && !this._isInterior()) {
       const tile = this.map.tile(this.player.tileX, this.player.tileY);
       const region = regionAt(this.player.tileX, this.player.tileY);
       if (isEncounterTile(tile) && region !== 'town' && Math.random() < ENCOUNTER_RATE * steps * 2.2) {
@@ -429,12 +575,13 @@ export class Engine {
     }
 
     // música por região + banner de local novo + HUD (só re-renderiza quando algo mudou)
-    const region = regionAt(this.player.tileX, this.player.tileY);
+    const region = this._curRegion();
     if (!this._lastRegion) this._lastRegion = region;
     else if (this._lastRegion !== region) { this._lastRegion = region; this._showBanner(region); }
-    const want = region === 'town' || region === 'beach' ? 'town' : region === 'dungeon' || region === 'altar' || region === 'swamp' ? 'dungeon' : 'field';
+    const want = this._isInterior() || region === 'town' || region === 'beach' ? 'town' : region === 'dungeon' || region === 'altar' || region === 'swamp' ? 'dungeon' : 'field';
     if (this.audio.ctx && this.audio.currentTrack !== want) this.audio.playMusic(want);
-    this.hud.renderMinimap(this.mmBase, this.camera.ox, this.camera.oy, this.player.tileX, this.player.tileY, this.flags.bossDefeated ? null : BOSS_ALTAR);
+    if (this.hud.mm) this.hud.mm.style.display = this._isInterior() ? 'none' : '';
+    if (!this._isInterior()) this.hud.renderMinimap(this.mmBase, this.camera.ox, this.camera.oy, this.player.tileX, this.player.tileY, this.flags.bossDefeated ? null : BOSS_ALTAR);
     const sig = `${region}|${this.gold}|${this.audio.muted}|${this.party.map((h) => `${Math.ceil(h.hp)}/${Math.ceil(h.mp)}/${h.level}`).join(',')}`;
     if (sig !== this._hudSig) { this._hudSig = sig; this.hud.render(this.party, this.gold, region, this.faces, this.audio.muted); }
   }
@@ -506,8 +653,10 @@ export class Engine {
     const blocked = (x, y) => {
       if (x < 1 || y < 1 || x >= this.map.w - 1 || y >= this.map.h - 1) return true;
       if (this.map.solid(x, y)) return true;
-      if (!this.flags.bossDefeated && x === BOSS_ALTAR.x && y === BOSS_ALTAR.y) return true;
-      if (CHESTS.some((c) => c.x === x && c.y === y)) return true;
+      if (!this._isInterior()) {
+        if (!this.flags.bossDefeated && x === BOSS_ALTAR.x && y === BOSS_ALTAR.y) return true;
+        if (CHESTS.some((c) => c.x === x && c.y === y)) return true;
+      }
       return false;
     };
     const key = (x, y) => y * this.map.w + x;
@@ -553,6 +702,12 @@ export class Engine {
     const npc = this.npcs.find((n) =>
       Math.floor((n.x + 12) / TILE) === tx && Math.floor((n.y + 12) / TILE) === ty);
     if (npc) return { kind: 'npc', npc };
+    if (this._isInterior()) {
+      if (tx === INTERIOR_DOOR.x && ty === INTERIOR_DOOR.y) return { kind: 'house-exit' };
+      return null;
+    }
+    const house = this._houseAt(tx, ty);
+    if (house) return { kind: 'house-enter', id: house.id };
     if (CHESTS.some((c) => c.x === tx && c.y === ty)) return { kind: 'chest' };
     if (tx === BOSS_ALTAR.x && ty === BOSS_ALTAR.y) return { kind: 'spot', which: 'boss' };
     if (tx === ELITE.x && ty === ELITE.y) return { kind: 'spot', which: 'elite' };
@@ -578,6 +733,16 @@ export class Engine {
       if (Math.hypot(nx - this.player.cx, ny - this.player.cy) > TILE * 1.8) return;
       this._faceToward(nx, ny);
       this._talk(act.npc);
+    } else if (act.kind === 'house-enter') {
+      const house = HOUSES.find((h) => h.id === act.id);
+      if (house) {
+        const dx = house.door.x * TILE + 16, dy = house.door.y * TILE + 16;
+        if (Math.hypot(dx - this.player.cx, dy - this.player.cy) > TILE * 2.2) return;
+        this._faceToward(dx, dy);
+        this._enterHouse(act.id);
+      }
+    } else if (act.kind === 'house-exit') {
+      this._tryHouseExit();
     } else if (act.kind === 'chest') {
       this._tryChest();
     } else if (act.kind === 'fish') {
@@ -799,6 +964,7 @@ export class Engine {
 
   /** Baú do tesouro: E por perto abre uma única vez. */
   _tryChest() {
+    if (this._isInterior()) return false;
     const c = this._nearChest();
     if (!c) return false;
     if (this.flags[`chest_${c.id}`]) {
@@ -844,6 +1010,7 @@ export class Engine {
 
   /** Inicia a pescaria: E encarando a água (ou tocando a água). Retorna true se lançou a linha. */
   _tryFish(forceTX, forceTY) {
+    if (this._isInterior()) return false;
     if (this._fishing || this._fishCd > 0) return false;
     let tx, ty;
     if (forceTX !== undefined && forceTY !== undefined) {
@@ -1082,6 +1249,7 @@ export class Engine {
 
   /** Cristal restaurador: E por perto = cura total. */
   _tryHealCrystal() {
+    if (this._isInterior()) return false;
     const d = Math.hypot(this.player.cx - (HEAL_CRYSTAL.x * TILE + 16), this.player.cy - (HEAL_CRYSTAL.y * TILE + 16));
     if (d > TILE * 1.7) return false;
     fullHeal(this.party);
@@ -1094,6 +1262,7 @@ export class Engine {
 
   /** Pega o boneco do Pip (só com a quest ativa). */
   _tryToyPickup() {
+    if (this._isInterior()) return false;
     if (!this.flags.toyQuest || this.flags.toyFound) return false;
     const d = Math.hypot(this.player.cx - (TOY_SPOT.x * TILE + 16), this.player.cy - (TOY_SPOT.y * TILE + 16));
     if (d > TILE * 1.4) return false;
@@ -1151,6 +1320,7 @@ export class Engine {
   }
 
   _tryBossInteract() {
+    if (this._isInterior()) return false;
     if (this.flags.bossDefeated) return false;
     const d = Math.hypot(this.player.cx - (BOSS_ALTAR.x * TILE + 16), this.player.cy - (BOSS_ALTAR.y * TILE + 16));
     if (d > TILE * 2.2) return false;
@@ -1206,6 +1376,7 @@ export class Engine {
 
   /** Sentinela opcional do deserto: o Golem Ancião aguarda na clareira. */
   _tryEliteInteract() {
+    if (this._isInterior()) return false;
     if (this.flags.eliteDefeated) return false;
     const d = Math.hypot(this.player.cx - (ELITE.x * TILE + 16), this.player.cy - (ELITE.y * TILE + 16));
     if (d > TILE * 2.2) return false;
@@ -1316,9 +1487,13 @@ export class Engine {
   _lastSaveFallback() {
     // ao voltar ao título, o jogador pode continuar de um save; revive o grupo na vila
     const retry = () => {
+      this.place = { kind: 'world' };
+      this.map = this.worldMap;
+      this.npcs = this.worldNpcs || NPC_DEFS.map((d) => new NPC(d));
+      this.worldNpcs = this.npcs;
       this.player = new Player(SPAWN.x, SPAWN.y);
       for (const h of this.party) { h.hp = Math.ceil(h.maxHp / 2); h.mp = Math.ceil(h.maxMp / 2); }
-      this.camera.snap(this.player.cx, this.player.cy);
+      this.camera.snap(this.player.cx, this.player.cy, this.map.w * TILE, this.map.h * TILE);
     };
     const btn = document.getElementById('btn-retry');
     if (btn && !btn.dataset.armed) {
@@ -1363,6 +1538,8 @@ export class Engine {
     ];
     this.map.draw(g, ox, oy, this.time, actorRects);
 
+    const inHouse = this._isInterior();
+    if (!inHouse) {
     // cristal do altar
     const cxp = BOSS_ALTAR.x * TILE + ox, cyp = BOSS_ALTAR.y * TILE + oy;
     if (!this.flags.bossDefeated) {
@@ -1424,6 +1601,13 @@ export class Engine {
 
     // baús do tesouro (fechado brilha; aberto mostra a tampa erguida)
     for (const c of CHESTS) this._drawChest(g, ox, oy, c);
+    } else {
+      // dentro de casa: tapete de saída + brilho na porta
+      const ex = INTERIOR_DOOR.x * TILE + ox + 16, ey = INTERIOR_DOOR.y * TILE + oy;
+      const tw = 0.5 + 0.4 * Math.sin(this.time * 4);
+      g.fillStyle = `rgba(255,215,94,${(0.25 + tw * 0.25).toFixed(2)})`;
+      g.beginPath(); g.ellipse(ex, ey + 10, 16, 6, 0, 0, 7); g.fill();
+    }
 
     // sombras suaves sob os atores (profundidade barata estilo 16-bit)
     const shadow = (sx, sy, w) => {
@@ -1457,11 +1641,11 @@ export class Engine {
       halo.addColorStop(1, 'transparent');
       g.fillStyle = halo;
       g.fillRect(lx - 150, ly - 150, 300, 300);
-      const vg = g.createRadialGradient(480, 270, 240, 480, 270, 620);
+      const vg = g.createRadialGradient(VIEW_W / 2, VIEW_H / 2, 320, VIEW_W / 2, VIEW_H / 2, 830);
       vg.addColorStop(0, 'transparent');
       vg.addColorStop(1, `rgba(2,3,12,${(0.30 + 0.04 * Math.sin(this.time * 0.8)).toFixed(2)})`);
       g.fillStyle = vg;
-      g.fillRect(0, 0, 960, 540);
+      g.fillRect(0, 0, VIEW_W, VIEW_H);
     }
     // marca do toque (para onde o jogador está indo)
     if (this._tapMark && this.time - this._tapMark.t < 0.6) {
@@ -1477,8 +1661,39 @@ export class Engine {
 
     // balão "▼ E" quando há NPC falável à frente (prioridade sobre o "!" da quest)
     const npc = this._facingNpc();
+    // porta de casa à frente (mundo) ou porta de saída (interior)
+    let housePrompt = null, exitPrompt = false;
+    if (this.state === 'FIELD' && !this.dialog.active && !this.menu.active) {
+      if (this._isInterior()) {
+        const ft0 = this.player.facingTile();
+        if ((ft0.x === INTERIOR_DOOR.x && ft0.y === INTERIOR_DOOR.y) ||
+            (this.player.tileX === INTERIOR_DOOR.x && this.player.tileY === INTERIOR_DOOR.y)) exitPrompt = true;
+      } else if (!npc) {
+        const ft0 = this.player.facingTile();
+        housePrompt = this._houseAt(ft0.x, ft0.y) || this._houseAt(this.player.tileX, this.player.tileY);
+      }
+    }
+    if (exitPrompt) {
+      g.fillStyle = '#ffd75e';
+      g.font = 'bold 20px monospace';
+      g.strokeStyle = '#000'; g.lineWidth = 4;
+      const ex = INTERIOR_DOOR.x * TILE + ox + 16, ey = INTERIOR_DOOR.y * TILE + oy - 26 + Math.sin(this.time * 5) * 2;
+      g.textAlign = 'center';
+      g.strokeText('🚪 E Sair', ex, ey);
+      g.fillText('🚪 E Sair', ex, ey);
+      g.textAlign = 'start';
+    } else if (housePrompt) {
+      g.fillStyle = '#7fd4ff';
+      g.font = 'bold 20px monospace';
+      g.strokeStyle = '#000'; g.lineWidth = 4;
+      const hx = housePrompt.door.x * TILE + ox + 16, hy = housePrompt.door.y * TILE + oy - 26 + Math.sin(this.time * 5) * 2;
+      g.textAlign = 'center';
+      g.strokeText(`🏠 E ${housePrompt.name}`, hx, hy);
+      g.fillText(`🏠 E ${housePrompt.name}`, hx, hy);
+      g.textAlign = 'start';
+    }
     // balão "▼ E" sobre o baú próximo (só se não há NPC na frente — mesma prioridade do E)
-    const chest = !npc ? this._nearChest() : null;
+    const chest = !npc && !housePrompt && !inHouse ? this._nearChest() : null;
     if (chest && this.state === 'FIELD' && !this.dialog.active) {
       g.fillStyle = '#ffd75e';
       g.font = 'bold 20px monospace';
@@ -1512,8 +1727,8 @@ export class Engine {
       g.strokeText('▼ E', bx - 8, by);
       g.fillText('▼ E', bx - 8, by);
     }
-    // dica de pesca: "🎣 E" pulsante sobre a água encarada (só fora da pescaria)
-    if (!this._fishing && !npc && !chest && this.state === 'FIELD' && !this.dialog.active && !this.menu.active) {
+    // dica de pesca: "🎣 E" pulsante sobre a água encarada (só fora da pescaria e fora de casa)
+    if (!this._fishing && !npc && !chest && !housePrompt && !inHouse && this.state === 'FIELD' && !this.dialog.active && !this.menu.active) {
       const ft = this.player.facingTile();
       if (this.map.tile(ft.x, ft.y) === T.WATER) {
         const fx = ft.x * TILE + ox + 16, fy = ft.y * TILE + oy - 6 + Math.sin(this.time * 5) * 2;
@@ -1876,8 +2091,8 @@ export class Engine {
   _drawFishGame(g) {
     const f = this._fishing;
     if (!f || (f.phase !== 'reel' && f.phase !== 'caught' && f.phase !== 'miss')) return;
-    const W = 480, H = f.phase === 'reel' ? 138 : 84;
-    const x = (960 - W) / 2, y = 540 - H - 78;
+    const W = 640, H = f.phase === 'reel' ? 148 : 92;
+    const x = (VIEW_W - W) / 2, y = VIEW_H - H - 100;
     // caixa
     g.fillStyle = 'rgba(6,9,20,.93)';
     g.strokeStyle = '#cdd6ff'; g.lineWidth = 2;
@@ -1893,9 +2108,9 @@ export class Engine {
       const velBars = f.spec.speed < 0.65 ? '▰▱▱' : f.spec.speed < 0.9 ? '▰▰▱' : '▰▰▰';
       g.font = 'bold 14px monospace';
       g.fillStyle = '#ffd75e';
-      g.fillText(`❓ PEIXE MISTERIOSO · sombra ${f.spec.size} · ${stars}`, 480, y + 19);
+      g.fillText(`❓ PEIXE MISTERIOSO · sombra ${f.spec.size} · ${stars}`, VIEW_W / 2, y + 19);
       g.font = '11px monospace'; g.fillStyle = '#9fb2ff';
-      g.fillText(`velocidade ${velBars} · sombra G = raro e veloz · Q solta`, 480, y + 36);
+      g.fillText(`velocidade ${velBars} · sombra G = raro e veloz · Q solta`, VIEW_W / 2, y + 36);
       const bx = x + 24, bw = W - 48, by = y + 56, bh = 24;
       // trilho com gradiente + cantos
       const rail = g.createLinearGradient(bx, 0, bx + bw, 0);
@@ -1952,33 +2167,33 @@ export class Engine {
       g.font = 'bold 15px monospace';
       g.strokeStyle = '#000'; g.lineWidth = 3;
       const vy = by + bh + 22;
-      g.strokeText(v.txt, 480, vy);
-      g.fillStyle = v.col; g.fillText(v.txt, 480, vy);
+      g.strokeText(v.txt, VIEW_W / 2, vy);
+      g.fillStyle = v.col; g.fillText(v.txt, VIEW_W / 2, vy);
       if (f.struggle > 0) {
         g.font = 'bold 12px monospace';
         const flash = Math.sin(this.time * 16) > 0 ? '#ff8a6b' : '#ffd75e';
-        g.strokeText('⚠ ARRANQUE! segure o ritmo...', 480, vy + 15);
-        g.fillStyle = flash; g.fillText('⚠ ARRANQUE! segure o ritmo...', 480, vy + 15);
+        g.strokeText('⚠ ARRANQUE! segure o ritmo...', VIEW_W / 2, vy + 15);
+        g.fillStyle = flash; g.fillText('⚠ ARRANQUE! segure o ritmo...', VIEW_W / 2, vy + 15);
       } else {
         g.font = '11px monospace'; g.fillStyle = '#9fb2ff';
-        g.fillText('E = fisgar · dourado = PERFEITA (×2)', 480, vy + 15);
+        g.fillText('E = fisgar · dourado = PERFEITA (×2)', VIEW_W / 2, vy + 15);
       }
     } else if (f.phase === 'caught') {
       g.font = 'bold 15px monospace';
       g.fillStyle = '#37e08b';
-      g.fillText(f.catch.kind === 'fish' ? `${f.spec.icon} ${f.spec.name} — FISGADA ${f.grade}!` : '🎣 BOA!', 480, y + 19);
+      g.fillText(f.catch.kind === 'fish' ? `${f.spec.icon} ${f.spec.name} — FISGADA ${f.grade}!` : '🎣 BOA!', VIEW_W / 2, y + 19);
       g.font = '13px monospace'; g.fillStyle = '#f2f4ff';
-      g.fillText(f.resultText || '', 480, y + 44);
+      g.fillText(f.resultText || '', VIEW_W / 2, y + 44);
       g.font = '11px monospace'; g.fillStyle = '#9fb2ff';
-      g.fillText('E continua pescando · Q recolhe', 480, y + 64);
+      g.fillText('E continua pescando · Q recolhe', VIEW_W / 2, y + 64);
     } else {
       g.font = 'bold 14px monospace';
       g.fillStyle = '#ff6b6b';
-      g.fillText('🎣 Escapou...', 480, y + 19);
+      g.fillText('🎣 Escapou...', VIEW_W / 2, y + 19);
       g.font = '12px monospace'; g.fillStyle = '#f2f4ff';
-      g.fillText(f.missMsg || '', 480, y + 42);
+      g.fillText(f.missMsg || '', VIEW_W / 2, y + 42);
       g.font = '11px monospace'; g.fillStyle = '#9fb2ff';
-      g.fillText('E tenta de novo · Q recolhe', 480, y + 62);
+      g.fillText('E tenta de novo · Q recolhe', VIEW_W / 2, y + 62);
     }
     g.textAlign = 'start';
   }
@@ -2297,7 +2512,7 @@ export class Engine {
     }
     // vagalumes sobre a grama do título
     for (let i = 0; i < 14; i++) {
-      const fx = (i * 137 + Math.sin(this.time * 0.7 + i) * 30 + 960) % 960;
+      const fx = (i * 137 + Math.sin(this.time * 0.7 + i) * 30 + VIEW_W) % VIEW_W;
       const fy = 430 + ((i * 53) % 80);
       g.fillStyle = `rgba(255,240,150,${(0.3 + 0.5 * Math.abs(Math.sin(this.time * 2 + i * 2))).toFixed(2)})`;
       g.fillRect(fx, fy, 2, 2);

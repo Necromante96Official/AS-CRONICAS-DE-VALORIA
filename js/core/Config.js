@@ -5,9 +5,9 @@
 
 /** Tamanho do tile em pixels. */
 export const TILE = 32;
-/** Resolução interna do canvas. */
-export const VIEW_W = 960;
-export const VIEW_H = 540;
+/** Resolução interna do canvas (HD). */
+export const VIEW_W = 1280;
+export const VIEW_H = 720;
 /** Dimensões do mapa-múndi. */
 export const MAP_W = 80;
 export const MAP_H = 60;
@@ -23,6 +23,10 @@ export const xpForLevel = (level) => Math.floor(20 * Math.pow(level, 1.6));
 /** Paleta / nomes de locais. */
 export const LOCATIONS = {
   town: 'Vila Lumen',
+  elder: 'Casa do Ancião',
+  shop: 'Loja da Mira',
+  inn: 'Estalagem do Bram',
+  smith: 'Ferraria do Rurik',
   field: 'Planície Verdejante',
   forest: 'Bosque Sombrio',
   dungeon: 'Ruínas do Cristal',

@@ -2,7 +2,7 @@
  * HUD — barra de status do grupo (retrato + barras) + local + ouro.
  * @module ui/HUD
  */
-import { LOCATIONS } from '../core/Config.js';
+import { LOCATIONS, VIEW_W, VIEW_H, TILE } from '../core/Config.js';
 import { ic } from './ItemIcons.js';
 
 export class HUD {
@@ -57,7 +57,7 @@ export class HUD {
     g.clearRect(0, 0, this.mm.width, this.mm.height);
     g.drawImage(base, 0, 0);
     g.strokeStyle = '#ffffffaa'; g.lineWidth = 1;
-    g.strokeRect((-ox / 32) * 2 + 0.5, (-oy / 32) * 2 + 0.5, (960 / 32) * 2, (540 / 32) * 2);
+    g.strokeRect((-ox / TILE) * 2 + 0.5, (-oy / TILE) * 2 + 0.5, (VIEW_W / TILE) * 2, (VIEW_H / TILE) * 2);
     if (altar) {
       g.fillStyle = '#ff5b5b';
       g.fillRect(altar.x * 2 - 2, altar.y * 2 - 2, 5, 5);

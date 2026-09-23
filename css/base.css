@@ -32,13 +32,14 @@ html, body {
 
 #game-wrap {
   position: relative;
-  width: min(96vw, 960px);
+  width: min(96vw, 1280px);
   aspect-ratio: 16 / 9;
   background: #000;
   border: 3px solid #3a478c;
   border-radius: 12px;
   overflow: hidden;
   box-shadow: 0 0 0 1px #0a1030, 0 0 70px #2a357066, 0 0 140px #4fc3ff22, 0 20px 60px #000c;
+  max-height: 96dvh;
 }
 /* vinheta retrô + scanlines sutis sobre o mundo (abaixo da UI) */
 #game-wrap::before {
@@ -113,13 +114,14 @@ html, body {
 /* Toast de itens / XP */
 #toast {
   position: absolute;
-  top: 64px; left: 50%;
+  top: 84px; left: 50%;
   transform: translateX(-50%);
   background: linear-gradient(180deg, #1a2a78f2, #0a1030f2);
   border: 2px solid var(--ff-yellow);
-  border-radius: 8px;
-  padding: 8px 16px;
+  border-radius: 10px;
+  padding: 10px 20px;
   font-weight: bold;
+  font-size: 15px;
   color: var(--ff-yellow);
   text-shadow: 1px 1px 0 #000;
   z-index: 55;
@@ -154,8 +156,8 @@ html, body {
   transition: transform .08s, filter .12s;
 }
 #touch button:active { transform: scale(.93); filter: brightness(1.25); }
-#tbtns { display: flex; gap: 10px; align-items: flex-end; pointer-events: auto; }
-#tbtns button { width: 56px; height: 56px; border-radius: 50%; font-weight: bold; }
+#tbtns { display: flex; gap: 12px; align-items: flex-end; pointer-events: auto; }
+#tbtns button { width: 64px; height: 64px; border-radius: 50%; font-weight: bold; }
 /* correr (alternador) + arrasto do bloco */
 #tbtns { touch-action: none; }
 #tbtns.moving { opacity: .65; }

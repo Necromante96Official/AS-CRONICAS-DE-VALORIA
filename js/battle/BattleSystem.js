@@ -1250,7 +1250,11 @@ export class BattleSystem {
   draw() {
     const g = this.g;
     const sc = this._scenery();
+    // HD: o canvas é 1280x453 mas o layout lógico continua 960x340 — escala uniforme
+    const SX = (this.cv.width || 1280) / 960;
+    const SY = (this.cv.height || 453) / 340;
     g.save();
+    g.scale(SX, SY);
     if (this.shakeT > 0) {
       const m = this.shakeM * Math.min(1, this.shakeT * 4);
       g.translate((Math.random() - 0.5) * 2 * m, (Math.random() - 0.5) * 2 * m);

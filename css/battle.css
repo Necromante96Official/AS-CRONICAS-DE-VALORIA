@@ -33,28 +33,28 @@
 #battle-bottom {
   flex: none;
   display: flex;
-  gap: 6px;
-  padding: 4px 8px 8px;
+  gap: 8px;
+  padding: 8px 14px 14px;
   min-height: 0;
   margin-top: auto;
 }
-#battle-menu { flex: 1; padding: 3px 10px; overflow: hidden; }
+#battle-menu { flex: 1; padding: 8px 16px; overflow: hidden; font-size: 16px; }
 /* log interno (alimenta testes/logic) mas fora do layout */
 #battle-msg { display: none; }
 /* listas do topo: inimigos à esq, party à dir */
 #battle-foes, #battle-party {
-  position: absolute; top: 52px;
+  position: absolute; top: 64px;
   z-index: 46;
-  display: flex; flex-direction: column; gap: 4px;
-  max-width: 30%;
+  display: flex; flex-direction: column; gap: 6px;
+  max-width: 28%;
 }
-#battle-foes { left: 8px; align-items: flex-start; }
-#battle-party { right: 8px; align-items: flex-end; }
+#battle-foes { left: 12px; align-items: flex-start; }
+#battle-party { right: 12px; align-items: flex-end; }
 /* barra do chefe — fina e discreta */
 #boss-bar {
-  position: absolute; top: 6px; left: 50%;
+  position: absolute; top: 10px; left: 50%;
   transform: translateX(-50%);
-  width: min(52%, 360px);
+  width: min(46%, 520px);
   z-index: 46;
   text-align: center;
   animation: panel-fade .4s ease-out;
@@ -63,28 +63,28 @@
   font-weight: bold; letter-spacing: 2px;
   color: var(--ff-red);
   text-shadow: 1px 1px 0 #000;
-  font-size: clamp(11px, 1.8vw, 14px);
-  margin-bottom: 2px;
+  font-size: clamp(13px, 1.4vw, 17px);
+  margin-bottom: 4px;
 }
-#boss-bar .bbar.hp.big { height: 9px; border: 1px solid #ffffff77; border-radius: 6px; background: #000c; overflow: hidden; box-shadow: 0 0 14px #ff6b6b55, 0 2px 8px #000a; }
+#boss-bar .bbar.hp.big { height: 12px; border: 1px solid #ffffff77; border-radius: 6px; background: #000c; overflow: hidden; box-shadow: 0 0 14px #ff6b6b55, 0 2px 8px #000a; }
 #boss-bar .bbar.hp.big > div { background: linear-gradient(90deg, #ffb36b, #ff6b6b 45%, #a00); transition: width .3s; }
 /* chips compactos: foto + barra */
 #battle-foes .bfoe, #battle-party .bchar {
-  display: flex; gap: 6px; align-items: center;
+  display: flex; gap: 8px; align-items: center;
   background: linear-gradient(180deg, #101a44e6, #060913e6);
   border: 1px solid #ffffff2e;
-  border-radius: 8px;
-  padding: 3px 8px 3px 3px;
-  font-size: clamp(10px, 1.7vw, 13px);
-  line-height: 1.35;
+  border-radius: 10px;
+  padding: 5px 12px 5px 5px;
+  font-size: clamp(12px, 1.2vw, 15px);
+  line-height: 1.4;
   box-shadow: 0 3px 10px #000a, inset 0 1px 0 #ffffff22;
   transition: border-color .15s, background .15s, transform .12s;
 }
 #battle-foes .bfoe { flex-direction: row; }
 #battle-party .bchar { flex-direction: row-reverse; text-align: right; }
 #battle-foes img, #battle-party .bface {
-  width: auto; height: 30px;
-  border-radius: 5px;
+  width: auto; height: 40px;
+  border-radius: 6px;
   background: #00000080;
   image-rendering: pixelated;
   flex: none;
@@ -110,7 +110,7 @@
 #battle-menu { overflow-x: auto; overflow-y: hidden; }
 #battle-cmds { display: flex; align-items: center; gap: 3px; }
 #battle-cmds .cmd-title { color: var(--ff-yellow); font-weight: bold; letter-spacing: 1px; font-size: .85em; flex: none; margin-right: 2px; }
-#battle-cmds .opt { padding: 4px 10px; border-radius: 14px; font-size: clamp(11px, 1.8vw, 15px); border: 1px solid transparent; transition: background .12s, transform .1s; white-space: nowrap; flex: none; }
+#battle-cmds .opt { padding: 8px 16px; border-radius: 16px; font-size: clamp(13px, 1.3vw, 17px); border: 1px solid transparent; transition: background .12s, transform .1s; white-space: nowrap; flex: none; }
 #battle-cmds .opt.sel { background: linear-gradient(180deg, #ffffff26, #ffffff10); color: var(--ff-yellow); border-color: #ffd75e88; box-shadow: 0 0 10px #ffd75e44; transform: translateY(-1px); }
 #battle-cmds .opt.nomp { opacity: .4; }
 #battle-party .bchar.dead { opacity: .45; }

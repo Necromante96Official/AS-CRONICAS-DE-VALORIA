@@ -69,7 +69,18 @@ export async function runAutoTest(game) {
     game.player.x = tx * TILE + 4;
     game.player.y = ty * TILE;
     game.player.dir = dir;
-    game.camera.snap(game.player.cx, game.player.cy);
+    game.camera.snap(game.player.cx, game.player.cy, game.map.w * TILE, game.map.h * TILE);
+  }
+  /** Entra na casa `id` pela porta do mundo (teleporta p/ frente da porta + E). */
+  async function enterHouse(id, dx, dy) {
+    teleport(dx, dy, 'up');
+    await frames(3);
+    await key('KeyE');
+    const ok = await waitFor(() => game.place && game.place.kind === 'interior' && game.place.id === id, 8000);
+    // a transição (fade) ainda prende o update: espera liberar antes de falar/andar
+    await waitFor(() => !game._busy, 8000);
+    await frames(5);
+    return ok;
   }
 
   try {
@@ -117,36 +128,48 @@ export async function runAutoTest(game) {
     log(await waitFor(() => document.getElementById('region-banner').textContent.includes('Planície'), 8000), 'banner-regiao');
     log(!!document.getElementById('minimap') && game.mmBase instanceof HTMLCanvasElement, 'minimapa-ok');
 
-    // ---- 3. falar com o Ancião (presente + flag) ----
+    // ---- 3. falar com o Ancião (dentro de casa: porta + presente + flag) ----
     const pot0 = game.inv.potion;
-    teleport(14, 37, 'up');
+    log(await enterHouse('elder', 10, 35), 'casa-anciao-entra');
+    teleport(10, 6, 'up'); // em frente ao Ancião (10,5)
+    await frames(3);
     await key('KeyE');
     log(await waitFor(() => game.dialog.active, 5000, 'dialogo-anciao-abre'), 'dialogo-anciao-abre');
     log(await dismissDialog(), 'dialogo-anciao-fecha');
     log(game.inv.potion === pot0 + 2 && game.flags.metElder === true, 'presente-do-anciao', `pocoes ${pot0}→${game.inv.potion}`);
+    await game._exitHouse();
+    log(await waitFor(() => game.place && game.place.kind === 'world', 8000), 'casa-anciao-sai');
 
-    // ---- 4. loja da Mira (compra via diálogo; loja reabre e esgota o ouro) ----
+    // ---- 4. loja da Mira (dentro de casa: compra via diálogo; loja reabre e esgota o ouro) ----
     const gold0 = game.gold, shopPot0 = game.inv.potion;
-    teleport(17, 38, 'up');
+    log(await enterHouse('shop', 21, 35), 'loja-entra');
+    teleport(10, 5, 'up'); // em frente à Mira (10,4), atrás do balcão
+    await frames(3);
     await key('KeyE');
     log(await waitFor(() => game.dialog.active, 5000, 'loja-abre'), 'loja-abre');
     log(await dismissDialog(), 'loja-fecha');
     log(game.gold < gold0 && game.inv.potion > shopPot0 && !game.dialog.active, 'loja-comprou', `ouro ${gold0}→${game.gold} pocao ${shopPot0}→${game.inv.potion}`);
+    await game._exitHouse();
+    await waitFor(() => game.place && game.place.kind === 'world', 8000);
 
-    // ---- 5. estalagem do Bram (cura total por 20G) ----
+    // ---- 5. estalagem do Bram (dentro de casa: cura total por 20G) ----
     game.party.forEach((h) => { h.hp = 1; h.mp = 0; });
     const gold1 = game.gold;
-    teleport(13, 41, 'down');
+    log(await enterHouse('inn', 10, 46), 'estalagem-entra');
+    teleport(10, 5, 'up'); // em frente ao Bram (10,4)
+    await frames(3);
     await key('KeyE');
     log(await waitFor(() => game.dialog.active, 5000, 'estalagem-abre'), 'estalagem-abre');
     log(await dismissDialog(), 'estalagem-fecha');
     log(game.party.every((h) => h.hp === h.maxHp && h.mp === h.maxMp) && game.gold === gold1 - 20, 'estalagem-curou', `ouro ${gold1}→${game.gold}`);
+    await game._exitHouse();
+    await waitFor(() => game.place && game.place.kind === 'world', 8000);
 
     // ---- 5b. quest do Pip: aceita, acha, entrega ----
     {
       const kid = game.npcs.find((n) => n.id === 'kid');
       kid.x = kid.homeX; kid.y = kid.homeY;
-      teleport(14, 40, 'up');
+      teleport(15, 38, 'up'); // praça, encarando a casa do Pip (15,37)
       await key('KeyE');
       log(await waitFor(() => game.dialog.active, 5000), 'quest-pip-fala');
       log(await dismissDialog(), 'quest-pip-fecha');
@@ -158,7 +181,7 @@ export async function runAutoTest(game) {
       log(await dismissDialog(), 'quest-pip-acha-fecha');
       log(game.flags.toyFound === true, 'quest-pip-achou');
       kid.x = kid.homeX; kid.y = kid.homeY;
-      teleport(14, 40, 'up');
+      teleport(15, 38, 'up');
       const gq0 = game.gold, hq0 = game.inv.hipotion;
       await key('KeyE');
       log(await waitFor(() => game.dialog.active, 5000), 'quest-pip-entrega-abre');
@@ -484,16 +507,16 @@ export async function runAutoTest(game) {
     }
 
     // ---- 13. mobile/colisão: atravessa NPC, tap-to-move e poço realocado ----
-    log(game.map.tile(13, 38) !== T.WELL && game.map.tile(21, 41) === T.WELL, 'poco-realocado');
-    // atravessa o Ancião (14,36) andando para baixo sem travar
+    log(game.map.tile(15, 38) !== T.WELL && game.map.tile(22, 38) === T.WELL, 'poco-realocado');
+    // atravessa o Pip (15,37) andando para baixo sem travar
     {
-      teleport(14, 35, 'down');
+      teleport(15, 36, 'down');
       await frames(3);
       window.dispatchEvent(new KeyboardEvent('keydown', { code: 'ArrowDown' }));
       await frames(15);
       window.dispatchEvent(new KeyboardEvent('keyup', { code: 'ArrowDown' }));
       await frames(3);
-      log(game.player.tileY >= 36, 'npc-atravessa', `tileY ${game.player.tileY}`);
+      log(game.player.tileY >= 37, 'npc-atravessa', `tileY ${game.player.tileY}`);
     }
     // tap-to-move: rota até (25,30) e anda sozinho sem teclas
     {

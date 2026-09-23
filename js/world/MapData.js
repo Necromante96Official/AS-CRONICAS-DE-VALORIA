@@ -7,8 +7,8 @@ import { T } from './Tiles.js';
 import { MAP_W, MAP_H } from '../core/Config.js';
 import { hash2 } from './Tiles.js';
 
-/** Posição inicial do jogador (em tiles). */
-export const SPAWN = { x: 14, y: 38 };
+/** Posição inicial do jogador (em tiles, centro da praça). */
+export const SPAWN = { x: 15, y: 38 };
 /** Tile do altar do boss. */
 export const BOSS_ALTAR = { x: 54, y: 6 };
 /** Brinquedo perdido do Pip (quest). */
@@ -84,29 +84,12 @@ export function buildMap() {
   const pathH = (x0, x1, y) => { for (let x = x0; x <= x1; x++) if (get(x, y) !== T.WATER && get(x, y) !== T.BRIDGE) set(x, y, T.PATH); };
   const pathV = (y0, y1, x) => { for (let y = y0; y <= y1; y++) if (get(x, y) !== T.WATER) set(x, y, T.PATH); };
   pathH(10, 43, 30); pathH(46, 54, 29);
-  pathV(15, 30, 54); pathV(30, 40, 14);
+  pathV(15, 30, 54); pathV(30, 40, 15);
   // caminhos do sul e do deserto (ponte sul -> praia/deserto, trilha do oásis)
   pathH(43, 66, 52); pathH(54, 66, 29);
   pathV(28, 54, 66); pathV(44, 54, 12);
 
-  // ---- Vila Lumen (sudoeste): fileiras simétricas + praça central ----
-  rect(7, 33, 21, 43, T.PATH);
-  // casas (5x4: telhado, parede, parede/porta)
-  const house = (hx, hy) => {
-    rect(hx, hy, hx + 4, hy + 1, T.ROOF);
-    rect(hx, hy + 2, hx + 4, hy + 3, T.WALL);
-    set(hx + 2, hy + 3, T.DOOR);
-    set(hx, hy + 2, T.WALL); set(hx + 4, hy + 2, T.WALL);
-  };
-  house(8, 34); house(15, 34);   // fileira norte (portas em 10,37 e 17,37)
-  house(8, 40); house(15, 40);   // fileira sul (portas em 10,43 e 17,43)
-  // praça de pedra + canteiros simétricos
-  rect(12, 38, 17, 39, T.PLAZA);
-  set(11, 38, T.FLOWER); set(18, 38, T.FLOWER);
-  set(11, 39, T.FLOWER); set(18, 39, T.FLOWER);
-  // rochedos decorativos no campo (fora de caminhos)
-  set(24, 19, T.STONE); set(37, 25, T.STONE); set(29, 33, T.STONE);
-  // clareiras no bosque
+  // util de manchas (usado pela vila e pelos biomas)
   const blob = (cx, cy, r, t, only) => {
     for (let y = cy - r; y <= cy + r; y++) for (let x = cx - r; x <= cx + r; x++) {
       if (Math.hypot(x - cx, y - cy) > r + 0.4) continue;
@@ -114,6 +97,50 @@ export function buildMap() {
       if (!only || only.includes(get(x, y))) set(x, y, t);
     }
   };
+  // ---- Vila Lumen (sudoeste, espaçosa): 4 casas visitáveis + praça central ----
+  // terreno da vila: grama limpa + rua principal (leste-oeste) + rua central (norte-sul)
+  rect(6, 30, 25, 47, T.GRASS);
+  pathH(6, 25, 38); pathV(30, 47, 15); pathV(30, 47, 16);
+  // casas espaçosas (6x2 telhado + 6x2 parede + porta). Portas:
+  // ancião (10,34) · loja (21,34) · estalagem (10,45) · ferraria (21,45)
+  const house6 = (hx, hy) => {
+    rect(hx, hy, hx + 5, hy + 1, T.ROOF);
+    rect(hx, hy + 2, hx + 5, hy + 3, T.WALL);
+    set(hx + 3, hy + 3, T.DOOR);
+  };
+  house6(7, 31); house6(18, 31);   // fileira norte, com rua de 5 tiles entre elas
+  house6(7, 42); house6(18, 42);   // fileira sul, quintal amplo no meio
+  // praça central de pedra (encontro da rua principal com a rua central)
+  rect(12, 36, 19, 40, T.PLAZA);
+  // jardins e canteiros ao longo das ruas (respiro verde entre as casas)
+  set(13, 36, T.FLOWER); set(18, 36, T.FLOWER);
+  set(13, 40, T.FLOWER); set(18, 40, T.FLOWER);
+  set(6, 37, T.FLOWER); set(25, 37, T.FLOWER);
+  set(14, 31, T.FLOWER); set(17, 31, T.FLOWER);
+  // floreiras simétricas na frente das casas + placas indicativas junto às portas
+  set(7, 35, T.FLOWER); set(9, 35, T.FLOWER); set(11, 35, T.FLOWER);
+  set(18, 35, T.FLOWER); set(20, 35, T.FLOWER); set(22, 35, T.FLOWER);
+  set(7, 46, T.FLOWER); set(9, 46, T.FLOWER); set(11, 46, T.FLOWER);
+  set(18, 46, T.FLOWER); set(20, 46, T.FLOWER); set(22, 46, T.FLOWER);
+  set(8, 35, T.SIGN); set(12, 35, T.SIGN);
+  set(19, 35, T.SIGN); set(23, 35, T.SIGN);
+  set(8, 46, T.SIGN); set(12, 46, T.SIGN);
+  set(19, 46, T.SIGN); set(23, 46, T.SIGN);
+  // praça: postes nos 4 cantos, bancos de pedra e poço a leste (fora do fluxo)
+  set(12, 36, T.LAMP); set(19, 36, T.LAMP);
+  set(12, 40, T.LAMP); set(19, 40, T.LAMP);
+  set(14, 38, T.STONE); set(17, 38, T.STONE);
+  set(22, 38, T.WELL);
+  // mercadorias da loja expostas (caixas ao lado da porta nordeste)
+  set(24, 34, T.CRATE); set(24, 35, T.CRATE);
+  // lenha da ferraria (sudeste) + toneis da estalagem (sudoeste)
+  set(24, 44, T.CRATE); set(24, 45, T.CRATE);
+  set(6, 44, T.CRATE); set(6, 45, T.CRATE);
+  // clareiras de grama entre quarteirões (piquenique)
+  blob(14, 33, 1, T.FLOWER, [T.GRASS]); blob(17, 44, 1, T.FLOWER, [T.GRASS]);
+  // rochedos decorativos no campo (fora de caminhos)
+  set(30, 19, T.STONE); set(37, 25, T.STONE); set(29, 33, T.STONE);
+  // clareiras no bosque
   blob(6, 8, 2, T.GRASS); blob(13, 12, 2, T.GRASS);
   // canteiros de flores na planície (só sobre grama)
   const soft = [T.GRASS, T.TALL_GRASS, T.FLOWER];
@@ -124,21 +151,20 @@ export function buildMap() {
   // pilares simétricos na entrada das ruínas
   set(52, 12, T.RUIN); set(56, 12, T.RUIN);
   set(52, 16, T.RUIN); set(56, 16, T.RUIN);
-  // cerca de árvores ao redor da vila
-  for (let x = 6; x <= 22; x++) { if (hash2(x, 1) > 0.35 && get(x, 32) === T.GRASS) set(x, 32, T.TREE); if (hash2(x, 2) > 0.35 && get(x, 44) === T.GRASS) set(x, 44, T.TREE); }
-  for (let y = 33; y <= 43; y++) { if (hash2(3, y) > 0.4 && get(6, y) === T.GRASS) set(6, y, T.TREE); if (hash2(4, y) > 0.4 && get(22, y) === T.GRASS) set(22, y, T.TREE); }
-  // portal norte da vila (pilares de pedra + caminho garantido)
-  set(14, 32, T.PATH);
-  set(13, 32, T.STONE); set(15, 32, T.STONE);
-  // cerca viva do portal + placa indicativa
-  set(11, 32, T.FENCE); set(12, 32, T.FENCE);
-  set(16, 32, T.FENCE); set(17, 32, T.SIGN);
-  // praça: postes nos cantos e caixas da loja (o poço saiu do centro → leste da vila)
-  set(13, 38, T.PLAZA);
-  set(12, 39, T.LAMP); set(17, 39, T.LAMP);
-  set(19, 38, T.CRATE); set(19, 39, T.CRATE);
-  // poço realocado: leste da vila, fora da praça central
-  set(21, 41, T.WELL);
+  // arvoredo ao redor da vila (mantém respiro: só fora do terreno 6..25 / 30..47)
+  for (let x = 5; x <= 26; x++) {
+    if (hash2(x, 11) > 0.35 && get(x, 29) === T.GRASS) set(x, 29, T.TREE);
+    if (hash2(x, 12) > 0.35 && get(x, 48) === T.GRASS) set(x, 48, T.TREE);
+  }
+  for (let y = 30; y <= 47; y++) {
+    if (hash2(13, y) > 0.4 && get(5, y) === T.GRASS) set(5, y, T.TREE);
+    if (hash2(14, y) > 0.4 && get(26, y) === T.GRASS) set(26, y, T.TREE);
+  }
+  // portal norte da vila (rua central x=15..16, pilares + placa)
+  set(15, 29, T.PATH); set(16, 29, T.PATH);
+  set(14, 29, T.STONE); set(17, 29, T.STONE);
+  set(13, 29, T.FENCE); set(18, 29, T.FENCE);
+  set(12, 29, T.SIGN);
   // fazenda a oeste (solo arado cercado, com entrada ao sul)
   rect(3, 37, 4, 38, T.SOIL);
   for (let x = 2; x <= 5; x++) set(x, 36, T.FENCE);
@@ -202,10 +228,10 @@ export function buildMap() {
   set(5, 53, T.GRASS); set(6, 54, T.GRASS);
   set(40, 3, T.SNOW); // baú da neve: clareira pisável
   set(39, 3, T.SNOW); set(40, 4, T.SNOW);
-  // ---- Clareiras dos novos NPCs (garante que ninguém nasce na água/pedra) ----
-  set(13, 40, T.PATH); // Rurik, o ferreiro
-  set(16, 38, T.PLAZA); // Felix, o bardo
-  set(15, 39, T.PLAZA); // Mia
+  // ---- Clareiras dos NPCs externos (garante que ninguém nasce na água/pedra) ----
+  set(15, 37, T.PLAZA); // Pip (praça)
+  set(14, 39, T.PLAZA); // Felix, o bardo
+  set(16, 39, T.PLAZA); // Mia
   set(43, 51, T.SAND); // Guarda Dina (ponte sul)
   set(33, 47, T.SAND); // Velho Tumba (praia)
   set(33, 3, T.SNOW); // Sábia Sella (neve)
@@ -242,7 +268,7 @@ export function regionAt(tx, ty) {
   if (tx >= 47 && ty <= 15) return 'dungeon';
   if (ty >= 2 && ty <= 4 && tx >= 18 && tx <= 46) return 'snow';
   if (tx <= 18 && ty <= 19) return 'forest';
-  if (tx >= 7 && tx <= 22 && ty >= 32 && ty <= 44) return 'town';
+  if (tx >= 6 && tx <= 25 && ty >= 30 && ty <= 47) return 'town';
   if (tx >= 3 && tx <= 22 && ty >= 46 && ty <= 56) return 'swamp';
   if (ty >= 44 && ty <= 53 && tx >= 23 && tx <= 43) return 'beach';
   if (tx >= 58 && ty >= 16) return 'desert';
@@ -250,26 +276,11 @@ export function regionAt(tx, ty) {
   return 'field';
 }
 
-/** Definições dos NPCs: posição em tiles, sprite, nome e diálogo. */
+/** Definições dos NPCs do MUNDO (externos). Donos de loja/estalagem/ferreiro e o
+ * Ancião ficam DENTRO das casas — ver INTERIOR_NPCS. */
 export const NPC_DEFS = [
   {
-    id: 'elder', x: 14, y: 36, name: 'Ancião Theo', kind: 'elder', wander: false,
-    lines: [
-      'Ah... o Cristal de Lumen enfraquece a cada lua.',
-      'O Dragão do Caos aninhou-se nas RUÍNAS ao nordeste, além do rio. Atravesse a PONTE a leste!',
-      'Treine na grama alta da planície, junte ouro e visite a loja da Mira. E descanse na estalagem antes de partir.',
-    ],
-  },
-  {
-    id: 'shop', x: 17, y: 37, name: 'Mira (Loja)', kind: 'merchant', wander: false, shop: true,
-    lines: ['Bem-vindo à minha lojinha! Ouro na mão, poção na sacola!'],
-  },
-  {
-    id: 'inn', x: 13, y: 42, name: 'Bram (Estalagem)', kind: 'innkeep', wander: false, inn: true,
-    lines: ['Cama quente e ensopado por 20G. Descansar é coisa de herói esperto!'],
-  },
-  {
-    id: 'kid', x: 14, y: 39, name: 'Pip', kind: 'kid', wander: true,
+    id: 'kid', x: 15, y: 37, name: 'Pip', kind: 'kid', wander: true,
     lines: [
       'Eu vi um SLIME verde-água perto da ponte! Ele faz "blub blub"!',
       'Quando eu crescer vou ser Mago igual a Lyra!',
@@ -311,11 +322,7 @@ export const NPC_DEFS = [
     ],
   },
   {
-    id: 'smith', x: 13, y: 40, name: 'Rurik (Ferreiro)', kind: 'smith', wander: false, shop: true,
-    lines: ['Martelo quente, lâmina fria! Golems odeiam magia — bata de FOGO e TROVÃO neles.'],
-  },
-  {
-    id: 'bard', x: 16, y: 38, name: 'Felix, o Bardo', kind: 'bard', wander: true,
+    id: 'bard', x: 14, y: 39, name: 'Felix, o Bardo', kind: 'bard', wander: true,
     lines: [
       '♪ Na planície o slime pulou, na ruína o golem rolou... ♪',
       '♪ Quem o Ancião de pedra calar, no deserto há de penar... Golem Ancião, dizem! ♪',
@@ -323,7 +330,7 @@ export const NPC_DEFS = [
     ],
   },
   {
-    id: 'mia', x: 15, y: 39, name: 'Mia', kind: 'kid', wander: true,
+    id: 'mia', x: 16, y: 39, name: 'Mia', kind: 'kid', wander: true,
     lines: [
       'O Pip disse que o boneco dele BRILHA! Eu também perdi... minha concha da praia!',
       'A mamãe diz que o pântano tem luzinhas verdes que enganam viajante. Não siga as luzinhas!',
@@ -368,3 +375,138 @@ export const NPC_DEFS = [
     ],
   },
 ];
+
+/** Casas visitáveis da Vila Lumen: porta externa (mundo) → interior.
+ * door = tile da porta; front = tile em frente à porta (retorno ao sair). */
+export const HOUSES = [
+  { id: 'elder', name: 'Casa do Ancião', door: { x: 10, y: 34 }, front: { x: 10, y: 35 } },
+  { id: 'shop', name: 'Loja da Mira', door: { x: 21, y: 34 }, front: { x: 21, y: 35 } },
+  { id: 'inn', name: 'Estalagem do Bram', door: { x: 10, y: 45 }, front: { x: 10, y: 46 } },
+  { id: 'smith', name: 'Ferraria do Rurik', door: { x: 21, y: 45 }, front: { x: 21, y: 46 } },
+];
+
+/** Dimensões dos interiores (tiles). */
+export const INTERIOR_W = 22;
+export const INTERIOR_H = 15;
+/** Porta de saída dentro do interior (parede sul) + spawn ao entrar. */
+export const INTERIOR_DOOR = { x: 11, y: 14 };
+export const INTERIOR_SPAWN = { x: 11, y: 12 };
+
+/** @returns {{tiles: Uint8Array, w: number, h: number}} interior da casa `id`. */
+export function buildInterior(id) {
+  const w = INTERIOR_W, h = INTERIOR_H;
+  const tiles = new Uint8Array(w * h);
+  const set = (x, y, t) => { if (x >= 0 && y >= 0 && x < w && y < h) tiles[y * w + x] = t; };
+  const rect = (x0, y0, x1, y1, t) => { for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) set(x, y, t); };
+  rect(0, 0, w - 1, h - 1, T.FLOOR);
+  // paredes externas (telhado não aparece por dentro)
+  for (let x = 0; x < w; x++) { set(x, 0, T.WALL); set(x, h - 1, T.WALL); }
+  for (let y = 0; y < h; y++) { set(0, y, T.WALL); set(w - 1, y, T.WALL); }
+  set(INTERIOR_DOOR.x, INTERIOR_DOOR.y, T.DOOR);
+  // tapete central
+  rect(8, 6, 13, 10, T.PLAZA);
+  set(10, 8, T.PLAZA); set(11, 8, T.PLAZA);
+  // cantoneiras: luminárias quentes
+  set(1, 1, T.LAMP); set(w - 2, 1, T.LAMP);
+  set(1, h - 2, T.LAMP); set(w - 2, h - 2, T.LAMP);
+  if (id === 'elder') {
+    // estantes de pergaminhos (caixas) + mesa de mapas (pedra) + braseiro
+    rect(2, 2, 5, 2, T.CRATE);
+    rect(16, 2, 19, 2, T.CRATE);
+    set(10, 3, T.STONE); set(11, 3, T.STONE);
+    set(10, 4, T.FLOWER); set(11, 4, T.FLOWER);
+    set(2, 12, T.RUIN); set(19, 12, T.RUIN);
+  } else if (id === 'shop') {
+    // balcão da loja (cercas) com abertura no meio + mercadorias atrás
+    for (let x = 7; x <= 14; x++) { if (x !== 10 && x !== 11) set(x, 7, T.FENCE); }
+    rect(8, 2, 9, 4, T.CRATE);
+    rect(12, 2, 13, 4, T.CRATE);
+    set(10, 2, T.PLAZA); set(11, 2, T.PLAZA);
+    set(18, 5, T.CRATE); set(19, 5, T.CRATE); set(18, 11, T.CRATE); set(3, 11, T.CRATE);
+    set(2, 5, T.LAMP); set(19, 8, T.FLOWER);
+  } else if (id === 'inn') {
+    // camas (praça clara) + mesas (pedra) + lareira (ruína + lamp)
+    rect(2, 2, 5, 4, T.PLAZA);
+    rect(16, 2, 19, 4, T.PLAZA);
+    set(3, 2, T.FLOWER); set(17, 2, T.FLOWER);
+    set(9, 3, T.STONE); set(12, 3, T.STONE);
+    set(9, 11, T.STONE); set(12, 11, T.STONE);
+    set(10, 1, T.RUIN); set(11, 1, T.RUIN);
+  } else if (id === 'smith') {
+    // forja (ruína + brasa) + bigorna (pedra) + caixas de carvão e armas
+    rect(9, 1, 12, 2, T.RUIN);
+    set(10, 3, T.STONE); set(11, 3, T.STONE);
+    set(2, 2, T.CRATE); set(3, 2, T.CRATE); set(2, 3, T.CRATE);
+    set(18, 2, T.CRATE); set(19, 2, T.CRATE); set(19, 3, T.CRATE);
+    set(18, 11, T.STONE); set(3, 11, T.STONE);
+    set(10, 5, T.FLOWER);
+  }
+  return { tiles, w, h };
+}
+
+/** NPCs de cada interior (posições em tiles do interior). */
+export const INTERIOR_NPCS = {
+  elder: [
+    {
+      id: 'elder', x: 10, y: 5, name: 'Ancião Theo', kind: 'elder', wander: false,
+      lines: [
+        'Ah... o Cristal de Lumen enfraquece a cada lua.',
+        'O Dragão do Caos aninhou-se nas RUÍNAS ao nordeste, além do rio. Atravesse a PONTE a leste!',
+        'Treine na grama alta da planície, junte ouro e visite a loja da Mira. E descanse na estalagem antes de partir.',
+      ],
+    },
+    {
+      id: 'lia', x: 15, y: 9, name: 'Lia (Aprendiz)', kind: 'sage', wander: true,
+      lines: [
+        'O Ancião me ensina a ler os mapas antigos... as Ruínas ficam a nordeste!',
+        'Traga ervas do pântano para a Yara — ela faz tônicos que salvam vidas!',
+      ],
+    },
+  ],
+  shop: [
+    {
+      id: 'shop', x: 10, y: 4, name: 'Mira (Loja)', kind: 'merchant', wander: false, shop: true,
+      lines: ['Bem-vindo à minha lojinha! Ouro na mão, poção na sacola!'],
+    },
+    {
+      id: 'cust', x: 15, y: 10, name: 'Viajante Nia', kind: 'nomad', wander: true,
+      lines: [
+        'Vim do deserto só para comprar com a Mira — os preços dela são os melhores!',
+        'Dizem que o Rurik, na ferraria ao sul da praça, vende BOMBAS contra golems!',
+      ],
+    },
+  ],
+  inn: [
+    {
+      id: 'inn', x: 10, y: 4, name: 'Bram (Estalagem)', kind: 'innkeep', wander: false, inn: true,
+      lines: ['Cama quente e ensopado por 20G. Descansar é coisa de herói esperto!'],
+    },
+    {
+      id: 'guest', x: 16, y: 10, name: 'Hóspede Tom', kind: 'fisher', wander: false,
+      lines: [
+        'Melhor cama de Valoria, juro! Acordei novo em folha por 20G.',
+        'Se for pescar, fale com o Kai na praia ao sul. Ele entende do riscado!',
+      ],
+    },
+  ],
+  smith: [
+    {
+      id: 'smith', x: 10, y: 4, name: 'Rurik (Ferreiro)', kind: 'smith', wander: false, shop: true,
+      lines: ['Martelo quente, lâmina fria! Golems odeiam magia — bata de FOGO e TROVÃO neles.'],
+    },
+    {
+      id: 'appr', x: 15, y: 10, name: 'Sana (Aprendiz)', kind: 'hunter', wander: true,
+      lines: [
+        'O mestre Rurik forjou minha lança! Com BOMBAS, até golem cai!',
+        'O Golem Ancião do deserto? Nem o mestre encara... mas você parece forte!',
+      ],
+    },
+  ],
+};
+
+/** Nome de exibição do local atual (mundo ou interior). */
+export function placeName(place) {
+  if (!place || place.kind === 'world') return null; // Engine usa regionAt
+  const h = HOUSES.find((x) => x.id === place.id);
+  return h ? h.name : 'Interior';
+}

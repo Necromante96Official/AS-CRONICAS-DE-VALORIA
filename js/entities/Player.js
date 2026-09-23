@@ -67,9 +67,10 @@ export class Player {
       this.slideX = 0; this.slideY = 0;
       this.animT = 0;
     }
-    // mantém dentro do mapa
-    this.x = Math.max(TILE, Math.min(this.x, MAP_W * TILE - TILE - this.w));
-    this.y = Math.max(TILE, Math.min(this.y, MAP_H * TILE - TILE - this.h));
+    // mantém dentro do mapa (usa as dimensões do mapa atual)
+    const mw = (map.w || MAP_W) * TILE, mh = (map.h || MAP_H) * TILE;
+    this.x = Math.max(TILE, Math.min(this.x, mw - TILE - this.w));
+    this.y = Math.max(TILE, Math.min(this.y, mh - TILE - this.h));
   }
 
   _hitsBlockers(px, py, blockers) {

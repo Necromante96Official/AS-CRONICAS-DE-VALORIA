@@ -39,13 +39,14 @@ html, body {
 
 #game-wrap {
   position: relative;
-  width: min(96vw, 960px);
+  width: min(96vw, 1280px);
   aspect-ratio: 16 / 9;
   background: #000;
   border: 3px solid #3a478c;
   border-radius: 12px;
   overflow: hidden;
   box-shadow: 0 0 0 1px #0a1030, 0 0 70px #2a357066, 0 0 140px #4fc3ff22, 0 20px 60px #000c;
+  max-height: 96dvh;
 }
 /* vinheta retrô + scanlines sutis sobre o mundo (abaixo da UI) */
 #game-wrap::before {
@@ -120,13 +121,14 @@ html, body {
 /* Toast de itens / XP */
 #toast {
   position: absolute;
-  top: 64px; left: 50%;
+  top: 84px; left: 50%;
   transform: translateX(-50%);
   background: linear-gradient(180deg, #1a2a78f2, #0a1030f2);
   border: 2px solid var(--ff-yellow);
-  border-radius: 8px;
-  padding: 8px 16px;
+  border-radius: 10px;
+  padding: 10px 20px;
   font-weight: bold;
+  font-size: 15px;
   color: var(--ff-yellow);
   text-shadow: 1px 1px 0 #000;
   z-index: 55;
@@ -161,8 +163,8 @@ html, body {
   transition: transform .08s, filter .12s;
 }
 #touch button:active { transform: scale(.93); filter: brightness(1.25); }
-#tbtns { display: flex; gap: 10px; align-items: flex-end; pointer-events: auto; }
-#tbtns button { width: 56px; height: 56px; border-radius: 50%; font-weight: bold; }
+#tbtns { display: flex; gap: 12px; align-items: flex-end; pointer-events: auto; }
+#tbtns button { width: 64px; height: 64px; border-radius: 50%; font-weight: bold; }
 /* correr (alternador) + arrasto do bloco */
 #tbtns { touch-action: none; }
 #tbtns.moving { opacity: .65; }
@@ -177,34 +179,34 @@ html, body {
 #hud {
   position: absolute; top: 0; left: 0; right: 0;
   display: flex; justify-content: space-between; align-items: flex-start;
-  gap: 8px;
-  padding: 8px 10px;
+  gap: 10px;
+  padding: 10px 14px;
   z-index: 20;
   pointer-events: none;
-  font-size: 13px;
+  font-size: 15px;
 }
-#hud-party { display: flex; gap: 6px; flex-wrap: wrap; }
+#hud-party { display: flex; gap: 8px; flex-wrap: wrap; }
 .hud-card {
-  display: flex; gap: 7px; align-items: center;
+  display: flex; gap: 9px; align-items: center;
   background: linear-gradient(180deg, #16236bee, #0a1030e6);
   border: 1px solid #ffffff55;
   border-left: 3px solid var(--ff-yellow);
-  border-radius: 8px;
-  padding: 4px 8px 4px 4px;
-  min-width: 168px;
+  border-radius: 10px;
+  padding: 6px 12px 6px 6px;
+  min-width: 218px;
   box-shadow: 0 3px 10px #000b, inset 0 1px 0 #ffffff22;
 }
 .hud-face {
-  width: 32px; height: 32px;
-  border-radius: 6px;
+  width: 42px; height: 42px;
+  border-radius: 8px;
   border: 1px solid #ffffff44;
   background: #0008;
   flex: none;
 }
 .hud-info { flex: 1; min-width: 0; }
-.hud-card .nm { font-weight: bold; font-size: 12px; }
-.hud-card .lv { color: var(--ff-yellow); font-size: 11px; margin-left: 6px; }
-.bar { position: relative; height: 8px; border-radius: 4px; background: #000000a6; margin-top: 2px; overflow: hidden; }
+.hud-card .nm { font-weight: bold; font-size: 14px; }
+.hud-card .lv { color: var(--ff-yellow); font-size: 12px; margin-left: 6px; }
+.bar { position: relative; height: 10px; border-radius: 5px; background: #000000a6; margin-top: 3px; overflow: hidden; }
 .bar > div { height: 100%; transition: width .25s; }
 .bar.hp > div { background: linear-gradient(90deg, #37e08b, #0f9d58); }
 .bar.hp.low > div { background: linear-gradient(90deg, #ff6b6b, #c81e1e); }
@@ -213,17 +215,18 @@ html, body {
 .bar.mp > div { background: linear-gradient(90deg, #6bb8ff, #2456e0); }
 .bar span {
   position: absolute; inset: 0;
-  font-size: 8px; line-height: 10px; text-align: center;
+  font-size: 9px; line-height: 12px; text-align: center;
   color: #fff; text-shadow: 1px 1px 0 #000;
 }
-#hud-right { text-align: right; display: flex; flex-direction: column; gap: 5px; }
+#hud-right { text-align: right; display: flex; flex-direction: column; gap: 6px; }
 #hud-location, #hud-gold {
   background: #0a1030d9;
   border: 1px solid #ffffff44;
-  border-radius: 6px;
-  padding: 4px 9px;
+  border-radius: 8px;
+  padding: 6px 12px;
   font-weight: bold;
   white-space: nowrap;
+  font-size: 14px;
 }
 #hud-location { color: var(--ff-dim); font-size: 11px; letter-spacing: 1px; text-transform: uppercase; }
 #hud-gold { color: var(--ff-yellow); display: inline-flex; align-items: center; gap: 6px; }
@@ -247,9 +250,9 @@ html, body {
 .shop-price .ic { margin: 0 3px 0 0; vertical-align: -4px; }
 .cmd-title .ic { margin-right: 4px; }
 #minimap {
-  width: 104px; height: 78px;
+  width: 150px; height: 112px;
   border: 2px solid #4fc3ff66;
-  border-radius: 8px;
+  border-radius: 10px;
   background: #000;
   image-rendering: pixelated;
   align-self: flex-end;
@@ -293,19 +296,20 @@ html, body {
 
 /* ---------- Diálogo ---------- */
 #dialog {
-  position: absolute; left: 4%; right: 4%; bottom: 4%;
-  min-height: 22%;
-  max-height: 52%;
+  position: absolute; left: 3%; right: 3%; bottom: 3%;
+  min-height: 20%;
+  max-height: 46%;
   z-index: 30;
-  font-size: clamp(13px, 2.1vw, 18px);
-  line-height: 1.45;
-  display: flex; gap: 10px; align-items: flex-start;
+  font-size: clamp(15px, 1.6vw, 21px);
+  line-height: 1.55;
+  display: flex; gap: 14px; align-items: flex-start;
   animation: panel-in .22s ease-out;
+  padding: 16px 20px;
 }
 #dialog-face {
-  width: 52px; height: 52px; flex: none;
+  width: 72px; height: 72px; flex: none;
   border: 2px solid var(--ff-yellow);
-  border-radius: 10px;
+  border-radius: 12px;
   background: linear-gradient(160deg, #1b2f9e, #000);
   image-rendering: pixelated;
   box-shadow: 0 0 12px #ffd75e44, 0 3px 8px #000a;
@@ -338,24 +342,25 @@ html, body {
 
 /* ---------- Menu com abas (minimalista) ---------- */
 #menu {
-  position: absolute; top: 5%; left: 5%;
-  width: min(62%, 580px); max-height: 90%;
+  position: absolute; top: 4%; left: 4%;
+  width: min(58%, 720px); max-height: 92%;
   z-index: 35;
-  display: flex; flex-direction: column; gap: 6px;
-  padding: 10px 12px;
+  display: flex; flex-direction: column; gap: 8px;
+  padding: 16px 20px;
   animation: panel-in .22s ease-out;
+  font-size: 15px;
 }
 #menu-body.tab-enter { animation: panel-fade .22s ease-out; }
-#menu h2 { color: var(--ff-yellow); letter-spacing: 3px; font-size: 15px; text-align: center; font-weight: bold; }
+#menu h2 { color: var(--ff-yellow); letter-spacing: 3px; font-size: 18px; text-align: center; font-weight: bold; }
 #menu-tabs {
   display: flex; gap: 4px; justify-content: center; flex-wrap: wrap;
 }
 #menu-tabs .tab {
-  padding: 5px 11px;
+  padding: 7px 16px;
   border: 1px solid transparent;
   border-radius: 20px;
   background: transparent;
-  font-size: clamp(11px, 1.7vw, 13px);
+  font-size: clamp(13px, 1.2vw, 15px);
   font-weight: bold;
   color: var(--ff-dim);
 }
@@ -372,7 +377,7 @@ html, body {
   border-top: 1px solid #ffffff1f;
   padding-top: 6px;
 }
-#menu-list { overflow-y: auto; max-height: 38vh; }
+#menu-list { overflow-y: auto; max-height: 44vh; font-size: 15px; }
 #menu-list .opt { padding: 6px 8px; border-radius: 6px; border-left: 2px solid transparent; transition: background .12s, transform .12s; }
 #menu-list .opt.sel { background: linear-gradient(90deg, #ffffff1e, #ffffff08); border-left-color: var(--ff-yellow); transform: translateX(2px); }
 #menu-list .opt.sel::before { content: '▶ '; color: var(--ff-yellow); }
@@ -387,9 +392,9 @@ html, body {
 #menu-list .row-cost { color: var(--ff-mp); font-size: .8em; float: right; }
 #menu-list .count { color: var(--ff-yellow); font-weight: bold; float: right; }
 #menu-detail {
-  font-size: clamp(11px, 1.7vw, 13px); line-height: 1.6;
-  border-left: 1px solid #ffffff1f; padding-left: 10px;
-  overflow-y: auto; max-height: 38vh;
+  font-size: clamp(13px, 1.2vw, 15px); line-height: 1.65;
+  border-left: 1px solid #ffffff1f; padding-left: 14px;
+  overflow-y: auto; max-height: 44vh;
 }
 #menu-detail h3 { color: var(--ff-yellow); font-size: 1em; margin-bottom: 3px; }
 #menu-detail .dead { color: var(--ff-red); }
@@ -528,28 +533,28 @@ html, body {
 #battle-bottom {
   flex: none;
   display: flex;
-  gap: 6px;
-  padding: 4px 8px 8px;
+  gap: 8px;
+  padding: 8px 14px 14px;
   min-height: 0;
   margin-top: auto;
 }
-#battle-menu { flex: 1; padding: 3px 10px; overflow: hidden; }
+#battle-menu { flex: 1; padding: 8px 16px; overflow: hidden; font-size: 16px; }
 /* log interno (alimenta testes/logic) mas fora do layout */
 #battle-msg { display: none; }
 /* listas do topo: inimigos à esq, party à dir */
 #battle-foes, #battle-party {
-  position: absolute; top: 52px;
+  position: absolute; top: 64px;
   z-index: 46;
-  display: flex; flex-direction: column; gap: 4px;
-  max-width: 30%;
+  display: flex; flex-direction: column; gap: 6px;
+  max-width: 28%;
 }
-#battle-foes { left: 8px; align-items: flex-start; }
-#battle-party { right: 8px; align-items: flex-end; }
+#battle-foes { left: 12px; align-items: flex-start; }
+#battle-party { right: 12px; align-items: flex-end; }
 /* barra do chefe — fina e discreta */
 #boss-bar {
-  position: absolute; top: 6px; left: 50%;
+  position: absolute; top: 10px; left: 50%;
   transform: translateX(-50%);
-  width: min(52%, 360px);
+  width: min(46%, 520px);
   z-index: 46;
   text-align: center;
   animation: panel-fade .4s ease-out;
@@ -558,28 +563,28 @@ html, body {
   font-weight: bold; letter-spacing: 2px;
   color: var(--ff-red);
   text-shadow: 1px 1px 0 #000;
-  font-size: clamp(11px, 1.8vw, 14px);
-  margin-bottom: 2px;
+  font-size: clamp(13px, 1.4vw, 17px);
+  margin-bottom: 4px;
 }
-#boss-bar .bbar.hp.big { height: 9px; border: 1px solid #ffffff77; border-radius: 6px; background: #000c; overflow: hidden; box-shadow: 0 0 14px #ff6b6b55, 0 2px 8px #000a; }
+#boss-bar .bbar.hp.big { height: 12px; border: 1px solid #ffffff77; border-radius: 6px; background: #000c; overflow: hidden; box-shadow: 0 0 14px #ff6b6b55, 0 2px 8px #000a; }
 #boss-bar .bbar.hp.big > div { background: linear-gradient(90deg, #ffb36b, #ff6b6b 45%, #a00); transition: width .3s; }
 /* chips compactos: foto + barra */
 #battle-foes .bfoe, #battle-party .bchar {
-  display: flex; gap: 6px; align-items: center;
+  display: flex; gap: 8px; align-items: center;
   background: linear-gradient(180deg, #101a44e6, #060913e6);
   border: 1px solid #ffffff2e;
-  border-radius: 8px;
-  padding: 3px 8px 3px 3px;
-  font-size: clamp(10px, 1.7vw, 13px);
-  line-height: 1.35;
+  border-radius: 10px;
+  padding: 5px 12px 5px 5px;
+  font-size: clamp(12px, 1.2vw, 15px);
+  line-height: 1.4;
   box-shadow: 0 3px 10px #000a, inset 0 1px 0 #ffffff22;
   transition: border-color .15s, background .15s, transform .12s;
 }
 #battle-foes .bfoe { flex-direction: row; }
 #battle-party .bchar { flex-direction: row-reverse; text-align: right; }
 #battle-foes img, #battle-party .bface {
-  width: auto; height: 30px;
-  border-radius: 5px;
+  width: auto; height: 40px;
+  border-radius: 6px;
   background: #00000080;
   image-rendering: pixelated;
   flex: none;
@@ -605,7 +610,7 @@ html, body {
 #battle-menu { overflow-x: auto; overflow-y: hidden; }
 #battle-cmds { display: flex; align-items: center; gap: 3px; }
 #battle-cmds .cmd-title { color: var(--ff-yellow); font-weight: bold; letter-spacing: 1px; font-size: .85em; flex: none; margin-right: 2px; }
-#battle-cmds .opt { padding: 4px 10px; border-radius: 14px; font-size: clamp(11px, 1.8vw, 15px); border: 1px solid transparent; transition: background .12s, transform .1s; white-space: nowrap; flex: none; }
+#battle-cmds .opt { padding: 8px 16px; border-radius: 16px; font-size: clamp(13px, 1.3vw, 17px); border: 1px solid transparent; transition: background .12s, transform .1s; white-space: nowrap; flex: none; }
 #battle-cmds .opt.sel { background: linear-gradient(180deg, #ffffff26, #ffffff10); color: var(--ff-yellow); border-color: #ffd75e88; box-shadow: 0 0 10px #ffd75e44; transform: translateY(-1px); }
 #battle-cmds .opt.nomp { opacity: .4; }
 #battle-party .bchar.dead { opacity: .45; }
@@ -669,7 +674,7 @@ html, body {
 <body>
   <div id="stage">
     <div id="game-wrap">
-      <canvas id="game" width="960" height="540"></canvas>
+      <canvas id="game" width="1280" height="720"></canvas>
 
       <!-- HUD de exploração -->
       <div id="hud" class="hidden">
@@ -686,7 +691,7 @@ html, body {
 
       <!-- Caixa de diálogo estilo FF -->
       <div id="dialog" class="ff-box hidden">
-        <canvas id="dialog-face" width="52" height="52"></canvas>
+        <canvas id="dialog-face" width="72" height="72"></canvas>
         <div id="dialog-main">
           <div id="dialog-name"></div>
           <div id="dialog-text"></div>
@@ -713,7 +718,7 @@ html, body {
         </div>
         <div id="battle-foes"></div>
         <div id="battle-party"></div>
-        <canvas id="battle-canvas" width="960" height="340"></canvas>
+        <canvas id="battle-canvas" width="1280" height="453"></canvas>
         <div id="battle-bottom">
           <div id="battle-menu" class="ff-box">
             <div id="battle-cmds"></div>
@@ -728,8 +733,8 @@ html, body {
         <h1>CRÔNICAS<br />DE VALORIA</h1>
         <p class="subtitle">— um JRPG topdown em HTML —</p>
         <div id="title-list" class="ff-box"></div>
-        <p class="controls-hint">Setas / WASD mover · Shift correr · <b>E</b> confirmar · <b>Q</b> menu · <b>M</b> som · Encontros na grama alta!<br />No celular: <b>toque na tela</b> para andar · 🏃 correr · <b>segure</b> os botões para movê-los (2 toques restaura)</p>
-        <p class="version">v2.0 · edição arquivo único — jogue offline 💎</p>
+        <p class="controls-hint">Setas / WASD mover · Shift correr · <b>E</b> confirmar / falar / <b>entrar nas casas</b> · <b>Q</b> menu · <b>M</b> som · Encontros na grama alta!<br />No celular: <b>toque na tela</b> para andar · 🏃 correr · <b>segure</b> os botões para movê-los (2 toques restaura)</p>
+        <p class="version">v2.1 · HD 1280×720 · casas visitáveis 💎</p>
       </div>
 
       <!-- Game Over / Ending -->
@@ -773,9 +778,9 @@ html, body {
 
 /** Tamanho do tile em pixels. */
 const TILE = 32;
-/** Resolução interna do canvas. */
-const VIEW_W = 960;
-const VIEW_H = 540;
+/** Resolução interna do canvas (HD). */
+const VIEW_W = 1280;
+const VIEW_H = 720;
 /** Dimensões do mapa-múndi. */
 const MAP_W = 80;
 const MAP_H = 60;
@@ -791,6 +796,10 @@ const xpForLevel = (level) => Math.floor(20 * Math.pow(level, 1.6));
 /** Paleta / nomes de locais. */
 const LOCATIONS = {
   town: 'Vila Lumen',
+  elder: 'Casa do Ancião',
+  shop: 'Loja da Mira',
+  inn: 'Estalagem do Bram',
+  smith: 'Ferraria do Rurik',
   field: 'Planície Verdejante',
   forest: 'Bosque Sombrio',
   dungeon: 'Ruínas do Cristal',
@@ -1103,20 +1112,23 @@ class Camera {
     this.shakeT = 0; this.shakeMag = 0;
   }
 
-  /** @param {number} px @param {number} py @param {number} dt */
-  follow(px, py, dt) {
+  /** @param {number} px @param {number} py @param {number} dt @param {number} [mw] largura do mapa em px @param {number} [mh] altura do mapa em px */
+  follow(px, py, dt, mw, mh) {
+    const mapW = mw ?? MAP_W * TILE, mapH = mh ?? MAP_H * TILE;
     const tx = px - VIEW_W / 2;
     const ty = py - VIEW_H / 2;
     const k = Math.min(1, dt * 6);
     this.x += (tx - this.x) * k;
     this.y += (ty - this.y) * k;
-    this.x = Math.max(0, Math.min(this.x, MAP_W * TILE - VIEW_W));
-    this.y = Math.max(0, Math.min(this.y, MAP_H * TILE - VIEW_H));
+    this.x = mapW <= VIEW_W ? (mapW - VIEW_W) / 2 : Math.max(0, Math.min(this.x, mapW - VIEW_W));
+    this.y = mapH <= VIEW_H ? (mapH - VIEW_H) / 2 : Math.max(0, Math.min(this.y, mapH - VIEW_H));
   }
 
-  snap(px, py) {
-    this.x = Math.max(0, Math.min(px - VIEW_W / 2, MAP_W * TILE - VIEW_W));
-    this.y = Math.max(0, Math.min(py - VIEW_H / 2, MAP_H * TILE - VIEW_H));
+  /** @param {number} px @param {number} py @param {number} [mw] @param {number} [mh] */
+  snap(px, py, mw, mh) {
+    const mapW = mw ?? MAP_W * TILE, mapH = mh ?? MAP_H * TILE;
+    this.x = mapW <= VIEW_W ? (mapW - VIEW_W) / 2 : Math.max(0, Math.min(px - VIEW_W / 2, mapW - VIEW_W));
+    this.y = mapH <= VIEW_H ? (mapH - VIEW_H) / 2 : Math.max(0, Math.min(py - VIEW_H / 2, mapH - VIEW_H));
   }
 
   /** @param {number} mag @param {number} dur */
@@ -2285,8 +2297,8 @@ class TileMap {
  * @module world/MapData
  */
 
-/** Posição inicial do jogador (em tiles). */
-const SPAWN = { x: 14, y: 38 };
+/** Posição inicial do jogador (em tiles, centro da praça). */
+const SPAWN = { x: 15, y: 38 };
 /** Tile do altar do boss. */
 const BOSS_ALTAR = { x: 54, y: 6 };
 /** Brinquedo perdido do Pip (quest). */
@@ -2362,29 +2374,12 @@ function buildMap() {
   const pathH = (x0, x1, y) => { for (let x = x0; x <= x1; x++) if (get(x, y) !== T.WATER && get(x, y) !== T.BRIDGE) set(x, y, T.PATH); };
   const pathV = (y0, y1, x) => { for (let y = y0; y <= y1; y++) if (get(x, y) !== T.WATER) set(x, y, T.PATH); };
   pathH(10, 43, 30); pathH(46, 54, 29);
-  pathV(15, 30, 54); pathV(30, 40, 14);
+  pathV(15, 30, 54); pathV(30, 40, 15);
   // caminhos do sul e do deserto (ponte sul -> praia/deserto, trilha do oásis)
   pathH(43, 66, 52); pathH(54, 66, 29);
   pathV(28, 54, 66); pathV(44, 54, 12);
 
-  // ---- Vila Lumen (sudoeste): fileiras simétricas + praça central ----
-  rect(7, 33, 21, 43, T.PATH);
-  // casas (5x4: telhado, parede, parede/porta)
-  const house = (hx, hy) => {
-    rect(hx, hy, hx + 4, hy + 1, T.ROOF);
-    rect(hx, hy + 2, hx + 4, hy + 3, T.WALL);
-    set(hx + 2, hy + 3, T.DOOR);
-    set(hx, hy + 2, T.WALL); set(hx + 4, hy + 2, T.WALL);
-  };
-  house(8, 34); house(15, 34);   // fileira norte (portas em 10,37 e 17,37)
-  house(8, 40); house(15, 40);   // fileira sul (portas em 10,43 e 17,43)
-  // praça de pedra + canteiros simétricos
-  rect(12, 38, 17, 39, T.PLAZA);
-  set(11, 38, T.FLOWER); set(18, 38, T.FLOWER);
-  set(11, 39, T.FLOWER); set(18, 39, T.FLOWER);
-  // rochedos decorativos no campo (fora de caminhos)
-  set(24, 19, T.STONE); set(37, 25, T.STONE); set(29, 33, T.STONE);
-  // clareiras no bosque
+  // util de manchas (usado pela vila e pelos biomas)
   const blob = (cx, cy, r, t, only) => {
     for (let y = cy - r; y <= cy + r; y++) for (let x = cx - r; x <= cx + r; x++) {
       if (Math.hypot(x - cx, y - cy) > r + 0.4) continue;
@@ -2392,6 +2387,50 @@ function buildMap() {
       if (!only || only.includes(get(x, y))) set(x, y, t);
     }
   };
+  // ---- Vila Lumen (sudoeste, espaçosa): 4 casas visitáveis + praça central ----
+  // terreno da vila: grama limpa + rua principal (leste-oeste) + rua central (norte-sul)
+  rect(6, 30, 25, 47, T.GRASS);
+  pathH(6, 25, 38); pathV(30, 47, 15); pathV(30, 47, 16);
+  // casas espaçosas (6x2 telhado + 6x2 parede + porta). Portas:
+  // ancião (10,34) · loja (21,34) · estalagem (10,45) · ferraria (21,45)
+  const house6 = (hx, hy) => {
+    rect(hx, hy, hx + 5, hy + 1, T.ROOF);
+    rect(hx, hy + 2, hx + 5, hy + 3, T.WALL);
+    set(hx + 3, hy + 3, T.DOOR);
+  };
+  house6(7, 31); house6(18, 31);   // fileira norte, com rua de 5 tiles entre elas
+  house6(7, 42); house6(18, 42);   // fileira sul, quintal amplo no meio
+  // praça central de pedra (encontro da rua principal com a rua central)
+  rect(12, 36, 19, 40, T.PLAZA);
+  // jardins e canteiros ao longo das ruas (respiro verde entre as casas)
+  set(13, 36, T.FLOWER); set(18, 36, T.FLOWER);
+  set(13, 40, T.FLOWER); set(18, 40, T.FLOWER);
+  set(6, 37, T.FLOWER); set(25, 37, T.FLOWER);
+  set(14, 31, T.FLOWER); set(17, 31, T.FLOWER);
+  // floreiras simétricas na frente das casas + placas indicativas junto às portas
+  set(7, 35, T.FLOWER); set(9, 35, T.FLOWER); set(11, 35, T.FLOWER);
+  set(18, 35, T.FLOWER); set(20, 35, T.FLOWER); set(22, 35, T.FLOWER);
+  set(7, 46, T.FLOWER); set(9, 46, T.FLOWER); set(11, 46, T.FLOWER);
+  set(18, 46, T.FLOWER); set(20, 46, T.FLOWER); set(22, 46, T.FLOWER);
+  set(8, 35, T.SIGN); set(12, 35, T.SIGN);
+  set(19, 35, T.SIGN); set(23, 35, T.SIGN);
+  set(8, 46, T.SIGN); set(12, 46, T.SIGN);
+  set(19, 46, T.SIGN); set(23, 46, T.SIGN);
+  // praça: postes nos 4 cantos, bancos de pedra e poço a leste (fora do fluxo)
+  set(12, 36, T.LAMP); set(19, 36, T.LAMP);
+  set(12, 40, T.LAMP); set(19, 40, T.LAMP);
+  set(14, 38, T.STONE); set(17, 38, T.STONE);
+  set(22, 38, T.WELL);
+  // mercadorias da loja expostas (caixas ao lado da porta nordeste)
+  set(24, 34, T.CRATE); set(24, 35, T.CRATE);
+  // lenha da ferraria (sudeste) + toneis da estalagem (sudoeste)
+  set(24, 44, T.CRATE); set(24, 45, T.CRATE);
+  set(6, 44, T.CRATE); set(6, 45, T.CRATE);
+  // clareiras de grama entre quarteirões (piquenique)
+  blob(14, 33, 1, T.FLOWER, [T.GRASS]); blob(17, 44, 1, T.FLOWER, [T.GRASS]);
+  // rochedos decorativos no campo (fora de caminhos)
+  set(30, 19, T.STONE); set(37, 25, T.STONE); set(29, 33, T.STONE);
+  // clareiras no bosque
   blob(6, 8, 2, T.GRASS); blob(13, 12, 2, T.GRASS);
   // canteiros de flores na planície (só sobre grama)
   const soft = [T.GRASS, T.TALL_GRASS, T.FLOWER];
@@ -2402,21 +2441,20 @@ function buildMap() {
   // pilares simétricos na entrada das ruínas
   set(52, 12, T.RUIN); set(56, 12, T.RUIN);
   set(52, 16, T.RUIN); set(56, 16, T.RUIN);
-  // cerca de árvores ao redor da vila
-  for (let x = 6; x <= 22; x++) { if (hash2(x, 1) > 0.35 && get(x, 32) === T.GRASS) set(x, 32, T.TREE); if (hash2(x, 2) > 0.35 && get(x, 44) === T.GRASS) set(x, 44, T.TREE); }
-  for (let y = 33; y <= 43; y++) { if (hash2(3, y) > 0.4 && get(6, y) === T.GRASS) set(6, y, T.TREE); if (hash2(4, y) > 0.4 && get(22, y) === T.GRASS) set(22, y, T.TREE); }
-  // portal norte da vila (pilares de pedra + caminho garantido)
-  set(14, 32, T.PATH);
-  set(13, 32, T.STONE); set(15, 32, T.STONE);
-  // cerca viva do portal + placa indicativa
-  set(11, 32, T.FENCE); set(12, 32, T.FENCE);
-  set(16, 32, T.FENCE); set(17, 32, T.SIGN);
-  // praça: postes nos cantos e caixas da loja (o poço saiu do centro → leste da vila)
-  set(13, 38, T.PLAZA);
-  set(12, 39, T.LAMP); set(17, 39, T.LAMP);
-  set(19, 38, T.CRATE); set(19, 39, T.CRATE);
-  // poço realocado: leste da vila, fora da praça central
-  set(21, 41, T.WELL);
+  // arvoredo ao redor da vila (mantém respiro: só fora do terreno 6..25 / 30..47)
+  for (let x = 5; x <= 26; x++) {
+    if (hash2(x, 11) > 0.35 && get(x, 29) === T.GRASS) set(x, 29, T.TREE);
+    if (hash2(x, 12) > 0.35 && get(x, 48) === T.GRASS) set(x, 48, T.TREE);
+  }
+  for (let y = 30; y <= 47; y++) {
+    if (hash2(13, y) > 0.4 && get(5, y) === T.GRASS) set(5, y, T.TREE);
+    if (hash2(14, y) > 0.4 && get(26, y) === T.GRASS) set(26, y, T.TREE);
+  }
+  // portal norte da vila (rua central x=15..16, pilares + placa)
+  set(15, 29, T.PATH); set(16, 29, T.PATH);
+  set(14, 29, T.STONE); set(17, 29, T.STONE);
+  set(13, 29, T.FENCE); set(18, 29, T.FENCE);
+  set(12, 29, T.SIGN);
   // fazenda a oeste (solo arado cercado, com entrada ao sul)
   rect(3, 37, 4, 38, T.SOIL);
   for (let x = 2; x <= 5; x++) set(x, 36, T.FENCE);
@@ -2480,10 +2518,10 @@ function buildMap() {
   set(5, 53, T.GRASS); set(6, 54, T.GRASS);
   set(40, 3, T.SNOW); // baú da neve: clareira pisável
   set(39, 3, T.SNOW); set(40, 4, T.SNOW);
-  // ---- Clareiras dos novos NPCs (garante que ninguém nasce na água/pedra) ----
-  set(13, 40, T.PATH); // Rurik, o ferreiro
-  set(16, 38, T.PLAZA); // Felix, o bardo
-  set(15, 39, T.PLAZA); // Mia
+  // ---- Clareiras dos NPCs externos (garante que ninguém nasce na água/pedra) ----
+  set(15, 37, T.PLAZA); // Pip (praça)
+  set(14, 39, T.PLAZA); // Felix, o bardo
+  set(16, 39, T.PLAZA); // Mia
   set(43, 51, T.SAND); // Guarda Dina (ponte sul)
   set(33, 47, T.SAND); // Velho Tumba (praia)
   set(33, 3, T.SNOW); // Sábia Sella (neve)
@@ -2520,7 +2558,7 @@ function regionAt(tx, ty) {
   if (tx >= 47 && ty <= 15) return 'dungeon';
   if (ty >= 2 && ty <= 4 && tx >= 18 && tx <= 46) return 'snow';
   if (tx <= 18 && ty <= 19) return 'forest';
-  if (tx >= 7 && tx <= 22 && ty >= 32 && ty <= 44) return 'town';
+  if (tx >= 6 && tx <= 25 && ty >= 30 && ty <= 47) return 'town';
   if (tx >= 3 && tx <= 22 && ty >= 46 && ty <= 56) return 'swamp';
   if (ty >= 44 && ty <= 53 && tx >= 23 && tx <= 43) return 'beach';
   if (tx >= 58 && ty >= 16) return 'desert';
@@ -2528,26 +2566,11 @@ function regionAt(tx, ty) {
   return 'field';
 }
 
-/** Definições dos NPCs: posição em tiles, sprite, nome e diálogo. */
+/** Definições dos NPCs do MUNDO (externos). Donos de loja/estalagem/ferreiro e o
+ * Ancião ficam DENTRO das casas — ver INTERIOR_NPCS. */
 const NPC_DEFS = [
   {
-    id: 'elder', x: 14, y: 36, name: 'Ancião Theo', kind: 'elder', wander: false,
-    lines: [
-      'Ah... o Cristal de Lumen enfraquece a cada lua.',
-      'O Dragão do Caos aninhou-se nas RUÍNAS ao nordeste, além do rio. Atravesse a PONTE a leste!',
-      'Treine na grama alta da planície, junte ouro e visite a loja da Mira. E descanse na estalagem antes de partir.',
-    ],
-  },
-  {
-    id: 'shop', x: 17, y: 37, name: 'Mira (Loja)', kind: 'merchant', wander: false, shop: true,
-    lines: ['Bem-vindo à minha lojinha! Ouro na mão, poção na sacola!'],
-  },
-  {
-    id: 'inn', x: 13, y: 42, name: 'Bram (Estalagem)', kind: 'innkeep', wander: false, inn: true,
-    lines: ['Cama quente e ensopado por 20G. Descansar é coisa de herói esperto!'],
-  },
-  {
-    id: 'kid', x: 14, y: 39, name: 'Pip', kind: 'kid', wander: true,
+    id: 'kid', x: 15, y: 37, name: 'Pip', kind: 'kid', wander: true,
     lines: [
       'Eu vi um SLIME verde-água perto da ponte! Ele faz "blub blub"!',
       'Quando eu crescer vou ser Mago igual a Lyra!',
@@ -2589,11 +2612,7 @@ const NPC_DEFS = [
     ],
   },
   {
-    id: 'smith', x: 13, y: 40, name: 'Rurik (Ferreiro)', kind: 'smith', wander: false, shop: true,
-    lines: ['Martelo quente, lâmina fria! Golems odeiam magia — bata de FOGO e TROVÃO neles.'],
-  },
-  {
-    id: 'bard', x: 16, y: 38, name: 'Felix, o Bardo', kind: 'bard', wander: true,
+    id: 'bard', x: 14, y: 39, name: 'Felix, o Bardo', kind: 'bard', wander: true,
     lines: [
       '♪ Na planície o slime pulou, na ruína o golem rolou... ♪',
       '♪ Quem o Ancião de pedra calar, no deserto há de penar... Golem Ancião, dizem! ♪',
@@ -2601,7 +2620,7 @@ const NPC_DEFS = [
     ],
   },
   {
-    id: 'mia', x: 15, y: 39, name: 'Mia', kind: 'kid', wander: true,
+    id: 'mia', x: 16, y: 39, name: 'Mia', kind: 'kid', wander: true,
     lines: [
       'O Pip disse que o boneco dele BRILHA! Eu também perdi... minha concha da praia!',
       'A mamãe diz que o pântano tem luzinhas verdes que enganam viajante. Não siga as luzinhas!',
@@ -2646,6 +2665,141 @@ const NPC_DEFS = [
     ],
   },
 ];
+
+/** Casas visitáveis da Vila Lumen: porta externa (mundo) → interior.
+ * door = tile da porta; front = tile em frente à porta (retorno ao sair). */
+const HOUSES = [
+  { id: 'elder', name: 'Casa do Ancião', door: { x: 10, y: 34 }, front: { x: 10, y: 35 } },
+  { id: 'shop', name: 'Loja da Mira', door: { x: 21, y: 34 }, front: { x: 21, y: 35 } },
+  { id: 'inn', name: 'Estalagem do Bram', door: { x: 10, y: 45 }, front: { x: 10, y: 46 } },
+  { id: 'smith', name: 'Ferraria do Rurik', door: { x: 21, y: 45 }, front: { x: 21, y: 46 } },
+];
+
+/** Dimensões dos interiores (tiles). */
+const INTERIOR_W = 22;
+const INTERIOR_H = 15;
+/** Porta de saída dentro do interior (parede sul) + spawn ao entrar. */
+const INTERIOR_DOOR = { x: 11, y: 14 };
+const INTERIOR_SPAWN = { x: 11, y: 12 };
+
+/** @returns {{tiles: Uint8Array, w: number, h: number}} interior da casa `id`. */
+function buildInterior(id) {
+  const w = INTERIOR_W, h = INTERIOR_H;
+  const tiles = new Uint8Array(w * h);
+  const set = (x, y, t) => { if (x >= 0 && y >= 0 && x < w && y < h) tiles[y * w + x] = t; };
+  const rect = (x0, y0, x1, y1, t) => { for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) set(x, y, t); };
+  rect(0, 0, w - 1, h - 1, T.FLOOR);
+  // paredes externas (telhado não aparece por dentro)
+  for (let x = 0; x < w; x++) { set(x, 0, T.WALL); set(x, h - 1, T.WALL); }
+  for (let y = 0; y < h; y++) { set(0, y, T.WALL); set(w - 1, y, T.WALL); }
+  set(INTERIOR_DOOR.x, INTERIOR_DOOR.y, T.DOOR);
+  // tapete central
+  rect(8, 6, 13, 10, T.PLAZA);
+  set(10, 8, T.PLAZA); set(11, 8, T.PLAZA);
+  // cantoneiras: luminárias quentes
+  set(1, 1, T.LAMP); set(w - 2, 1, T.LAMP);
+  set(1, h - 2, T.LAMP); set(w - 2, h - 2, T.LAMP);
+  if (id === 'elder') {
+    // estantes de pergaminhos (caixas) + mesa de mapas (pedra) + braseiro
+    rect(2, 2, 5, 2, T.CRATE);
+    rect(16, 2, 19, 2, T.CRATE);
+    set(10, 3, T.STONE); set(11, 3, T.STONE);
+    set(10, 4, T.FLOWER); set(11, 4, T.FLOWER);
+    set(2, 12, T.RUIN); set(19, 12, T.RUIN);
+  } else if (id === 'shop') {
+    // balcão da loja (cercas) com abertura no meio + mercadorias atrás
+    for (let x = 7; x <= 14; x++) { if (x !== 10 && x !== 11) set(x, 7, T.FENCE); }
+    rect(8, 2, 9, 4, T.CRATE);
+    rect(12, 2, 13, 4, T.CRATE);
+    set(10, 2, T.PLAZA); set(11, 2, T.PLAZA);
+    set(18, 5, T.CRATE); set(19, 5, T.CRATE); set(18, 11, T.CRATE); set(3, 11, T.CRATE);
+    set(2, 5, T.LAMP); set(19, 8, T.FLOWER);
+  } else if (id === 'inn') {
+    // camas (praça clara) + mesas (pedra) + lareira (ruína + lamp)
+    rect(2, 2, 5, 4, T.PLAZA);
+    rect(16, 2, 19, 4, T.PLAZA);
+    set(3, 2, T.FLOWER); set(17, 2, T.FLOWER);
+    set(9, 3, T.STONE); set(12, 3, T.STONE);
+    set(9, 11, T.STONE); set(12, 11, T.STONE);
+    set(10, 1, T.RUIN); set(11, 1, T.RUIN);
+  } else if (id === 'smith') {
+    // forja (ruína + brasa) + bigorna (pedra) + caixas de carvão e armas
+    rect(9, 1, 12, 2, T.RUIN);
+    set(10, 3, T.STONE); set(11, 3, T.STONE);
+    set(2, 2, T.CRATE); set(3, 2, T.CRATE); set(2, 3, T.CRATE);
+    set(18, 2, T.CRATE); set(19, 2, T.CRATE); set(19, 3, T.CRATE);
+    set(18, 11, T.STONE); set(3, 11, T.STONE);
+    set(10, 5, T.FLOWER);
+  }
+  return { tiles, w, h };
+}
+
+/** NPCs de cada interior (posições em tiles do interior). */
+const INTERIOR_NPCS = {
+  elder: [
+    {
+      id: 'elder', x: 10, y: 5, name: 'Ancião Theo', kind: 'elder', wander: false,
+      lines: [
+        'Ah... o Cristal de Lumen enfraquece a cada lua.',
+        'O Dragão do Caos aninhou-se nas RUÍNAS ao nordeste, além do rio. Atravesse a PONTE a leste!',
+        'Treine na grama alta da planície, junte ouro e visite a loja da Mira. E descanse na estalagem antes de partir.',
+      ],
+    },
+    {
+      id: 'lia', x: 15, y: 9, name: 'Lia (Aprendiz)', kind: 'sage', wander: true,
+      lines: [
+        'O Ancião me ensina a ler os mapas antigos... as Ruínas ficam a nordeste!',
+        'Traga ervas do pântano para a Yara — ela faz tônicos que salvam vidas!',
+      ],
+    },
+  ],
+  shop: [
+    {
+      id: 'shop', x: 10, y: 4, name: 'Mira (Loja)', kind: 'merchant', wander: false, shop: true,
+      lines: ['Bem-vindo à minha lojinha! Ouro na mão, poção na sacola!'],
+    },
+    {
+      id: 'cust', x: 15, y: 10, name: 'Viajante Nia', kind: 'nomad', wander: true,
+      lines: [
+        'Vim do deserto só para comprar com a Mira — os preços dela são os melhores!',
+        'Dizem que o Rurik, na ferraria ao sul da praça, vende BOMBAS contra golems!',
+      ],
+    },
+  ],
+  inn: [
+    {
+      id: 'inn', x: 10, y: 4, name: 'Bram (Estalagem)', kind: 'innkeep', wander: false, inn: true,
+      lines: ['Cama quente e ensopado por 20G. Descansar é coisa de herói esperto!'],
+    },
+    {
+      id: 'guest', x: 16, y: 10, name: 'Hóspede Tom', kind: 'fisher', wander: false,
+      lines: [
+        'Melhor cama de Valoria, juro! Acordei novo em folha por 20G.',
+        'Se for pescar, fale com o Kai na praia ao sul. Ele entende do riscado!',
+      ],
+    },
+  ],
+  smith: [
+    {
+      id: 'smith', x: 10, y: 4, name: 'Rurik (Ferreiro)', kind: 'smith', wander: false, shop: true,
+      lines: ['Martelo quente, lâmina fria! Golems odeiam magia — bata de FOGO e TROVÃO neles.'],
+    },
+    {
+      id: 'appr', x: 15, y: 10, name: 'Sana (Aprendiz)', kind: 'hunter', wander: true,
+      lines: [
+        'O mestre Rurik forjou minha lança! Com BOMBAS, até golem cai!',
+        'O Golem Ancião do deserto? Nem o mestre encara... mas você parece forte!',
+      ],
+    },
+  ],
+};
+
+/** Nome de exibição do local atual (mundo ou interior). */
+function placeName(place) {
+  if (!place || place.kind === 'world') return null; // Engine usa regionAt
+  const h = HOUSES.find((x) => x.id === place.id);
+  return h ? h.name : 'Interior';
+}
 
 /* ===== js\world\NPCs.js ===== */
 /**
@@ -2800,9 +2954,10 @@ class Player {
       this.slideX = 0; this.slideY = 0;
       this.animT = 0;
     }
-    // mantém dentro do mapa
-    this.x = Math.max(TILE, Math.min(this.x, MAP_W * TILE - TILE - this.w));
-    this.y = Math.max(TILE, Math.min(this.y, MAP_H * TILE - TILE - this.h));
+    // mantém dentro do mapa (usa as dimensões do mapa atual)
+    const mw = (map.w || MAP_W) * TILE, mh = (map.h || MAP_H) * TILE;
+    this.x = Math.max(TILE, Math.min(this.x, mw - TILE - this.w));
+    this.y = Math.max(TILE, Math.min(this.y, mh - TILE - this.h));
   }
 
   _hitsBlockers(px, py, blockers) {
@@ -4463,7 +4618,7 @@ class HUD {
     g.clearRect(0, 0, this.mm.width, this.mm.height);
     g.drawImage(base, 0, 0);
     g.strokeStyle = '#ffffffaa'; g.lineWidth = 1;
-    g.strokeRect((-ox / 32) * 2 + 0.5, (-oy / 32) * 2 + 0.5, (960 / 32) * 2, (540 / 32) * 2);
+    g.strokeRect((-ox / TILE) * 2 + 0.5, (-oy / TILE) * 2 + 0.5, (VIEW_W / TILE) * 2, (VIEW_H / TILE) * 2);
     if (altar) {
       g.fillStyle = '#ff5b5b';
       g.fillRect(altar.x * 2 - 2, altar.y * 2 - 2, 5, 5);
@@ -7098,7 +7253,11 @@ class BattleSystem {
   draw() {
     const g = this.g;
     const sc = this._scenery();
+    // HD: o canvas é 1280x453 mas o layout lógico continua 960x340 — escala uniforme
+    const SX = (this.cv.width || 1280) / 960;
+    const SY = (this.cv.height || 453) / 340;
     g.save();
+    g.scale(SX, SY);
     if (this.shakeT > 0) {
       const m = this.shakeM * Math.min(1, this.shakeT * 4);
       g.translate((Math.random() - 0.5) * 2 * m, (Math.random() - 0.5) * 2 * m);
@@ -7471,6 +7630,10 @@ class Engine {
       'Sábia Sella': humanoidFace(this.npcArt.sage),
       'Herbalista Yara': humanoidFace(this.npcArt.herbalist),
       'Eremita Ash': humanoidFace(this.npcArt.hermit),
+      'Lia (Aprendiz)': humanoidFace(this.npcArt.sage),
+      'Viajante Nia': humanoidFace(this.npcArt.nomad),
+      'Hóspede Tom': humanoidFace(this.npcArt.fisher),
+      'Sana (Aprendiz)': humanoidFace(this.npcArt.hunter),
       'GOLEM ANCIÃO': makePortrait(this.ancientArt, 8, 0, 72, 62),
       'DRAGÃO DO CAOS': dragonFace(this.dragonArt),
     };
@@ -7504,7 +7667,11 @@ class Engine {
   }
 
   init() {
-    this.map = new TileMap(buildMap());
+    this.worldMap = new TileMap(buildMap());
+    this.map = this.worldMap;
+    this.interiorMaps = {};
+    this.interiorNpcs = {};
+    this.place = { kind: 'world' };
     this._buildMinimap();
     this._newGameState();
     try { preloadIcons(); } catch { /* canvas indisponível */ }
@@ -7526,17 +7693,130 @@ class Engine {
     this.gold = 120;
     this.flags = { bossDefeated: false, metElder: false };
     this._lastRegion = null;
+    this.worldMap = new TileMap(buildMap());
+    this.map = this.worldMap;
+    this.interiorMaps = {};
+    this.interiorNpcs = {};
+    this.place = { kind: 'world' };
     this.npcs = NPC_DEFS.map((d) => new NPC(d));
-    this.camera.snap(this.player.cx, this.player.cy);
+    this.worldNpcs = this.npcs;
+    this.camera.snap(this.player.cx, this.player.cy, this.map.w * TILE, this.map.h * TILE);
   }
 
-  /** Pré-renderiza o minimapa (2px por tile). */
+  /** Mapa atual (mundo ou interior). */
+  _curMap() { return this.map; }
+  /** Largura/altura do mapa atual em px (p/ a câmera). */
+  _mapPx() { return [this.map.w * TILE, this.map.h * TILE]; }
+  /** Está dentro de alguma casa? */
+  _isInterior() { return !!this.place && this.place.kind === 'interior'; }
+  /** Região atual (id do interior ou regionAt do mundo). */
+  _curRegion() {
+    if (this._isInterior()) return this.place.id;
+    return regionAt(this.player.tileX, this.player.tileY);
+  }
+
+  /** Entra na casa `id`: troca de cena com fade, reposiciona o jogador e os NPCs. */
+  async _enterHouse(id) {
+    if (this._busy || this._isInterior()) return;
+    const house = HOUSES.find((h) => h.id === id);
+    if (!house) return;
+    this._busy = true;
+    try {
+      this.audio.sfx('door');
+      await Transition.fadeOut(220);
+      this._returnPos = { x: this.player.x, y: this.player.y, dir: this.player.dir };
+      if (!this.interiorMaps[id]) {
+        this.interiorMaps[id] = new TileMap(buildInterior(id));
+        this.interiorNpcs[id] = (INTERIOR_NPCS[id] || []).map((d) => new NPC(d));
+      }
+      this.worldNpcs = this.npcs;
+      this.place = { kind: 'interior', id };
+      this.map = this.interiorMaps[id];
+      this.npcs = this.interiorNpcs[id];
+      this.player.x = INTERIOR_SPAWN.x * TILE + 4;
+      this.player.y = INTERIOR_SPAWN.y * TILE;
+      this.player.dir = 'up';
+      this.player.slideX = 0; this.player.slideY = 0;
+      this._path = null; this._tapAct = null; this._tapMark = null;
+      this._fishing = null;
+      const [mw, mh] = this._mapPx();
+      this.camera.snap(this.player.cx, this.player.cy, mw, mh);
+      this._lastRegion = id;
+      this._showBanner(id);
+      await Transition.fadeIn(280);
+      toast(`🚪 ${house.name}`);
+    } finally {
+      this._busy = false;
+    }
+  }
+
+  /** Sai da casa atual de volta à porta de origem no mundo. */
+  async _exitHouse() {
+    if (this._busy || !this._isInterior()) return false;
+    const house = HOUSES.find((h) => h.id === this.place.id);
+    this._busy = true;
+    try {
+      this.audio.sfx('door');
+      await Transition.fadeOut(220);
+      this.place = { kind: 'world' };
+      this.map = this.worldMap;
+      this.npcs = this.worldNpcs || this.npcs;
+      const fx = house ? house.front : null;
+      if (fx) {
+        this.player.x = fx.x * TILE + 4;
+        this.player.y = fx.y * TILE;
+      } else if (this._returnPos) {
+        this.player.x = this._returnPos.x; this.player.y = this._returnPos.y;
+      }
+      this.player.dir = 'down';
+      this.player.slideX = 0; this.player.slideY = 0;
+      this._path = null; this._tapAct = null; this._tapMark = null;
+      this._fishing = null;
+      const [mw, mh] = this._mapPx();
+      this.camera.snap(this.player.cx, this.player.cy, mw, mh);
+      this._lastRegion = regionAt(this.player.tileX, this.player.tileY);
+      await Transition.fadeIn(280);
+      return true;
+    } finally {
+      this._busy = false;
+    }
+  }
+
+  /** Casa cuja porta está no tile (usado pelo E e pelo toque). */
+  _houseAt(tx, ty) {
+    return HOUSES.find((h) => h.door.x === tx && h.door.y === ty) || null;
+  }
+
+  /** Tenta entrar na casa (E encarando a porta ou em cima dela). Retorna true se consumiu. */
+  _tryHouseEnter() {
+    if (this._isInterior()) return false;
+    const ft = this.player.facingTile();
+    let h = this._houseAt(ft.x, ft.y);
+    if (!h) h = this._houseAt(this.player.tileX, this.player.tileY);
+    if (!h) return false;
+    this._faceToward(h.door.x * TILE + 16, h.door.y * TILE + 16);
+    this._enterHouse(h.id);
+    return true;
+  }
+
+  /** Tenta sair da casa (E encarando/em cima da porta interna). */
+  _tryHouseExit() {
+    if (!this._isInterior()) return false;
+    const ft = this.player.facingTile();
+    const onDoor = this.player.tileX === INTERIOR_DOOR.x && this.player.tileY === INTERIOR_DOOR.y;
+    const faceDoor = ft.x === INTERIOR_DOOR.x && ft.y === INTERIOR_DOOR.y;
+    if (!onDoor && !faceDoor) return false;
+    this._exitHouse();
+    return true;
+  }
+
+  /** Pré-renderiza o minimapa (2px por tile, sempre do mundo). */
   _buildMinimap() {
     const c = document.createElement('canvas');
-    c.width = this.map.w * 2; c.height = this.map.h * 2;
+    c.width = this.worldMap.w * 2; c.height = this.worldMap.h * 2;
     const g = c.getContext('2d');
-    for (let y = 0; y < this.map.h; y++) for (let x = 0; x < this.map.w; x++) {
-      g.fillStyle = tileColor(this.map.tile(x, y));
+    for (let y = 0; y < this.worldMap.h; y++) for (let x = 0; x < this.worldMap.w; x++) {
+      g.fillStyle = tileColor(this.worldMap.tile(x, y));
       g.fillRect(x * 2, y * 2, 2, 2);
     }
     this.mmBase = c;
@@ -7546,8 +7826,8 @@ class Engine {
   _showBanner(region) {
     const el = document.getElementById('region-banner');
     if (!el) return;
-    const names = { town: 'Vila Lumen', field: 'Planície Verdejante', forest: 'Bosque Sombrio', dungeon: 'Ruínas do Cristal', altar: 'Altar do Caos', beach: 'Praia do Sol', snow: 'Pico Nevado', desert: 'Deserto Dourado', swamp: 'Pântano Sombrio' };
-    const subs = { town: 'povoado pacato', field: 'cuidado com a grama alta', forest: 'feras entre as árvores', dungeon: 'o cristal o aguarda', altar: 'NÃO HÁ VOLTA', beach: 'águas calmas — bom p/ pescar', snow: 'o frio morde — feras fortes', desert: 'o oásis esconde um baú', swamp: 'não beba a água' };
+    const names = { town: 'Vila Lumen', elder: 'Casa do Ancião', shop: 'Loja da Mira', inn: 'Estalagem do Bram', smith: 'Ferraria do Rurik', field: 'Planície Verdejante', forest: 'Bosque Sombrio', dungeon: 'Ruínas do Cristal', altar: 'Altar do Caos', beach: 'Praia do Sol', snow: 'Pico Nevado', desert: 'Deserto Dourado', swamp: 'Pântano Sombrio' };
+    const subs = { town: 'povoado pacato', elder: 'o ancião o aguarda', shop: 'ouro na mão, poção na sacola', inn: 'cama quente por 20G', smith: 'martelo quente, lâmina fria', field: 'cuidado com a grama alta', forest: 'feras entre as árvores', dungeon: 'o cristal o aguarda', altar: 'NÃO HÁ VOLTA', beach: 'águas calmas — bom p/ pescar', snow: 'o frio morde — feras fortes', desert: 'o oásis esconde um baú', swamp: 'não beba a água' };
     el.innerHTML = `${names[region] || region}<small>${subs[region] || ''}</small>`;
     el.classList.remove('hidden');
     void el.offsetWidth;
@@ -7580,11 +7860,27 @@ class Engine {
     this.gold = d.gold;
     this.flags = d.flags;
     this.playSec = d.playSec || 0;
+    this.worldMap = new TileMap(buildMap());
+    this.interiorMaps = {};
+    this.interiorNpcs = {};
+    this._buildMinimap();
     this.npcs = NPC_DEFS.map((def) => new NPC(def));
+    this.worldNpcs = this.npcs;
     for (const n of this.npcs) {
       if (n.gift && (d.flags[`gift_${n.id}`] || (n.id === 'hermit' && d.flags.giftTaken))) n.giftGiven = true;
     }
-    this.camera.snap(this.player.cx, this.player.cy);
+    // save feito dentro de casa: volta para a porta da casa no mundo
+    this.place = { kind: 'world' };
+    this.map = this.worldMap;
+    if (d.place && d.place.kind === 'interior') {
+      const house = HOUSES.find((h) => h.id === d.place.id);
+      if (house) {
+        this.player.x = house.front.x * TILE + 4;
+        this.player.y = house.front.y * TILE;
+      }
+    }
+    const [mw, mh] = [this.map.w * TILE, this.map.h * TILE];
+    this.camera.snap(this.player.cx, this.player.cy, mw, mh);
   }
 
   _snapshot() {
@@ -7593,6 +7889,7 @@ class Engine {
       party: serializeParty(this.party), inv: { ...this.inv },
       gold: this.gold, flags: { ...this.flags, giftTaken: this.npcs.find((n) => n.id === 'hermit')?.giftGiven, ...Object.fromEntries(this.npcs.filter((n) => n.gift).map((n) => [`gift_${n.id}`, !!n.giftGiven])) },
       playSec: Math.floor(this._elapsed()),
+      place: this._isInterior() ? { ...this.place } : { kind: 'world' },
     };
   }
 
@@ -7687,33 +7984,40 @@ class Engine {
       return;
     }
 
-    // falar / altar do boss / cristal / brinquedo / baú / pesca
+    // falar / portas de casas / altar do boss / cristal / brinquedo / baú / pesca
     if (!this._fishing && inp.pressed.confirm) {
       this._path = null; this._tapAct = null;
-      if (this._tryBossInteract()) return;
-      if (this._tryEliteInteract()) return;
-      if (this._tryHealCrystal()) return;
-      if (this._tryToyPickup()) return;
-      if (this._tryChest()) return;
+      if (this._tryHouseExit()) return;
+      if (this._tryHouseEnter()) return;
+      if (!this._isInterior()) {
+        if (this._tryBossInteract()) return;
+        if (this._tryEliteInteract()) return;
+        if (this._tryHealCrystal()) return;
+        if (this._tryToyPickup()) return;
+        if (this._tryChest()) return;
+      }
       const npc = this._facingNpc();
       if (npc) { this._talk(npc); return; }
-      if (this._tryFish()) return;
+      if (!this._isInterior() && this._tryFish()) return;
     }
 
     // movimento (Shift = correr)
     // NPCs NÃO bloqueiam: dá para atravessar sem travar (falar continua pelo E)
     const blockers = [];
-    // dragão bloqueia o altar até ser derrotado
-    if (!this.flags.bossDefeated) blockers.push({ x: BOSS_ALTAR.x * TILE, y: BOSS_ALTAR.y * TILE });
-    // baús são sólidos (abertos ou não)
-    for (const c of CHESTS) blockers.push({ x: c.x * TILE, y: c.y * TILE });
+    if (!this._isInterior()) {
+      // dragão bloqueia o altar até ser derrotado
+      if (!this.flags.bossDefeated) blockers.push({ x: BOSS_ALTAR.x * TILE, y: BOSS_ALTAR.y * TILE });
+      // baús são sólidos (abertos ou não)
+      for (const c of CHESTS) blockers.push({ x: c.x * TILE, y: c.y * TILE });
+    }
     if (this._fishCd > 0) this._fishCd -= dt;
     // pescaria congela o movimento: só o tick da vara/bóia avança
     if (this._fishing) {
       for (const n of this.npcs) n.update(dt, this.map);
-      this.camera.follow(this.player.cx, this.player.cy, dt);
+      const [fmw, fmh] = this._mapPx();
+      this.camera.follow(this.player.cx, this.player.cy, dt, fmw, fmh);
       this.camera.update(dt);
-      this._wxTick(dt, regionAt(this.player.tileX, this.player.tileY));
+      this._wxTick(dt, this._curRegion());
       this._tickFish(dt);
       return;
     }
@@ -7748,14 +8052,15 @@ class Engine {
         });
       }
     }
-    this.camera.follow(this.player.cx, this.player.cy, dt);
+    const [mmw, mmh] = this._mapPx();
+    this.camera.follow(this.player.cx, this.player.cy, dt, mmw, mmh);
     this.camera.update(dt);
     // clima/ambiente do bioma atual (só visual, sem gameplay)
-    this._wxTick(dt, regionAt(this.player.tileX, this.player.tileY));
+    this._wxTick(dt, this._curRegion());
 
-    // encontros aleatórios na grama
+    // encontros aleatórios na grama (só no mundo, nunca dentro de casa)
     const steps = this.player.consumeSteps();
-    if (steps > 0) {
+    if (steps > 0 && !this._isInterior()) {
       const tile = this.map.tile(this.player.tileX, this.player.tileY);
       const region = regionAt(this.player.tileX, this.player.tileY);
       if (isEncounterTile(tile) && region !== 'town' && Math.random() < ENCOUNTER_RATE * steps * 2.2) {
@@ -7765,12 +8070,13 @@ class Engine {
     }
 
     // música por região + banner de local novo + HUD (só re-renderiza quando algo mudou)
-    const region = regionAt(this.player.tileX, this.player.tileY);
+    const region = this._curRegion();
     if (!this._lastRegion) this._lastRegion = region;
     else if (this._lastRegion !== region) { this._lastRegion = region; this._showBanner(region); }
-    const want = region === 'town' || region === 'beach' ? 'town' : region === 'dungeon' || region === 'altar' || region === 'swamp' ? 'dungeon' : 'field';
+    const want = this._isInterior() || region === 'town' || region === 'beach' ? 'town' : region === 'dungeon' || region === 'altar' || region === 'swamp' ? 'dungeon' : 'field';
     if (this.audio.ctx && this.audio.currentTrack !== want) this.audio.playMusic(want);
-    this.hud.renderMinimap(this.mmBase, this.camera.ox, this.camera.oy, this.player.tileX, this.player.tileY, this.flags.bossDefeated ? null : BOSS_ALTAR);
+    if (this.hud.mm) this.hud.mm.style.display = this._isInterior() ? 'none' : '';
+    if (!this._isInterior()) this.hud.renderMinimap(this.mmBase, this.camera.ox, this.camera.oy, this.player.tileX, this.player.tileY, this.flags.bossDefeated ? null : BOSS_ALTAR);
     const sig = `${region}|${this.gold}|${this.audio.muted}|${this.party.map((h) => `${Math.ceil(h.hp)}/${Math.ceil(h.mp)}/${h.level}`).join(',')}`;
     if (sig !== this._hudSig) { this._hudSig = sig; this.hud.render(this.party, this.gold, region, this.faces, this.audio.muted); }
   }
@@ -7842,8 +8148,10 @@ class Engine {
     const blocked = (x, y) => {
       if (x < 1 || y < 1 || x >= this.map.w - 1 || y >= this.map.h - 1) return true;
       if (this.map.solid(x, y)) return true;
-      if (!this.flags.bossDefeated && x === BOSS_ALTAR.x && y === BOSS_ALTAR.y) return true;
-      if (CHESTS.some((c) => c.x === x && c.y === y)) return true;
+      if (!this._isInterior()) {
+        if (!this.flags.bossDefeated && x === BOSS_ALTAR.x && y === BOSS_ALTAR.y) return true;
+        if (CHESTS.some((c) => c.x === x && c.y === y)) return true;
+      }
       return false;
     };
     const key = (x, y) => y * this.map.w + x;
@@ -7889,6 +8197,12 @@ class Engine {
     const npc = this.npcs.find((n) =>
       Math.floor((n.x + 12) / TILE) === tx && Math.floor((n.y + 12) / TILE) === ty);
     if (npc) return { kind: 'npc', npc };
+    if (this._isInterior()) {
+      if (tx === INTERIOR_DOOR.x && ty === INTERIOR_DOOR.y) return { kind: 'house-exit' };
+      return null;
+    }
+    const house = this._houseAt(tx, ty);
+    if (house) return { kind: 'house-enter', id: house.id };
     if (CHESTS.some((c) => c.x === tx && c.y === ty)) return { kind: 'chest' };
     if (tx === BOSS_ALTAR.x && ty === BOSS_ALTAR.y) return { kind: 'spot', which: 'boss' };
     if (tx === ELITE.x && ty === ELITE.y) return { kind: 'spot', which: 'elite' };
@@ -7914,6 +8228,16 @@ class Engine {
       if (Math.hypot(nx - this.player.cx, ny - this.player.cy) > TILE * 1.8) return;
       this._faceToward(nx, ny);
       this._talk(act.npc);
+    } else if (act.kind === 'house-enter') {
+      const house = HOUSES.find((h) => h.id === act.id);
+      if (house) {
+        const dx = house.door.x * TILE + 16, dy = house.door.y * TILE + 16;
+        if (Math.hypot(dx - this.player.cx, dy - this.player.cy) > TILE * 2.2) return;
+        this._faceToward(dx, dy);
+        this._enterHouse(act.id);
+      }
+    } else if (act.kind === 'house-exit') {
+      this._tryHouseExit();
     } else if (act.kind === 'chest') {
       this._tryChest();
     } else if (act.kind === 'fish') {
@@ -8135,6 +8459,7 @@ class Engine {
 
   /** Baú do tesouro: E por perto abre uma única vez. */
   _tryChest() {
+    if (this._isInterior()) return false;
     const c = this._nearChest();
     if (!c) return false;
     if (this.flags[`chest_${c.id}`]) {
@@ -8180,6 +8505,7 @@ class Engine {
 
   /** Inicia a pescaria: E encarando a água (ou tocando a água). Retorna true se lançou a linha. */
   _tryFish(forceTX, forceTY) {
+    if (this._isInterior()) return false;
     if (this._fishing || this._fishCd > 0) return false;
     let tx, ty;
     if (forceTX !== undefined && forceTY !== undefined) {
@@ -8418,6 +8744,7 @@ class Engine {
 
   /** Cristal restaurador: E por perto = cura total. */
   _tryHealCrystal() {
+    if (this._isInterior()) return false;
     const d = Math.hypot(this.player.cx - (HEAL_CRYSTAL.x * TILE + 16), this.player.cy - (HEAL_CRYSTAL.y * TILE + 16));
     if (d > TILE * 1.7) return false;
     fullHeal(this.party);
@@ -8430,6 +8757,7 @@ class Engine {
 
   /** Pega o boneco do Pip (só com a quest ativa). */
   _tryToyPickup() {
+    if (this._isInterior()) return false;
     if (!this.flags.toyQuest || this.flags.toyFound) return false;
     const d = Math.hypot(this.player.cx - (TOY_SPOT.x * TILE + 16), this.player.cy - (TOY_SPOT.y * TILE + 16));
     if (d > TILE * 1.4) return false;
@@ -8487,6 +8815,7 @@ class Engine {
   }
 
   _tryBossInteract() {
+    if (this._isInterior()) return false;
     if (this.flags.bossDefeated) return false;
     const d = Math.hypot(this.player.cx - (BOSS_ALTAR.x * TILE + 16), this.player.cy - (BOSS_ALTAR.y * TILE + 16));
     if (d > TILE * 2.2) return false;
@@ -8542,6 +8871,7 @@ class Engine {
 
   /** Sentinela opcional do deserto: o Golem Ancião aguarda na clareira. */
   _tryEliteInteract() {
+    if (this._isInterior()) return false;
     if (this.flags.eliteDefeated) return false;
     const d = Math.hypot(this.player.cx - (ELITE.x * TILE + 16), this.player.cy - (ELITE.y * TILE + 16));
     if (d > TILE * 2.2) return false;
@@ -8652,9 +8982,13 @@ class Engine {
   _lastSaveFallback() {
     // ao voltar ao título, o jogador pode continuar de um save; revive o grupo na vila
     const retry = () => {
+      this.place = { kind: 'world' };
+      this.map = this.worldMap;
+      this.npcs = this.worldNpcs || NPC_DEFS.map((d) => new NPC(d));
+      this.worldNpcs = this.npcs;
       this.player = new Player(SPAWN.x, SPAWN.y);
       for (const h of this.party) { h.hp = Math.ceil(h.maxHp / 2); h.mp = Math.ceil(h.maxMp / 2); }
-      this.camera.snap(this.player.cx, this.player.cy);
+      this.camera.snap(this.player.cx, this.player.cy, this.map.w * TILE, this.map.h * TILE);
     };
     const btn = document.getElementById('btn-retry');
     if (btn && !btn.dataset.armed) {
@@ -8699,6 +9033,8 @@ class Engine {
     ];
     this.map.draw(g, ox, oy, this.time, actorRects);
 
+    const inHouse = this._isInterior();
+    if (!inHouse) {
     // cristal do altar
     const cxp = BOSS_ALTAR.x * TILE + ox, cyp = BOSS_ALTAR.y * TILE + oy;
     if (!this.flags.bossDefeated) {
@@ -8760,6 +9096,13 @@ class Engine {
 
     // baús do tesouro (fechado brilha; aberto mostra a tampa erguida)
     for (const c of CHESTS) this._drawChest(g, ox, oy, c);
+    } else {
+      // dentro de casa: tapete de saída + brilho na porta
+      const ex = INTERIOR_DOOR.x * TILE + ox + 16, ey = INTERIOR_DOOR.y * TILE + oy;
+      const tw = 0.5 + 0.4 * Math.sin(this.time * 4);
+      g.fillStyle = `rgba(255,215,94,${(0.25 + tw * 0.25).toFixed(2)})`;
+      g.beginPath(); g.ellipse(ex, ey + 10, 16, 6, 0, 0, 7); g.fill();
+    }
 
     // sombras suaves sob os atores (profundidade barata estilo 16-bit)
     const shadow = (sx, sy, w) => {
@@ -8793,11 +9136,11 @@ class Engine {
       halo.addColorStop(1, 'transparent');
       g.fillStyle = halo;
       g.fillRect(lx - 150, ly - 150, 300, 300);
-      const vg = g.createRadialGradient(480, 270, 240, 480, 270, 620);
+      const vg = g.createRadialGradient(VIEW_W / 2, VIEW_H / 2, 320, VIEW_W / 2, VIEW_H / 2, 830);
       vg.addColorStop(0, 'transparent');
       vg.addColorStop(1, `rgba(2,3,12,${(0.30 + 0.04 * Math.sin(this.time * 0.8)).toFixed(2)})`);
       g.fillStyle = vg;
-      g.fillRect(0, 0, 960, 540);
+      g.fillRect(0, 0, VIEW_W, VIEW_H);
     }
     // marca do toque (para onde o jogador está indo)
     if (this._tapMark && this.time - this._tapMark.t < 0.6) {
@@ -8813,8 +9156,39 @@ class Engine {
 
     // balão "▼ E" quando há NPC falável à frente (prioridade sobre o "!" da quest)
     const npc = this._facingNpc();
+    // porta de casa à frente (mundo) ou porta de saída (interior)
+    let housePrompt = null, exitPrompt = false;
+    if (this.state === 'FIELD' && !this.dialog.active && !this.menu.active) {
+      if (this._isInterior()) {
+        const ft0 = this.player.facingTile();
+        if ((ft0.x === INTERIOR_DOOR.x && ft0.y === INTERIOR_DOOR.y) ||
+            (this.player.tileX === INTERIOR_DOOR.x && this.player.tileY === INTERIOR_DOOR.y)) exitPrompt = true;
+      } else if (!npc) {
+        const ft0 = this.player.facingTile();
+        housePrompt = this._houseAt(ft0.x, ft0.y) || this._houseAt(this.player.tileX, this.player.tileY);
+      }
+    }
+    if (exitPrompt) {
+      g.fillStyle = '#ffd75e';
+      g.font = 'bold 20px monospace';
+      g.strokeStyle = '#000'; g.lineWidth = 4;
+      const ex = INTERIOR_DOOR.x * TILE + ox + 16, ey = INTERIOR_DOOR.y * TILE + oy - 26 + Math.sin(this.time * 5) * 2;
+      g.textAlign = 'center';
+      g.strokeText('🚪 E Sair', ex, ey);
+      g.fillText('🚪 E Sair', ex, ey);
+      g.textAlign = 'start';
+    } else if (housePrompt) {
+      g.fillStyle = '#7fd4ff';
+      g.font = 'bold 20px monospace';
+      g.strokeStyle = '#000'; g.lineWidth = 4;
+      const hx = housePrompt.door.x * TILE + ox + 16, hy = housePrompt.door.y * TILE + oy - 26 + Math.sin(this.time * 5) * 2;
+      g.textAlign = 'center';
+      g.strokeText(`🏠 E ${housePrompt.name}`, hx, hy);
+      g.fillText(`🏠 E ${housePrompt.name}`, hx, hy);
+      g.textAlign = 'start';
+    }
     // balão "▼ E" sobre o baú próximo (só se não há NPC na frente — mesma prioridade do E)
-    const chest = !npc ? this._nearChest() : null;
+    const chest = !npc && !housePrompt && !inHouse ? this._nearChest() : null;
     if (chest && this.state === 'FIELD' && !this.dialog.active) {
       g.fillStyle = '#ffd75e';
       g.font = 'bold 20px monospace';
@@ -8848,8 +9222,8 @@ class Engine {
       g.strokeText('▼ E', bx - 8, by);
       g.fillText('▼ E', bx - 8, by);
     }
-    // dica de pesca: "🎣 E" pulsante sobre a água encarada (só fora da pescaria)
-    if (!this._fishing && !npc && !chest && this.state === 'FIELD' && !this.dialog.active && !this.menu.active) {
+    // dica de pesca: "🎣 E" pulsante sobre a água encarada (só fora da pescaria e fora de casa)
+    if (!this._fishing && !npc && !chest && !housePrompt && !inHouse && this.state === 'FIELD' && !this.dialog.active && !this.menu.active) {
       const ft = this.player.facingTile();
       if (this.map.tile(ft.x, ft.y) === T.WATER) {
         const fx = ft.x * TILE + ox + 16, fy = ft.y * TILE + oy - 6 + Math.sin(this.time * 5) * 2;
@@ -9212,8 +9586,8 @@ class Engine {
   _drawFishGame(g) {
     const f = this._fishing;
     if (!f || (f.phase !== 'reel' && f.phase !== 'caught' && f.phase !== 'miss')) return;
-    const W = 480, H = f.phase === 'reel' ? 138 : 84;
-    const x = (960 - W) / 2, y = 540 - H - 78;
+    const W = 640, H = f.phase === 'reel' ? 148 : 92;
+    const x = (VIEW_W - W) / 2, y = VIEW_H - H - 100;
     // caixa
     g.fillStyle = 'rgba(6,9,20,.93)';
     g.strokeStyle = '#cdd6ff'; g.lineWidth = 2;
@@ -9229,9 +9603,9 @@ class Engine {
       const velBars = f.spec.speed < 0.65 ? '▰▱▱' : f.spec.speed < 0.9 ? '▰▰▱' : '▰▰▰';
       g.font = 'bold 14px monospace';
       g.fillStyle = '#ffd75e';
-      g.fillText(`❓ PEIXE MISTERIOSO · sombra ${f.spec.size} · ${stars}`, 480, y + 19);
+      g.fillText(`❓ PEIXE MISTERIOSO · sombra ${f.spec.size} · ${stars}`, VIEW_W / 2, y + 19);
       g.font = '11px monospace'; g.fillStyle = '#9fb2ff';
-      g.fillText(`velocidade ${velBars} · sombra G = raro e veloz · Q solta`, 480, y + 36);
+      g.fillText(`velocidade ${velBars} · sombra G = raro e veloz · Q solta`, VIEW_W / 2, y + 36);
       const bx = x + 24, bw = W - 48, by = y + 56, bh = 24;
       // trilho com gradiente + cantos
       const rail = g.createLinearGradient(bx, 0, bx + bw, 0);
@@ -9288,33 +9662,33 @@ class Engine {
       g.font = 'bold 15px monospace';
       g.strokeStyle = '#000'; g.lineWidth = 3;
       const vy = by + bh + 22;
-      g.strokeText(v.txt, 480, vy);
-      g.fillStyle = v.col; g.fillText(v.txt, 480, vy);
+      g.strokeText(v.txt, VIEW_W / 2, vy);
+      g.fillStyle = v.col; g.fillText(v.txt, VIEW_W / 2, vy);
       if (f.struggle > 0) {
         g.font = 'bold 12px monospace';
         const flash = Math.sin(this.time * 16) > 0 ? '#ff8a6b' : '#ffd75e';
-        g.strokeText('⚠ ARRANQUE! segure o ritmo...', 480, vy + 15);
-        g.fillStyle = flash; g.fillText('⚠ ARRANQUE! segure o ritmo...', 480, vy + 15);
+        g.strokeText('⚠ ARRANQUE! segure o ritmo...', VIEW_W / 2, vy + 15);
+        g.fillStyle = flash; g.fillText('⚠ ARRANQUE! segure o ritmo...', VIEW_W / 2, vy + 15);
       } else {
         g.font = '11px monospace'; g.fillStyle = '#9fb2ff';
-        g.fillText('E = fisgar · dourado = PERFEITA (×2)', 480, vy + 15);
+        g.fillText('E = fisgar · dourado = PERFEITA (×2)', VIEW_W / 2, vy + 15);
       }
     } else if (f.phase === 'caught') {
       g.font = 'bold 15px monospace';
       g.fillStyle = '#37e08b';
-      g.fillText(f.catch.kind === 'fish' ? `${f.spec.icon} ${f.spec.name} — FISGADA ${f.grade}!` : '🎣 BOA!', 480, y + 19);
+      g.fillText(f.catch.kind === 'fish' ? `${f.spec.icon} ${f.spec.name} — FISGADA ${f.grade}!` : '🎣 BOA!', VIEW_W / 2, y + 19);
       g.font = '13px monospace'; g.fillStyle = '#f2f4ff';
-      g.fillText(f.resultText || '', 480, y + 44);
+      g.fillText(f.resultText || '', VIEW_W / 2, y + 44);
       g.font = '11px monospace'; g.fillStyle = '#9fb2ff';
-      g.fillText('E continua pescando · Q recolhe', 480, y + 64);
+      g.fillText('E continua pescando · Q recolhe', VIEW_W / 2, y + 64);
     } else {
       g.font = 'bold 14px monospace';
       g.fillStyle = '#ff6b6b';
-      g.fillText('🎣 Escapou...', 480, y + 19);
+      g.fillText('🎣 Escapou...', VIEW_W / 2, y + 19);
       g.font = '12px monospace'; g.fillStyle = '#f2f4ff';
-      g.fillText(f.missMsg || '', 480, y + 42);
+      g.fillText(f.missMsg || '', VIEW_W / 2, y + 42);
       g.font = '11px monospace'; g.fillStyle = '#9fb2ff';
-      g.fillText('E tenta de novo · Q recolhe', 480, y + 62);
+      g.fillText('E tenta de novo · Q recolhe', VIEW_W / 2, y + 62);
     }
     g.textAlign = 'start';
   }
@@ -9633,7 +10007,7 @@ class Engine {
     }
     // vagalumes sobre a grama do título
     for (let i = 0; i < 14; i++) {
-      const fx = (i * 137 + Math.sin(this.time * 0.7 + i) * 30 + 960) % 960;
+      const fx = (i * 137 + Math.sin(this.time * 0.7 + i) * 30 + VIEW_W) % VIEW_W;
       const fy = 430 + ((i * 53) % 80);
       g.fillStyle = `rgba(255,240,150,${(0.3 + 0.5 * Math.abs(Math.sin(this.time * 2 + i * 2))).toFixed(2)})`;
       g.fillRect(fx, fy, 2, 2);

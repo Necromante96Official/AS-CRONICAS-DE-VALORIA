@@ -140,6 +140,8 @@ export async function runAutoTest(game) {
     log(game.inv.potion === pot0 + 2 && game.flags.metElder === true, 'presente-do-anciao', `pocoes ${pot0}→${game.inv.potion}`);
     await game._exitHouse();
     log(await waitFor(() => game.place && game.place.kind === 'world', 8000), 'casa-anciao-sai');
+    // a íris precisa liberar a tela (sem véu preto preso)
+    log(await waitFor(() => document.getElementById('transition').style.opacity === '0', 8000), 'transicao-iris-limpa');
 
     // ---- 4. loja da Mira (dentro de casa: compra via diálogo; loja reabre e esgota o ouro) ----
     const gold0 = game.gold, shopPot0 = game.inv.potion;

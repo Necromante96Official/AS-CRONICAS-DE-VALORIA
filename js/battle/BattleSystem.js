@@ -1041,6 +1041,30 @@ export class BattleSystem {
     }
   }
 
+  /** Shader de iluminação do palco: luz de topo + sombra noturna + vinheta. */
+  _drawBattleLight(g, sc) {
+    // luz de topo (sol/lua do cenário)
+    const top = g.createLinearGradient(0, 0, 0, 200);
+    top.addColorStop(0, sc.night ? 'rgba(150,170,255,.10)' : 'rgba(255,250,230,.10)');
+    top.addColorStop(1, 'rgba(255,250,230,0)');
+    g.fillStyle = top;
+    g.fillRect(0, 0, 1280, 200);
+    // palcos noturnos: sombra azulada sobre o chão
+    if (sc.night) {
+      const dk = g.createLinearGradient(0, 220, 0, 453);
+      dk.addColorStop(0, 'rgba(4,4,18,0)');
+      dk.addColorStop(1, 'rgba(4,4,18,.38)');
+      g.fillStyle = dk;
+      g.fillRect(0, 220, 1280, 233);
+    }
+    // vinheta do palco (foco no centro)
+    const vg = g.createRadialGradient(640, 240, 260, 640, 240, 760);
+    vg.addColorStop(0, 'transparent');
+    vg.addColorStop(1, 'rgba(2,3,12,.34)');
+    g.fillStyle = vg;
+    g.fillRect(0, 0, 1280, 453);
+  }
+
   // ---------- desenho ----------
   /**
    * Deslocamento do atacante: avanço até o alvo e volta (lunge) ou golpe curto.
@@ -1424,6 +1448,7 @@ export class BattleSystem {
       g.fillRect(p.x, p.y, p.size, p.size);
       g.globalAlpha = 1;
     }
+    this._drawBattleLight(g, sc);
     // texto flutuante no canvas (sombra + cor)
     g.textAlign = 'center';
     for (const f of this.floats) {

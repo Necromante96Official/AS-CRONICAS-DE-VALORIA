@@ -103,6 +103,7 @@ export class Engine {
     this.walkers = [];
     this.walkersEnabled = true;
     this._walkerT = 0;
+    this._walkerLockUntil = 0; // bioma limpo: trava respawn até este tempo
     this._touchGrace = 0;
     this._foeImg = {};
     this.npcArt = {};
@@ -225,6 +226,7 @@ export class Engine {
     this.npcs = NPC_DEFS.map((d) => new NPC(d));
     this.worldNpcs = this.npcs;
     this.walkers.length = 0;
+    this._walkerLockUntil = 0;
     this._touchGrace = 0;
     this.camera.snap(this.player.cx, this.player.cy, this.map.w * TILE, this.map.h * TILE);
   }
@@ -241,7 +243,15 @@ export class Engine {
     return regionAt(this.player.tileX, this.player.tileY);
   }
 
-  /** Entra na casa `id`: troca de cena com fade, reposiciona o jogador e os NPCs. */
+  /** Fração de tela (0..1) de um ponto do mundo (p/ centrar a íris). */
+  _screenFrac(wx, wy) {
+    return {
+      x: Math.min(0.95, Math.max(0.05, (wx + this.camera.ox) / VIEW_W)),
+      y: Math.min(0.95, Math.max(0.05, (wy + this.camera.oy) / VIEW_H)),
+    };
+  }
+
+  /** Entra na casa `id`: troca de cena com íris, reposiciona o jogador e os NPCs. */
   async _enterHouse(id) {
     if (this._busy || this._isInterior()) return;
     const house = HOUSES.find((h) => h.id === id);
@@ -249,7 +259,8 @@ export class Engine {
     this._busy = true;
     try {
       this.audio.sfx('door');
-      await Transition.fadeOut(220);
+      const at = this._screenFrac(house.door.x * TILE + 16, house.door.y * TILE + 16);
+      await Transition.irisOut(420, at.x, at.y);
       this._returnPos = { x: this.player.x, y: this.player.y, dir: this.player.dir };
       if (!this.interiorMaps[id]) {
         this.interiorMaps[id] = new TileMap(buildInterior(id));
@@ -270,7 +281,9 @@ export class Engine {
       this.camera.snap(this.player.cx, this.player.cy, mw, mh);
       this._lastRegion = id;
       this._showBanner(id);
-      await Transition.fadeIn(280);
+      // abre a íris centrada no jogador já posicionado
+      const at2 = this._screenFrac(this.player.cx, this.player.cy);
+      await Transition.irisIn(450, at2.x, at2.y);
       toast(`🚪 ${house.name}`);
     } finally {
       this._busy = false;
@@ -284,7 +297,8 @@ export class Engine {
     this._busy = true;
     try {
       this.audio.sfx('door');
-      await Transition.fadeOut(220);
+      const at = this._screenFrac(INTERIOR_DOOR.x * TILE + 16, INTERIOR_DOOR.y * TILE + 16);
+      await Transition.irisOut(420, at.x, at.y);
       this.place = { kind: 'world' };
       this.map = this.worldMap;
       this.npcs = this.worldNpcs || this.npcs;
@@ -303,7 +317,8 @@ export class Engine {
       const [mw, mh] = this._mapPx();
       this.camera.snap(this.player.cx, this.player.cy, mw, mh);
       this._lastRegion = regionAt(this.player.tileX, this.player.tileY);
-      await Transition.fadeIn(280);
+      const at2 = this._screenFrac(this.player.cx, this.player.cy);
+      await Transition.irisIn(450, at2.x, at2.y);
       return true;
     } finally {
       this._busy = false;
@@ -569,7 +584,7 @@ export class Engine {
     } else if (ax.x !== 0 || ax.y !== 0) {
       this._bumpT = (this._bumpT || 0) + dt;
       if (this._bumpT > 0.35) { this._bumpT = 0; this.audio.sfx('bump'); }
-    } else { this._stepT = 0; this._bumpT = 0; this._poofT = 0; this._smokeT = 0; this._ghostT = 0; this._walkT = 0; }
+    } else { this._stepT = 0; this._bumpT = 0; this._poofT = 0; this._ghostT = 0; this._walkT = 0; }
     for (const n of this.npcs) {
       n.update(dt, this.map);
       // patrulha levanta poeirinha atrás dos pés (fora do sprite)
@@ -1451,11 +1466,11 @@ export class Engine {
     // remove os que ficaram longe / mudaram de região
     this.walkers = this.walkers.filter((w) =>
       Math.hypot(w.cx - this.player.cx, w.cy - this.player.cy) < TILE * 18);
-    // repõe a patrulha (máx 5)
+    // repõe a patrulha (máx 3 por bioma; 60s de calmaria após limpar tudo)
     this._walkerT -= dt;
     if (this._walkerT <= 0) {
       this._walkerT = 1.4;
-      if (this.walkers.length < 5) this._spawnWalker(region);
+      if (this.walkers.length < 3 && this.time >= (this._walkerLockUntil || 0)) this._spawnWalker(region);
     }
     for (const w of this.walkers) {
       const dp = Math.hypot(w.cx - this.player.cx, w.cy - this.player.cy);
@@ -1589,10 +1604,14 @@ export class Engine {
 
   async _afterBattle(result, region) {
     this._touchGrace = 2.0; // patrulha dispersou: fôlego antes do próximo encosto
+    this._walkerLockUntil = this.time + 60; // bioma limpo: novos monstros só em 1min
     if (result.fled) {
+      // estado primeiro (sincronia), fade como véu visual por cima do campo
       this.state = 'FIELD';
       this.hud.show();
       this.hud.render(this.party, this.gold, region, this.faces, this.audio.muted);
+      await Transition.fadeOut(180);
+      await Transition.fadeIn(280);
       return;
     }
     if (result.victory) {
@@ -1648,6 +1667,8 @@ export class Engine {
       this.state = 'FIELD';
       this.hud.show();
       this.hud.render(this.party, this.gold, region, this.faces, this.audio.muted);
+      await Transition.fadeOut(180);
+      await Transition.fadeIn(300);
       return;
     }
     // derrota
@@ -1818,21 +1839,8 @@ export class Engine {
     this.map.drawCanopy(g, ox, oy, this.time);
     // clima/ambiente do bioma (chuva, neve, brasas, folhas, gaivotas...)
     this._drawWeather(g);
-    // luz ambiente: halo quente ao redor do jogador + vinheta viva
-    {
-      const lx = p.cx + ox, ly = p.cy + oy - 6;
-      const halo = g.createRadialGradient(lx, ly, 8, lx, ly, 150);
-      halo.addColorStop(0, 'rgba(255,230,160,.10)');
-      halo.addColorStop(0.5, 'rgba(255,230,160,.04)');
-      halo.addColorStop(1, 'transparent');
-      g.fillStyle = halo;
-      g.fillRect(lx - 150, ly - 150, 300, 300);
-      const vg = g.createRadialGradient(VIEW_W / 2, VIEW_H / 2, 320, VIEW_W / 2, VIEW_H / 2, 830);
-      vg.addColorStop(0, 'transparent');
-      vg.addColorStop(1, `rgba(2,3,12,${(0.30 + 0.04 * Math.sin(this.time * 0.8)).toFixed(2)})`);
-      g.fillStyle = vg;
-      g.fillRect(0, 0, VIEW_W, VIEW_H);
-    }
+    // luz ambiente: shader do bioma + luz de topo + halo do jogador + vinheta
+    this._drawLighting(g, p, ox, oy);
     // marca do toque (para onde o jogador está indo)
     if (this._tapMark && this.time - this._tapMark.t < 0.6) {
       const k = (this.time - this._tapMark.t) / 0.6;
@@ -2490,25 +2498,19 @@ export class Engine {
         g.fillStyle = 'rgba(200,220,205,.09)';
         g.beginPath(); g.ellipse(q.x, q.y, 110, 16, 0, 0, 7); g.fill();
       } else if (q.type === 'poof') {
+        // rastro no chão: elipse achatada que espalha rente ao solo
         const k = Math.min(1, q.t / q.life);
         const col = q.col || '210,200,180';
-        const r0 = q.big ? 3 : 2, gr = q.big ? 8 : 5;
+        const rx = (q.big ? 4 : 2.5) + k * (q.big ? 9 : 5), ry = rx * 0.42;
         g.fillStyle = `rgba(${col},${(0.42 * (1 - k)).toFixed(2)})`;
-        g.beginPath(); g.arc(q.x, q.y, r0 + k * gr, 0, 7); g.fill();
+        g.beginPath(); g.ellipse(q.x, q.y, rx, ry, 0, 0, 7); g.fill();
         // miolo claro = volume
-        g.fillStyle = `rgba(255,250,235,${(0.25 * (1 - k)).toFixed(2)})`;
-        g.beginPath(); g.arc(q.x - 1, q.y - 1, (r0 + k * gr) * 0.45, 0, 7); g.fill();
+        g.fillStyle = `rgba(255,250,235,${(0.22 * (1 - k)).toFixed(2)})`;
+        g.beginPath(); g.ellipse(q.x - 1, q.y - 1, rx * 0.45, ry * 0.45, 0, 0, 7); g.fill();
       } else if (q.type === 'stepdust') {
         const k = Math.min(1, q.t / q.life);
         g.fillStyle = `rgba(${q.col || '210,200,180'},${(0.3 * (1 - k)).toFixed(2)})`;
         g.fillRect(q.x, q.y, 2, 2);
-      } else if (q.type === 'smoke') {
-        const k = Math.min(1, q.t / q.life);
-        const r = 3 + k * 9;
-        g.fillStyle = `rgba(120,120,132,${(0.34 * (1 - k)).toFixed(2)})`;
-        g.beginPath(); g.arc(q.x, q.y, r, 0, 7); g.fill();
-        g.fillStyle = `rgba(205,205,215,${(0.22 * (1 - k)).toFixed(2)})`;
-        g.beginPath(); g.arc(q.x - r * 0.25, q.y - r * 0.25, r * 0.5, 0, 7); g.fill();
       } else if (q.type === 'ghost') {
         const k = Math.min(1, q.t / q.life);
         g.save();
@@ -2578,19 +2580,7 @@ export class Engine {
           t: 0, life: 0.5, seed: Math.random() * 9, col: tint, big: true,
         });
       }
-      // fumaça do esforço: escorre para trás, subindo só um pouco
-      this._smokeT = (this._smokeT || 0) + dt;
-      if (this._smokeT > 0.22 && this._wx.length < 110) {
-        this._smokeT = 0;
-        const b = this._behind(sx, sy, this.player.dir, 4, 34);
-        this._wx.push({
-          type: 'smoke',
-          x: b.x, y: b.y - 4,
-          vx: -b.dx * 26 + (Math.random() - 0.5) * 8, vy: -b.dy * 20 - 8 - Math.random() * 10,
-          t: 0, life: 0.7, seed: Math.random() * 9,
-        });
-      }
-      // afterimage: rastro do corpo
+      // afterimage: rastro do corpo (só correndo; poeira e fumaça removidas: só chão)
       this._ghostT = (this._ghostT || 0) + dt;
       if (this._ghostT > 0.12 && this._wx.length < 110) {
         this._ghostT = 0;
@@ -2617,7 +2607,7 @@ export class Engine {
           t: 0, life: 0.38, seed: Math.random() * 9, col: tint,
         });
       }
-      this._poofT = 0; this._smokeT = 0; this._ghostT = 0;
+      this._poofT = 0; this._ghostT = 0;
     }
   }
 
@@ -2645,6 +2635,43 @@ export class Engine {
     const w = 32 * squash * s, h = 40 * s;
     // ancora pelos pés para o menor (criança) não flutuar
     this.g.drawImage(img, x + (32 - w) / 2 + (leanX + swayX) * s, y + (40 - h) + (bob + leanY) * s, w, h);
+  }
+
+  /** Shader de iluminação do campo: tinte do bioma + luz de topo + halo + vinheta. */
+  _drawLighting(g, p, ox, oy) {
+    // 1) tinte do bioma (sombreamento por região)
+    const region = this._curRegion();
+    const tints = {
+      dungeon: 'rgba(10,10,38,.30)', altar: 'rgba(10,10,38,.30)',
+      swamp: 'rgba(8,28,18,.24)', forest: 'rgba(4,20,10,.20)',
+      snow: 'rgba(190,215,255,.10)', desert: 'rgba(255,175,80,.09)',
+      beach: 'rgba(255,240,200,.07)',
+      shop: 'rgba(255,200,120,.06)', inn: 'rgba(255,200,120,.06)',
+      elder: 'rgba(255,200,120,.06)', smith: 'rgba(255,170,90,.08)',
+    };
+    const tint = tints[region];
+    if (tint) { g.fillStyle = tint; g.fillRect(0, 0, VIEW_W, VIEW_H); }
+    // 2) luz de topo (sol): brisa clara descendo do alto da tela
+    const top = g.createLinearGradient(0, 0, 0, VIEW_H * 0.45);
+    const night = region === 'dungeon' || region === 'altar' || region === 'swamp';
+    top.addColorStop(0, night ? 'rgba(120,150,255,.07)' : 'rgba(255,250,230,.08)');
+    top.addColorStop(1, 'rgba(255,250,230,0)');
+    g.fillStyle = top;
+    g.fillRect(0, 0, VIEW_W, VIEW_H * 0.45);
+    // 3) halo quente ao redor do jogador
+    const lx = p.cx + ox, ly = p.cy + oy - 6;
+    const halo = g.createRadialGradient(lx, ly, 8, lx, ly, 170);
+    halo.addColorStop(0, 'rgba(255,230,160,.12)');
+    halo.addColorStop(0.5, 'rgba(255,230,160,.05)');
+    halo.addColorStop(1, 'transparent');
+    g.fillStyle = halo;
+    g.fillRect(lx - 170, ly - 170, 340, 340);
+    // 4) vinheta viva (sombreia as bordas)
+    const vg = g.createRadialGradient(VIEW_W / 2, VIEW_H / 2, 320, VIEW_W / 2, VIEW_H / 2, 830);
+    vg.addColorStop(0, 'transparent');
+    vg.addColorStop(1, `rgba(2,3,12,${(0.30 + 0.04 * Math.sin(this.time * 0.8)).toFixed(2)})`);
+    g.fillStyle = vg;
+    g.fillRect(0, 0, VIEW_W, VIEW_H);
   }
 
   /** Desenha um monstro patrulheiro (~48px, âncora nos pés) + "!" se farejou o herói. */

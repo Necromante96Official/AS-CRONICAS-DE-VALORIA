@@ -4,8 +4,9 @@
  */
 import { SPELLS, grantXp, aliveHeroes, partyWiped } from '../entities/Party.js';
 import { ITEMS } from '../systems/Inventory.js';
+import { foeImage } from '../entities/Enemies.js';
 import { ic } from '../ui/ItemIcons.js';
-import { makeHumanoid, makeSlime, makeBat, makeGolem, makeDragon, makeKing, makeWisp, makeCrab, makeScorpion, makeShroom, makeSkeleton, makeOrc, makeToad, makeWolf, makeAncient } from '../core/SpriteFactory.js';
+import { makeHumanoid } from '../core/SpriteFactory.js';
 
 const PALETTES = {
   hero:   { skin: '#f2c89b', hair: '#7a4a21', tunic: '#2b6fd6', pants: '#3a3a5a', cape: '#c22a3a' },
@@ -14,23 +15,7 @@ const PALETTES = {
 };
 
 function enemySprite(id) {
-  switch (id) {
-    case 'slime': return makeSlime('#4fe07a');
-    case 'bat': return makeBat('#6a5cff');
-    case 'golem': return makeGolem();
-    case 'wisp': return makeWisp();
-    case 'crab': return makeCrab();
-    case 'scorpion': return makeScorpion();
-    case 'shroom': return makeShroom();
-    case 'skeleton': return makeSkeleton();
-    case 'orc': return makeOrc();
-    case 'toad': return makeToad();
-    case 'wolf': return makeWolf();
-    case 'ancient': return makeAncient();
-    case 'king': return makeKing();
-    case 'dragon': return makeDragon();
-    default: return makeSlime();
-  }
+  return foeImage(id);
 }
 
 const physDmg = (atk, def) => Math.max(1, Math.round(atk * 2.2 - def * 1.2 + Math.random() * 4));
@@ -158,11 +143,13 @@ export class BattleSystem {
   stop() { this.active = false; this.el.classList.add('hidden'); this.bossBar?.classList.add('hidden'); }
 
   // ---------- layout dos combatentes (visão lateral, pés no chão) ----------
+  // Palco nativo HD 1280x453: inimigos à esquerda-centro, heróis à direita
+  // (abaixo e à esquerda dos painéis DOM do topo — sem sobreposição).
   heroPos(i) {
     // formação em diagonal: fileira de trás levemente acima (profundidade)
-    const F = [{ x: 695, y: 284 }, { x: 788, y: 262 }, { x: 876, y: 282 }];
+    const F = [{ x: 700, y: 395 }, { x: 795, y: 370 }, { x: 860, y: 393 }];
     if (i < F.length && this.party.length === F.length) return F[i];
-    return { x: 695 + i * 90, y: 284 - (i % 2 ? 22 : 0) };
+    return { x: 700 + i * 80, y: 395 - (i % 2 ? 25 : 0) };
   }
   heroScale(i) {
     // fileira de trás um pouco menor (perspectiva)
@@ -170,10 +157,10 @@ export class BattleSystem {
   }
   enemyPos(i) {
     const n = this.enemies.length;
-    if (this.isBoss) return { x: 300, y: 222 };
-    if (n === 1) return { x: 285, y: 266 };
-    if (n === 2) return [{ x: 215, y: 274 }, { x: 375, y: 258 }][i] || { x: 285, y: 266 };
-    return [{ x: 170, y: 276 }, { x: 300, y: 258 }, { x: 430, y: 274 }][i] || { x: 285, y: 266 };
+    if (this.isBoss) return { x: 400, y: 300 };
+    if (n === 1) return { x: 370, y: 355 };
+    if (n === 2) return [{ x: 280, y: 365 }, { x: 480, y: 345 }][i] || { x: 370, y: 355 };
+    return [{ x: 220, y: 368 }, { x: 390, y: 348 }, { x: 550, y: 365 }][i] || { x: 370, y: 355 };
   }
 
   // ---------- log / render ----------
@@ -999,9 +986,9 @@ export class BattleSystem {
     d.className = 'dmg-float' + (crit ? ' crit' : '') + (String(text).startsWith('+') ? ' heal' : '');
     d.textContent = String(text);
     d.style.color = color;
-    // converte coords do canvas de batalha (960x~340) para % do wrap
-    d.style.left = `${(pos.x / 960) * 100}%`;
-    d.style.top = `${(pos.y / 340) * 63}%`;
+    // converte coords do canvas de batalha (1280x453) para % do wrap
+    d.style.left = `${(pos.x / 1280) * 100}%`;
+    d.style.top = `${(pos.y / 453) * 63}%`;
     document.getElementById('game-wrap').appendChild(d);
     setTimeout(() => d.remove(), 1050);
   }
@@ -1065,7 +1052,7 @@ export class BattleSystem {
     const a = this.anim;
     if (!a || a.who !== who || a.idx !== idx) return { x: 0, y: 0 };
     const el = Math.min(1, Math.max(0, 1 - a.t / (a.dur || 0.35)));
-    if (a.tx == null) return { x: (who === 'hero' ? -30 : 26) * Math.sin(el * Math.PI), y: 0 };
+    if (a.tx == null) return { x: (who === 'hero' ? -40 : 34) * Math.sin(el * Math.PI), y: 0 };
     const dx = a.tx - a.fx, dy = a.ty - a.fy;
     let k;
     if (el < 0.45) { const u = el / 0.45; k = (1 - Math.pow(1 - u, 3)) * 0.85; }
@@ -1078,21 +1065,22 @@ export class BattleSystem {
   }
 
   _drawSky(g, sc) {
-    const grad = g.createLinearGradient(0, 0, 0, 250);
+    // palco HD: céu até y=335, largura total 1280
+    const grad = g.createLinearGradient(0, 0, 0, 335);
     grad.addColorStop(0, sc.sky[0]); grad.addColorStop(0.55, sc.sky[1]); grad.addColorStop(1, sc.sky[2]);
     g.fillStyle = grad;
-    g.fillRect(0, 0, 960, 250);
+    g.fillRect(0, 0, 1280, 335);
     // sol / lua
-    const mx = 800, my = 52;
+    const mx = 1060, my = 70;
     const pulse = 1 + Math.sin(this.time * 2) * 0.05;
     g.fillStyle = sc.sun + '33';
-    g.beginPath(); g.arc(mx, my, 34 * pulse, 0, 7); g.fill();
+    g.beginPath(); g.arc(mx, my, 45 * pulse, 0, 7); g.fill();
     g.fillStyle = sc.sun;
-    g.beginPath(); g.arc(mx, my, 20 * pulse, 0, 7); g.fill();
+    g.beginPath(); g.arc(mx, my, 27 * pulse, 0, 7); g.fill();
     if (sc.night) {
       // estrelas cintilantes
-      for (let i = 0; i < 46; i++) {
-        const x = (i * 173 + 40) % 960, y = (i * 97 + 13) % 190;
+      for (let i = 0; i < 60; i++) {
+        const x = (i * 173 + 40) % 1280, y = (i * 97 + 13) % 250;
         const a = 0.25 + 0.55 * Math.abs(Math.sin(this.time * 1.4 + i * 1.3));
         g.globalAlpha = a;
         g.fillStyle = '#fff';
@@ -1102,45 +1090,45 @@ export class BattleSystem {
     } else {
       // nuvens à deriva
       g.fillStyle = 'rgba(255,255,255,.75)';
-      for (let i = 0; i < 4; i++) {
-        const cx = ((i * 300 + this.time * (9 + i * 3)) % 1100) - 70;
-        const cy = 36 + i * 34;
+      for (let i = 0; i < 5; i++) {
+        const cx = ((i * 400 + this.time * (12 + i * 4)) % 1620) - 170;
+        const cy = 48 + i * 44;
         g.beginPath();
-        g.ellipse(cx, cy, 52, 13, 0, 0, 7);
-        g.ellipse(cx + 30, cy + 4, 36, 10, 0, 0, 7);
-        g.ellipse(cx - 32, cy + 5, 30, 9, 0, 0, 7);
+        g.ellipse(cx, cy, 70, 17, 0, 0, 7);
+        g.ellipse(cx + 40, cy + 5, 48, 13, 0, 0, 7);
+        g.ellipse(cx - 43, cy + 6, 40, 12, 0, 0, 7);
         g.fill();
       }
     }
     // montanhas / copas distantes em duas camadas
     g.fillStyle = sc.far;
-    g.beginPath(); g.moveTo(0, 250);
-    for (let x = 0; x <= 960; x += 60) {
-      const h = 60 + 34 * Math.abs(Math.sin(x * 0.011 + 2));
-      g.lineTo(x, 250 - h);
+    g.beginPath(); g.moveTo(0, 335);
+    for (let x = 0; x <= 1280; x += 80) {
+      const h = 80 + 44 * Math.abs(Math.sin(x * 0.011 + 2));
+      g.lineTo(x, 335 - h);
     }
-    g.lineTo(960, 250); g.closePath(); g.fill();
+    g.lineTo(1280, 335); g.closePath(); g.fill();
     g.fillStyle = sc.near;
-    g.beginPath(); g.moveTo(0, 250);
-    for (let x = 0; x <= 960; x += 44) {
-      const h = 30 + 22 * Math.abs(Math.sin(x * 0.02 + 5)) + Math.sin(this.time * 0.7 + x * 0.01) * 2;
-      g.lineTo(x, 250 - h);
+    g.beginPath(); g.moveTo(0, 335);
+    for (let x = 0; x <= 1280; x += 58) {
+      const h = 40 + 28 * Math.abs(Math.sin(x * 0.02 + 5)) + Math.sin(this.time * 0.7 + x * 0.01) * 3;
+      g.lineTo(x, 335 - h);
     }
-    g.lineTo(960, 250); g.closePath(); g.fill();
+    g.lineTo(1280, 335); g.closePath(); g.fill();
   }
 
   _drawGround(g, sc) {
-    // chão em camadas
+    // chão em camadas (palco HD, centro x=640)
     g.fillStyle = sc.groundD;
-    g.beginPath(); g.ellipse(480, 306, 470, 62, 0, 0, 7); g.fill();
+    g.beginPath(); g.ellipse(640, 408, 630, 84, 0, 0, 7); g.fill();
     g.fillStyle = sc.ground;
-    g.beginPath(); g.ellipse(480, 298, 448, 52, 0, 0, 7); g.fill();
+    g.beginPath(); g.ellipse(640, 398, 600, 70, 0, 0, 7); g.fill();
     g.fillStyle = 'rgba(255,255,255,.10)';
-    g.beginPath(); g.ellipse(480, 288, 400, 34, 0, 0, 7); g.fill();
+    g.beginPath(); g.ellipse(640, 385, 530, 45, 0, 0, 7); g.fill();
     // textura do chão por região
     if (sc.deco === 'flowers') {
-      for (let i = 0; i < 26; i++) {
-        const x = (i * 211 + 30) % 940 + 10, y = 268 + ((i * 67) % 56);
+      for (let i = 0; i < 34; i++) {
+        const x = (i * 211 + 30) % 1240 + 20, y = 356 + ((i * 67) % 74);
         const sway = Math.sin(this.time * 2 + i) * 1.5;
         g.fillStyle = '#3f9142';
         g.fillRect(x, y, 2, 7);
@@ -1148,8 +1136,8 @@ export class BattleSystem {
         g.fillRect(x - 2 + sway, y - 3, 5, 4);
       }
     } else if (sc.deco === 'mushroom') {
-      for (let i = 0; i < 12; i++) {
-        const x = (i * 311 + 60) % 920 + 20, y = 272 + ((i * 53) % 50);
+      for (let i = 0; i < 16; i++) {
+        const x = (i * 311 + 60) % 1220 + 30, y = 360 + ((i * 53) % 66);
         if (i % 3 === 0) {
           g.fillStyle = '#f2ead8'; g.fillRect(x, y, 3, 7);
           g.fillStyle = '#c22a3a'; g.fillRect(x - 3, y - 4, 9, 5);
@@ -1159,39 +1147,39 @@ export class BattleSystem {
         }
       }
       // vagalumes
-      for (let i = 0; i < 8; i++) {
-        const x = (i * 197 + this.time * 22) % 960, y = 200 + ((i * 89) % 90) + Math.sin(this.time * 2 + i * 2) * 6;
+      for (let i = 0; i < 10; i++) {
+        const x = (i * 197 + this.time * 22) % 1280, y = 266 + ((i * 89) % 120) + Math.sin(this.time * 2 + i * 2) * 6;
         g.fillStyle = `rgba(255,240,150,${0.35 + 0.35 * Math.sin(this.time * 3 + i * 2)})`;
         g.fillRect(x, y, 3, 3);
       }
     } else if (sc.deco === 'torch') {
-      for (const tx of [70, 890]) {
+      for (const tx of [90, 1190]) {
         const fl = Math.sin(this.time * 9 + tx) * 2;
-        g.fillStyle = '#2a2a3a'; g.fillRect(tx - 2, 232, 5, 50);
+        g.fillStyle = '#2a2a3a'; g.fillRect(tx - 2, 309, 5, 66);
         g.fillStyle = 'rgba(255,120,30,.25)';
-        g.fillRect(tx - 10, 206, 22, 24);
-        g.fillStyle = '#ff7b2e'; g.fillRect(tx - 5, 214 + fl, 11, 12 - fl);
-        g.fillStyle = '#ffd75e'; g.fillRect(tx - 2, 217 + fl, 5, 7 - fl);
+        g.fillRect(tx - 10, 274, 22, 30);
+        g.fillStyle = '#ff7b2e'; g.fillRect(tx - 5, 285 + fl, 11, 15 - fl);
+        g.fillStyle = '#ffd75e'; g.fillRect(tx - 2, 289 + fl, 5, 9 - fl);
       }
     } else if (sc.deco === 'embers') {
       // rachaduras de lava
-      g.strokeStyle = '#ff7b2e'; g.lineWidth = 3;
+      g.strokeStyle = '#ff7b2e'; g.lineWidth = 4;
       g.globalAlpha = 0.7 + 0.3 * Math.sin(this.time * 3);
       g.beginPath();
-      g.moveTo(120, 300); g.lineTo(260, 290); g.lineTo(340, 302); g.lineTo(480, 292);
-      g.moveTo(560, 302); g.lineTo(700, 290); g.lineTo(840, 300);
+      g.moveTo(160, 400); g.lineTo(347, 386); g.lineTo(453, 402); g.lineTo(640, 389);
+      g.moveTo(747, 402); g.lineTo(933, 386); g.lineTo(1120, 400);
       g.stroke();
       g.globalAlpha = 1;
-      for (let i = 0; i < 16; i++) {
-        const x = (i * 251 + this.time * -30) % 980 + 10;
-        const y = 320 - ((this.time * (26 + i * 2) + i * 70) % 140);
+      for (let i = 0; i < 20; i++) {
+        const x = (i * 251 + this.time * -30) % 1300 + 10;
+        const y = 426 - ((this.time * (26 + i * 2) + i * 70) % 186);
         g.fillStyle = `rgba(255,${120 + (i % 3) * 40},40,${0.5 + 0.3 * Math.sin(this.time * 4 + i)})`;
         g.fillRect(x, y, 3, 3);
       }
     } else if (sc.deco === 'shells') {
       // conchas e estrelas-do-mar espalhadas na areia
-      for (let i = 0; i < 10; i++) {
-        const x = (i * 293 + 40) % 920 + 20, y = 272 + ((i * 71) % 52);
+      for (let i = 0; i < 13; i++) {
+        const x = (i * 293 + 40) % 1220 + 30, y = 360 + ((i * 71) % 68);
         if (i % 3 === 0) {
           g.fillStyle = '#f2b8c6'; g.fillRect(x, y, 7, 4);
           g.fillStyle = '#fff'; g.fillRect(x + 1, y, 3, 1);
@@ -1204,43 +1192,43 @@ export class BattleSystem {
       }
       // reflexos d'água na beira
       g.fillStyle = `rgba(255,255,255,${0.25 + 0.2 * Math.sin(this.time * 2)})`;
-      g.fillRect(40, 262, 880, 2);
+      g.fillRect(53, 349, 1173, 2);
     } else if (sc.deco === 'snowfall') {
       // flocos caindo sobre a neve
-      for (let i = 0; i < 40; i++) {
-        const x = (i * 173 + this.time * (12 + (i % 5) * 4) * (i % 2 ? 1 : -1) * 0.4 + 960) % 960;
-        const y = 180 + ((this.time * (24 + (i % 4) * 8) + i * 61) % 150);
+      for (let i = 0; i < 52; i++) {
+        const x = (i * 173 + this.time * (12 + (i % 5) * 4) * (i % 2 ? 1 : -1) * 0.4 + 1280) % 1280;
+        const y = 240 + ((this.time * (24 + (i % 4) * 8) + i * 61) % 200);
         const s = i % 4 === 0 ? 3 : 2;
         g.fillStyle = `rgba(255,255,255,${0.5 + 0.4 * Math.sin(this.time * 3 + i)})`;
         g.fillRect(x, y, s, s);
       }
       // brilho do gelo no chão
       g.fillStyle = `rgba(180,220,255,${0.2 + 0.15 * Math.sin(this.time * 2)})`;
-      g.beginPath(); g.ellipse(480, 296, 380, 30, 0, 0, 7); g.fill();
+      g.beginPath(); g.ellipse(640, 395, 507, 40, 0, 0, 7); g.fill();
     } else if (sc.deco === 'cactus') {
       // silhuetas de cactos + poeira quente
-      for (const [cx, s] of [[90, 1], [850, 1.3], [700, 0.8]]) {
+      for (const [cx, s] of [[120, 1.3], [1133, 1.7], [933, 1.05]]) {
         g.fillStyle = 'rgba(46,90,50,.85)';
-        g.fillRect(cx, 250 - 46 * s, 10 * s, 46 * s);
-        g.fillRect(cx - 12 * s, 250 - 34 * s, 8 * s, 20 * s);
-        g.fillRect(cx + 14 * s, 250 - 30 * s, 8 * s, 16 * s);
+        g.fillRect(cx, 333 - 61 * s, 13 * s, 61 * s);
+        g.fillRect(cx - 16 * s, 333 - 45 * s, 11 * s, 27 * s);
+        g.fillRect(cx + 19 * s, 333 - 40 * s, 11 * s, 21 * s);
       }
-      for (let i = 0; i < 12; i++) {
-        const x = (i * 331 + this.time * 60) % 980 - 10;
-        const y = 262 + ((i * 47) % 60);
+      for (let i = 0; i < 16; i++) {
+        const x = (i * 331 + this.time * 60) % 1300 - 10;
+        const y = 349 + ((i * 47) % 80);
         g.fillStyle = `rgba(230,200,140,${0.3 + 0.25 * Math.sin(this.time * 3 + i)})`;
         g.fillRect(x, y, 8, 2);
       }
     } else if (sc.deco === 'fog') {
       // névoa à deriva + vagalumes verdes
-      for (let i = 0; i < 5; i++) {
-        const x = ((i * 260 + this.time * (14 + i * 4)) % 1100) - 70;
-        const y = 210 + i * 22;
+      for (let i = 0; i < 6; i++) {
+        const x = ((i * 347 + this.time * (19 + i * 5)) % 1460) - 90;
+        const y = 280 + i * 29;
         g.fillStyle = `rgba(200,220,205,${0.1 + 0.05 * Math.sin(this.time + i)})`;
-        g.beginPath(); g.ellipse(x, y, 90, 12, 0, 0, 7); g.fill();
+        g.beginPath(); g.ellipse(x, y, 120, 16, 0, 0, 7); g.fill();
       }
-      for (let i = 0; i < 10; i++) {
-        const x = (i * 211 + this.time * 18) % 960, y = 200 + ((i * 83) % 100) + Math.sin(this.time * 2 + i) * 8;
+      for (let i = 0; i < 13; i++) {
+        const x = (i * 211 + this.time * 18) % 1280, y = 266 + ((i * 83) % 134) + Math.sin(this.time * 2 + i) * 8;
         g.fillStyle = `rgba(160,255,150,${0.35 + 0.35 * Math.sin(this.time * 3 + i * 2)})`;
         g.fillRect(x, y, 3, 3);
       }
@@ -1250,23 +1238,20 @@ export class BattleSystem {
   draw() {
     const g = this.g;
     const sc = this._scenery();
-    // HD: o canvas é 1280x453 mas o layout lógico continua 960x340 — escala uniforme
-    const SX = (this.cv.width || 1280) / 960;
-    const SY = (this.cv.height || 453) / 340;
+    // palco nativo HD 1280x453 (sem escala — layout já em coordenadas finais)
     g.save();
-    g.scale(SX, SY);
     if (this.shakeT > 0) {
       const m = this.shakeM * Math.min(1, this.shakeT * 4);
       g.translate((Math.random() - 0.5) * 2 * m, (Math.random() - 0.5) * 2 * m);
     }
-    g.clearRect(-20, -20, 1000, 380);
+    g.clearRect(-20, -20, 1320, 500);
     this._drawSky(g, sc);
     this._drawGround(g, sc);
 
     // sombras
     g.fillStyle = 'rgba(0,0,0,.30)';
-    for (const [x, y, rx] of [...this.enemies.map((e, i) => { const p = this.enemyPos(i); return [p.x, p.y + (this.isBoss ? 52 : 34), this.isBoss ? 60 : 26]; }),
-      ...this.party.map((h, i) => { const p = this.heroPos(i); return [p.x, p.y + 26, 18]; })]) {
+    for (const [x, y, rx] of [...this.enemies.map((e, i) => { const p = this.enemyPos(i); return [p.x, p.y + (this.isBoss ? 68 : 44), this.isBoss ? 80 : 34]; }),
+      ...this.party.map((h, i) => { const p = this.heroPos(i); return [p.x, p.y + 34, 24]; })]) {
       g.beginPath(); g.ellipse(x, y, rx, rx * 0.28, 0, 0, 7); g.fill();
     }
 
@@ -1282,7 +1267,7 @@ export class BattleSystem {
       const lunge = this._animOffset('enemy', i);
       const ox = lunge.x, oy = lunge.y;
       const img = this.enemyArt[i];
-      const baseW = this.isBoss ? 136 : e.sprite === 'king' ? 78 : e.sprite === 'golem' ? 68 : e.sprite === 'scorpion' ? 70 : e.sprite === 'crab' ? 66 : e.sprite === 'wisp' ? 60 : e.sprite === 'bat' ? 64 : 60;
+      const baseW = this.isBoss ? 180 : e.sprite === 'king' ? 104 : e.sprite === 'golem' ? 90 : e.sprite === 'scorpion' ? 94 : e.sprite === 'crab' ? 88 : e.sprite === 'wisp' ? 80 : e.sprite === 'bat' ? 86 : 80;
       const w = baseW * Math.max(0.2, spawnK);
       const hgt = w * (img.height / img.width);
       const breathe = 1 + Math.sin(this.time * 3 + i) * 0.02;
@@ -1311,7 +1296,7 @@ export class BattleSystem {
       if (e.burn > 0) {
         g.shadowColor = '#ff7b2e'; g.shadowBlur = 14;
       }
-      g.drawImage(img, p.x - dw / 2 + ox, p.y - dh / 2 + dy + oy - (1 - spawnK) * 30, dw, dh);
+      g.drawImage(img, p.x - dw / 2 + ox, p.y - dh / 2 + dy + oy - (1 - spawnK) * 40, dw, dh);
       try { g.filter = 'none'; } catch { /* sem filtro */ }
       g.shadowBlur = 0;
       g.restore();
@@ -1328,21 +1313,21 @@ export class BattleSystem {
         this.particles.push({ x: p.x + (Math.random() - 0.5) * 50, y: p.y + 20, vx: (Math.random() - 0.5) * 20, vy: -40, life: 0.7, maxLife: 0.7, color: '#ff7b3c', size: 3, grav: -30 });
       }
       // barra de HP minimalista ACIMA do monstro (verde → vermelha) + fantasma de dano
-      const bw = this.isBoss ? 0 : 46; // chefe usa a barra DOM no topo
+      const bw = this.isBoss ? 0 : 60; // chefe usa a barra DOM no topo
       if (bw) {
         const frac = Math.max(0, e.hp / e.maxHp);
         const shown = Math.max(0, (e._showHp ?? e.hp) / e.maxHp);
-        const by = p.y - hgt / 2 + bob - 10;
-        g.fillStyle = 'rgba(0,0,0,.65)'; g.fillRect(p.x - 23, by, 46, 5);
-        g.fillStyle = 'rgba(255,255,255,.7)'; g.fillRect(p.x - 22, by + 1, 44 * shown, 3);
+        const by = p.y - hgt / 2 + bob - 12;
+        g.fillStyle = 'rgba(0,0,0,.65)'; g.fillRect(p.x - 30, by, 60, 6);
+        g.fillStyle = 'rgba(255,255,255,.7)'; g.fillRect(p.x - 29, by + 1, 58 * shown, 4);
         g.fillStyle = frac < 0.3 ? '#ff6b6b' : '#37e08b';
-        g.fillRect(p.x - 22, by + 1, 44 * frac, 3);
+        g.fillRect(p.x - 29, by + 1, 58 * frac, 4);
         g.strokeStyle = 'rgba(255,255,255,.35)'; g.lineWidth = 1;
-        g.strokeRect(p.x - 23 + 0.5, by + 0.5, 45, 4);
+        g.strokeRect(p.x - 30 + 0.5, by + 0.5, 59, 5);
       }
       // marcadores de status (acima da barra)
-      let my = p.y - hgt / 2 + bob - 18 + Math.sin(this.time * 4 + i) * 2;
-      g.font = 'bold 13px monospace'; g.textAlign = 'center';
+      let my = p.y - hgt / 2 + bob - 22 + Math.sin(this.time * 4 + i) * 2;
+      g.font = 'bold 15px monospace'; g.textAlign = 'center';
       if (e.burn > 0) { g.fillText('🔥', p.x - 10, my); }
       if (e.stun) { g.fillText('💫', p.x + 10, my); }
       if (e.charge) { g.fillStyle = '#7fd4ff'; g.fillText('⚡', p.x, my - 12); }
@@ -1351,7 +1336,7 @@ export class BattleSystem {
     // heróis
     this.party.forEach((h, i) => {
       const p = this.heroPos(i);
-      const victoryJump = this.victoryT > 0 && h.hp > 0 ? -Math.abs(Math.sin(this.time * 6 + i)) * 14 : 0;
+      const victoryJump = this.victoryT > 0 && h.hp > 0 ? -Math.abs(Math.sin(this.time * 6 + i)) * 18 : 0;
       const bob = (h.hp > 0 ? Math.sin(this.time * 4 + i * 2) * 2 : 0) + victoryJump;
       const off = this._animOffset('hero', i);
       const ox = off.x, oy = off.y;
@@ -1369,21 +1354,21 @@ export class BattleSystem {
       if (h.guard && h.hp > 0) {
         g.strokeStyle = `rgba(107,184,255,${0.6 + 0.3 * Math.sin(this.time * 6)})`;
         g.lineWidth = 3;
-        g.beginPath(); g.ellipse(p.x + ox, p.y + bob + oy + 8, 24 * s, 24 * s, 0, 0, 7); g.stroke();
+        g.beginPath(); g.ellipse(p.x + ox, p.y + bob + oy + 10, 30 * s, 30 * s, 0, 0, 7); g.stroke();
       }
-      // heróis olham para a esquerda (inimigos)
+      // heróis olham para a esquerda (inimigos) — sprite HD 52x65
       g.translate(p.x + ox, p.y + bob + oy);
       g.scale(-s, s);
-      g.drawImage(img, -20, -25, 40, 50);
+      g.drawImage(img, -26, -32, 52, 65);
       g.restore();
       try { g.filter = 'none'; } catch { /* sem filtro */ }
       // seta de turno sobre o herói atual
       if (this.phase === 'command' && i === this.heroIdx && h.hp > 0) {
-        const by = p.y - 44 * s + Math.sin(this.time * 6) * 3;
+        const by = p.y - 58 * s + Math.sin(this.time * 6) * 3;
         g.fillStyle = '#ffd75e';
         g.strokeStyle = '#000'; g.lineWidth = 3;
         g.beginPath();
-        g.moveTo(p.x - 9, by); g.lineTo(p.x + 9, by); g.lineTo(p.x, by + 11);
+        g.moveTo(p.x - 12, by); g.lineTo(p.x + 12, by); g.lineTo(p.x, by + 14);
         g.closePath(); g.fill(); g.stroke();
       }
     });
@@ -1440,8 +1425,8 @@ export class BattleSystem {
     for (const f of this.floats) {
       const k = f.t / 1.1;
       g.globalAlpha = 1 - k * k;
-      g.font = f.crit ? 'bold 26px monospace' : 'bold 19px monospace';
-      g.strokeStyle = '#000'; g.lineWidth = 4;
+      g.font = f.crit ? 'bold 32px monospace' : 'bold 24px monospace';
+      g.strokeStyle = '#000'; g.lineWidth = 5;
       g.strokeText(f.text, f.x, f.y);
       g.fillStyle = f.color;
       g.fillText(f.text, f.x, f.y);
@@ -1450,12 +1435,12 @@ export class BattleSystem {
     // cursor de alvo (▼ pulsante sobre o selecionado — só vivos)
     if (targeting) {
       const isE = this.menu === 'targetE';
-      let p = null; let lift = 46; let ringY = 26; let ringR = 22;
+      let p = null; let lift = 60; let ringY = 34; let ringR = 28;
       if (isE) {
         const realIdx = this._foeAtCursor();
         if (realIdx >= 0) {
           p = this.enemyPos(realIdx);
-          lift = this.isBoss ? 78 : 52; ringY = 36; ringR = 30;
+          lift = this.isBoss ? 100 : 66; ringY = 46; ringR = 38;
         }
       } else if (this.sel < this.party.length) {
         p = this.heroPos(this.sel);
@@ -1465,11 +1450,11 @@ export class BattleSystem {
         g.fillStyle = '#ffd75e';
         g.strokeStyle = '#000'; g.lineWidth = 3;
         g.beginPath();
-        g.moveTo(p.x - 10, by); g.lineTo(p.x + 10, by); g.lineTo(p.x, by + 12);
+        g.moveTo(p.x - 13, by); g.lineTo(p.x + 13, by); g.lineTo(p.x, by + 15);
         g.closePath(); g.fill(); g.stroke();
         // anel no chão do alvo
         g.strokeStyle = '#ffd75e'; g.lineWidth = 2;
-        g.beginPath(); g.ellipse(p.x, p.y + ringY, ringR, 9, 0, 0, 7); g.stroke();
+        g.beginPath(); g.ellipse(p.x, p.y + ringY, ringR, 11, 0, 0, 7); g.stroke();
       }
     }
     // banner central (início, fúria, vitória)
@@ -1478,32 +1463,32 @@ export class BattleSystem {
       const a = k < 0.12 ? k / 0.12 : k > 0.75 ? Math.max(0, (1 - k) / 0.25) : 1;
       g.globalAlpha = Math.min(1, a);
       g.textAlign = 'center';
-      g.font = 'bold 44px monospace';
-      g.strokeStyle = '#000'; g.lineWidth = 8;
-      const yy = 130 + (1 - Math.min(1, k * 3)) * -16;
-      g.strokeText(this.banner.text, 480, yy);
+      g.font = 'bold 56px monospace';
+      g.strokeStyle = '#000'; g.lineWidth = 10;
+      const yy = 170 + (1 - Math.min(1, k * 3)) * -20;
+      g.strokeText(this.banner.text, 640, yy);
       g.fillStyle = '#ffd75e';
-      g.fillText(this.banner.text, 480, yy);
+      g.fillText(this.banner.text, 640, yy);
       if (this.banner.sub) {
-        g.font = 'bold 18px monospace';
-        g.strokeText(this.banner.sub, 480, yy + 30);
+        g.font = 'bold 22px monospace';
+        g.strokeText(this.banner.sub, 640, yy + 38);
         g.fillStyle = '#fff';
-        g.fillText(this.banner.sub, 480, yy + 30);
+        g.fillText(this.banner.sub, 640, yy + 38);
       }
       g.globalAlpha = 1;
     }
     // flash de dano em área
     if (this.flashT > 0) {
       g.fillStyle = `rgba(${this.flashColor},${Math.min(0.55, this.flashT * 1.4)})`;
-      g.fillRect(-20, -20, 1000, 380);
+      g.fillRect(-20, -20, 1320, 500);
     }
     // vinheta de derrota
     if (this.phase === 'done' && this.endResult && !this.endResult.victory && !this.endResult.fled) {
-      const grd = g.createRadialGradient(480, 170, 120, 480, 170, 520);
+      const grd = g.createRadialGradient(640, 226, 160, 640, 226, 690);
       grd.addColorStop(0, 'rgba(120,0,10,0)');
       grd.addColorStop(1, 'rgba(120,0,10,.55)');
       g.fillStyle = grd;
-      g.fillRect(-20, -20, 1000, 380);
+      g.fillRect(-20, -20, 1320, 500);
     }
     g.restore();
   }

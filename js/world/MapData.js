@@ -129,7 +129,7 @@ export function buildMap() {
   // praça: postes nos 4 cantos, bancos de pedra e poço a leste (fora do fluxo)
   set(12, 36, T.LAMP); set(19, 36, T.LAMP);
   set(12, 40, T.LAMP); set(19, 40, T.LAMP);
-  set(14, 38, T.STONE); set(17, 38, T.STONE);
+  set(14, 39, T.STONE); set(17, 39, T.STONE); // bancos fora da rua principal
   set(22, 38, T.WELL);
   // mercadorias da loja expostas (caixas ao lado da porta nordeste)
   set(24, 34, T.CRATE); set(24, 35, T.CRATE);
@@ -322,7 +322,7 @@ export const NPC_DEFS = [
     ],
   },
   {
-    id: 'bard', x: 14, y: 39, name: 'Felix, o Bardo', kind: 'bard', wander: true,
+    id: 'bard', x: 13, y: 39, name: 'Felix, o Bardo', kind: 'bard', wander: true,
     lines: [
       '♪ Na planície o slime pulou, na ruína o golem rolou... ♪',
       '♪ Quem o Ancião de pedra calar, no deserto há de penar... Golem Ancião, dizem! ♪',

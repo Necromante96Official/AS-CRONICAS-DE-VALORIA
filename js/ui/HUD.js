@@ -44,13 +44,14 @@ export class HUD {
   }
 
   /**
-   * Minimapa: base pré-renderizada + viewport + jogador + altar.
+   * Minimapa: base pré-renderizada + viewport + jogador + altar (+ patrulheiros).
    * @param {HTMLCanvasElement} base (2px por tile)
    * @param {number} ox @param {number} oy offsets da câmera
    * @param {number} ptx @param {number} pty tile do jogador
    * @param {{x:number,y:number}|null} altar
+   * @param {Array<{x:number,y:number}>} [foes] patrulheiros (tiles) em vermelho
    */
-  renderMinimap(base, ox, oy, ptx, pty, altar) {
+  renderMinimap(base, ox, oy, ptx, pty, altar, foes = []) {
     if (!this.mm || !base) return;
     const g = this.mm.getContext('2d');
     g.imageSmoothingEnabled = false;
@@ -63,6 +64,10 @@ export class HUD {
       g.fillRect(altar.x * 2 - 2, altar.y * 2 - 2, 5, 5);
       g.fillStyle = '#fff';
       g.fillRect(altar.x * 2 - 1, altar.y * 2 - 1, 3, 3);
+    }
+    for (const f of foes) {
+      g.fillStyle = '#ff3b3b';
+      g.fillRect(f.x * 2 - 1, f.y * 2 - 1, 3, 3);
     }
     g.fillStyle = '#000';
     g.fillRect(ptx * 2 - 3, pty * 2 - 3, 7, 7);

@@ -108,7 +108,7 @@
 #battle-party .bbar.mp > div { background: linear-gradient(90deg, #6bb8ff, #2456e0); }
 /* comandos em faixa horizontal */
 #battle-menu { overflow-x: auto; overflow-y: hidden; }
-#battle-cmds { display: flex; align-items: center; gap: 3px; }
+#battle-cmds { display: flex; align-items: center; justify-content: center; gap: 6px; }
 #battle-cmds .cmd-title { color: var(--ff-yellow); font-weight: bold; letter-spacing: 1px; font-size: .85em; flex: none; margin-right: 2px; }
 #battle-cmds .opt { padding: 8px 16px; border-radius: 16px; font-size: clamp(13px, 1.3vw, 17px); border: 1px solid transparent; transition: background .12s, transform .1s; white-space: nowrap; flex: none; }
 #battle-cmds .opt.sel { background: linear-gradient(180deg, #ffffff26, #ffffff10); color: var(--ff-yellow); border-color: #ffd75e88; box-shadow: 0 0 10px #ffd75e44; transform: translateY(-1px); }
@@ -128,14 +128,14 @@
 .dmg-float {
   position: absolute;
   font-weight: bold;
-  font-size: 22px;
+  font-size: 26px;
   text-shadow: 2px 2px 0 #000, 0 0 10px #00000088;
   pointer-events: none;
   animation: dmg-up 1s ease-out forwards;
   z-index: 46;
 }
 .dmg-float.crit {
-  font-size: 30px;
+  font-size: 36px;
   color: #ffd75e !important;
   animation: dmg-crit 1.1s ease-out forwards;
 }

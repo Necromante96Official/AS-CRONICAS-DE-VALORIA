@@ -5,6 +5,8 @@
 
 /** Tamanho do tile em pixels. */
 export const TILE = 32;
+/** Escala de desenho dos atores (player/NPCs) ajustada ao HD — sprites 32x40 viram 48x60. */
+export const ACTOR_HD = 1.5;
 /** Resolução interna do canvas (HD). */
 export const VIEW_W = 1280;
 export const VIEW_H = 720;
@@ -14,8 +16,8 @@ export const MAP_H = 60;
 
 /** Velocidade de movimento (px/s). */
 export const PLAYER_SPEED = 150;
-/** Chance de encontro por passo na grama alta. */
-export const ENCOUNTER_RATE = 0.075;
+/** Chance de encontro por passo na grama alta (menor: há patrulheiros visíveis). */
+export const ENCOUNTER_RATE = 0.05;
 
 /** Taxa de XP por nível (curva). */
 export const xpForLevel = (level) => Math.floor(20 * Math.pow(level, 1.6));

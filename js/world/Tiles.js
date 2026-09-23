@@ -365,52 +365,52 @@ export function drawTile(g, t, dx, dy, ts, x, y, time, nb, opts = {}) {
       break;
     }
     case T.TREE: {
-      // ÁRVORE frondosa: tronco com raízes e casca.
+      // ÁRVORE frondosa GRANDE (2 tiles de altura): tronco largo com raízes e casca.
       g.fillStyle = '#4da64d'; g.fillRect(dx, dy, ts, ts);
       g.fillStyle = '#3f9142';
-      g.fillRect(dx + 4 + ((h2 * 14) | 0), dy + 24, 5, 3);
+      g.fillRect(dx + 2 + ((h2 * 14) | 0), dy + 24, 6, 3);
       g.fillStyle = 'rgba(0,0,0,.25)';
-      g.beginPath(); g.ellipse(dx + 16, dy + 28, 11, 4, 0, 0, 7); g.fill();
-      g.fillStyle = '#4a2f14'; g.fillRect(dx + 12, dy + 18, 8, 12);
-      g.fillStyle = '#6e451f'; g.fillRect(dx + 13, dy + 18, 6, 12);
-      g.fillStyle = '#8a5f30'; g.fillRect(dx + 13, dy + 18, 2, 12);
+      g.beginPath(); g.ellipse(dx + 16, dy + 29, 14, 4, 0, 0, 7); g.fill();
+      g.fillStyle = '#4a2f14'; g.fillRect(dx + 11, dy + 16, 10, 14);
+      g.fillStyle = '#6e451f'; g.fillRect(dx + 12, dy + 16, 8, 14);
+      g.fillStyle = '#8a5f30'; g.fillRect(dx + 12, dy + 16, 3, 14);
       g.fillStyle = '#4a2f14';
-      g.fillRect(dx + 10, dy + 26, 4, 3); g.fillRect(dx + 18, dy + 26, 4, 3); // raízes
-      g.fillStyle = '#8a5f30'; g.fillRect(dx + 10, dy + 26, 4, 1); g.fillRect(dx + 18, dy + 26, 4, 1);
+      g.fillRect(dx + 8, dy + 26, 5, 4); g.fillRect(dx + 19, dy + 26, 5, 4); // raízes
+      g.fillStyle = '#8a5f30'; g.fillRect(dx + 8, dy + 26, 5, 1); g.fillRect(dx + 19, dy + 26, 5, 1);
       if (!trunkOnly) drawCanopyTop(g, t, dx, dy, ts, x, y, time);
-      else { g.fillStyle = 'rgba(20,60,25,.35)'; g.fillRect(dx + 8, dy + 20, 16, 4); }
+      else { g.fillStyle = 'rgba(20,60,25,.35)'; g.fillRect(dx + 6, dy + 18, 20, 5); }
       break;
     }
     case T.PINE: {
-      // PINHEIRO: tronco fino com galhos secos.
+      // PINHEIRO ALTO: tronco grosso com galhos secos.
       g.fillStyle = '#2e6b3a'; g.fillRect(dx, dy, ts, ts);
       g.fillStyle = 'rgba(0,0,0,.25)';
-      g.beginPath(); g.ellipse(dx + 16, dy + 29, 9, 3, 0, 0, 7); g.fill();
-      g.fillStyle = '#4a2f14'; g.fillRect(dx + 13, dy + 22, 6, 9);
-      g.fillStyle = '#6e451f'; g.fillRect(dx + 14, dy + 22, 4, 9);
-      g.fillStyle = '#8a5f30'; g.fillRect(dx + 14, dy + 22, 1, 9);
+      g.beginPath(); g.ellipse(dx + 16, dy + 29, 11, 3, 0, 0, 7); g.fill();
+      g.fillStyle = '#4a2f14'; g.fillRect(dx + 12, dy + 20, 8, 11);
+      g.fillStyle = '#6e451f'; g.fillRect(dx + 13, dy + 20, 6, 11);
+      g.fillStyle = '#8a5f30'; g.fillRect(dx + 13, dy + 20, 2, 11);
       if (!trunkOnly) drawCanopyTop(g, t, dx, dy, ts, x, y, time);
       break;
     }
     case T.PALM: {
-      // PALMEIRA: tronco curvo em gomos sobre a areia (copa vai p/ overlay).
+      // PALMEIRA ALTA: tronco curvo em gomos sobre a areia (copa vai p/ overlay).
       g.fillStyle = '#e0c886'; g.fillRect(dx, dy, ts, ts);
       g.fillStyle = '#d3ba7c';
       g.fillRect(dx + ((h * 20) | 0), dy + ((h2 * 20) | 0), 8, 3);
       g.fillStyle = 'rgba(0,0,0,.22)';
-      g.beginPath(); g.ellipse(dx + 15, dy + 29, 9, 2.5, 0, 0, 7); g.fill();
-      // tronco inclinado em gomos
+      g.beginPath(); g.ellipse(dx + 15, dy + 30, 10, 2.5, 0, 0, 7); g.fill();
+      // tronco inclinado em gomos (mais alto)
       const lean = h > 0.5 ? 1 : -1;
-      for (let i = 0; i < 5; i++) {
+      for (let i = 0; i < 6; i++) {
         const sx = dx + 13 + lean * i * 1.6;
-        const sy = dy + 26 - i * 4;
-        g.fillStyle = '#8a5a2b'; g.fillRect(sx, sy, 6, 4);
-        g.fillStyle = '#6e451f'; g.fillRect(sx, sy + 3, 6, 1);
+        const sy = dy + 30 - i * 5;
+        g.fillStyle = '#8a5a2b'; g.fillRect(sx, sy, 6, 5);
+        g.fillStyle = '#6e451f'; g.fillRect(sx, sy + 4, 6, 1);
         g.fillStyle = '#c49a5e'; g.fillRect(sx, sy, 6, 1);
       }
       // base com raízes na areia
       g.fillStyle = '#6e451f';
-      g.fillRect(dx + 10, dy + 27, 4, 3); g.fillRect(dx + 17, dy + 27, 4, 3);
+      g.fillRect(dx + 10, dy + 28, 4, 3); g.fillRect(dx + 17, dy + 28, 4, 3);
       if (!trunkOnly) drawCanopyTop(g, t, dx, dy, ts, x, y, time);
       else { g.fillStyle = 'rgba(60,40,20,.25)'; g.fillRect(dx + 8, dy + 18, 16, 4); }
       break;
@@ -1003,72 +1003,78 @@ export function drawCanopyTop(g, t, dx, dy, ts, x, y, time) {
   const h2 = hash2(x + 57, y + 131);
   const sway = Math.sin(time * 1.4 + x * 0.9 + y) * 1.2;
   if (t === T.TREE) {
-    // COPA frondosa: contorno + 3 tons + pontos de luz + maçãs com brilho.
+    // COPA frondosa GRANDE (~2 tiles): contorno + 3 tons + pontos de luz + maçãs.
+    const cx = dx + 16 + sway, cy = dy - 6;
     g.fillStyle = '#1e5b20';
-    g.beginPath(); g.arc(dx + 16 + sway, dy + 12, 14, 0, 7); g.fill();
+    g.beginPath(); g.arc(cx, cy, 22, 0, 7); g.fill();
     g.fillStyle = h > 0.5 ? '#2e7d32' : '#35923b';
-    g.beginPath(); g.arc(dx + 16 + sway, dy + 12, 12, 0, 7); g.fill();
+    g.beginPath(); g.arc(cx, cy, 19, 0, 7); g.fill();
     g.fillStyle = '#1e5b20'; // reentrâncias da copa
-    g.beginPath(); g.arc(dx + 9 + sway, dy + 15, 4, 0, 7); g.fill();
-    g.beginPath(); g.arc(dx + 23 + sway, dy + 15, 4, 0, 7); g.fill();
+    g.beginPath(); g.arc(cx - 12, cy + 6, 6, 0, 7); g.fill();
+    g.beginPath(); g.arc(cx + 12, cy + 6, 6, 0, 7); g.fill();
+    g.beginPath(); g.arc(cx, cy - 20, 10, 0, 7); g.fill();
     g.fillStyle = '#43a047';
-    g.beginPath(); g.arc(dx + 11 + sway, dy + 8, 6, 0, 7); g.fill();
-    g.beginPath(); g.arc(dx + 20 + sway, dy + 10, 5, 0, 7); g.fill();
+    g.beginPath(); g.arc(cx - 8, cy - 6, 9, 0, 7); g.fill();
+    g.beginPath(); g.arc(cx + 7, cy - 3, 8, 0, 7); g.fill();
+    g.beginPath(); g.arc(cx + 1, cy - 14, 7, 0, 7); g.fill();
     g.fillStyle = '#66bb6a';
-    g.fillRect(dx + 9 + sway, dy + 4, 4, 3); g.fillRect(dx + 19 + sway, dy + 6, 3, 3);
-    g.fillRect(dx + 13 + sway, dy + 7, 2, 2); g.fillRect(dx + 22 + sway, dy + 10, 2, 2);
+    g.fillRect(cx - 11 + sway * 0, cy - 22, 6, 4); g.fillRect(cx + 5, cy - 19, 5, 4);
+    g.fillRect(cx - 3, cy - 15, 3, 3); g.fillRect(cx + 10, cy - 11, 3, 3);
+    g.fillRect(cx - 13, cy - 8, 4, 3);
     // maçãs com brilho
     if (h2 > 0.6) {
       g.fillStyle = '#c22a3a';
-      g.fillRect(dx + 12 + sway, dy + 12, 3, 3);
-      g.fillRect(dx + 20 + sway, dy + 14, 3, 3);
+      g.fillRect(cx - 5, cy - 2, 4, 4);
+      g.fillRect(cx + 7, cy + 1, 4, 4);
+      g.fillRect(cx - 1, cy - 12, 4, 4);
       g.fillStyle = '#ff9db3';
-      g.fillRect(dx + 12 + sway, dy + 12, 1, 1);
-      g.fillRect(dx + 20 + sway, dy + 14, 1, 1);
+      g.fillRect(cx - 5, cy - 2, 1, 1);
+      g.fillRect(cx + 7, cy + 1, 1, 1);
+      g.fillRect(cx - 1, cy - 12, 1, 1);
     }
   } else if (t === T.PINE) {
-    // PINHEIRO em 3 andares: topo + 2 saias, com neve de luz e pinhas.
+    // PINHEIRO ALTO em 3 andares: topo + 2 saias, com neve de luz e pinhas.
     const cx = dx + 16 + sway;
     g.fillStyle = '#14351f';
-    g.beginPath(); g.moveTo(cx, dy - 2); g.lineTo(cx + 13, dy + 10); g.lineTo(cx - 13, dy + 10); g.closePath(); g.fill();
-    g.beginPath(); g.moveTo(cx, dy + 4); g.lineTo(cx + 14, dy + 18); g.lineTo(cx - 14, dy + 18); g.closePath(); g.fill();
-    g.beginPath(); g.moveTo(cx, dy + 12); g.lineTo(cx + 13, dy + 25); g.lineTo(cx - 13, dy + 25); g.closePath(); g.fill();
+    g.beginPath(); g.moveTo(cx, dy - 26); g.lineTo(cx + 16, dy - 8); g.lineTo(cx - 16, dy - 8); g.closePath(); g.fill();
+    g.beginPath(); g.moveTo(cx, dy - 14); g.lineTo(cx + 18, dy + 4); g.lineTo(cx - 18, dy + 4); g.closePath(); g.fill();
+    g.beginPath(); g.moveTo(cx, dy - 2); g.lineTo(cx + 17, dy + 18); g.lineTo(cx - 17, dy + 18); g.closePath(); g.fill();
     g.fillStyle = '#1e4d2b';
-    g.beginPath(); g.moveTo(cx, dy - 1); g.lineTo(cx + 11, dy + 9); g.lineTo(cx - 11, dy + 9); g.closePath(); g.fill();
-    g.beginPath(); g.moveTo(cx, dy + 5); g.lineTo(cx + 12, dy + 17); g.lineTo(cx - 12, dy + 17); g.closePath(); g.fill();
-    g.beginPath(); g.moveTo(cx, dy + 13); g.lineTo(cx + 11, dy + 24); g.lineTo(cx - 11, dy + 24); g.closePath(); g.fill();
+    g.beginPath(); g.moveTo(cx, dy - 25); g.lineTo(cx + 14, dy - 9); g.lineTo(cx - 14, dy - 9); g.closePath(); g.fill();
+    g.beginPath(); g.moveTo(cx, dy - 13); g.lineTo(cx + 16, dy + 3); g.lineTo(cx - 16, dy + 3); g.closePath(); g.fill();
+    g.beginPath(); g.moveTo(cx, dy - 1); g.lineTo(cx + 15, dy + 17); g.lineTo(cx - 15, dy + 17); g.closePath(); g.fill();
     // luz lateral + neve nos galhos
     g.fillStyle = '#2e7d5b';
-    g.beginPath(); g.moveTo(cx - 1, dy + 2); g.lineTo(cx + 4, dy + 9); g.lineTo(cx - 6, dy + 9); g.closePath(); g.fill();
-    g.beginPath(); g.moveTo(cx - 1, dy + 9); g.lineTo(cx + 5, dy + 17); g.lineTo(cx - 7, dy + 17); g.closePath(); g.fill();
+    g.beginPath(); g.moveTo(cx - 1, dy - 20); g.lineTo(cx + 5, dy - 11); g.lineTo(cx - 7, dy - 11); g.closePath(); g.fill();
+    g.beginPath(); g.moveTo(cx - 1, dy - 8); g.lineTo(cx + 6, dy + 1); g.lineTo(cx - 8, dy + 1); g.closePath(); g.fill();
     g.fillStyle = '#48a07e';
-    g.fillRect(cx - 3, dy + 6, 3, 2); g.fillRect(cx - 4, dy + 14, 3, 2);
+    g.fillRect(cx - 4, dy - 16, 4, 2); g.fillRect(cx - 5, dy - 4, 4, 2);
     g.fillStyle = '#6e451f'; // pinhas
-    if (h > 0.45) { g.fillRect(cx - 5, dy + 15, 3, 4); g.fillRect(cx + 3, dy + 19, 3, 4); }
+    if (h > 0.45) { g.fillRect(cx - 6, dy - 3, 4, 5); g.fillRect(cx + 3, dy + 3, 4, 5); }
   } else if (t === T.PALM) {
-    // COPA da palmeira: 6 folhas arqueadas + cocos.
+    // COPA GRANDE da palmeira: 8 folhas arqueadas + cocos.
     const lean = h > 0.5 ? 1 : -1;
-    const tx = dx + 16 + lean * 7 + sway, ty = dy + 6;
+    const tx = dx + 16 + lean * 8 + sway, ty = dy - 4;
     const frond = (ang, len, col) => {
-      g.strokeStyle = col; g.lineWidth = 4; g.lineCap = 'round';
-      const ex = tx + Math.cos(ang) * len, ey = ty + Math.sin(ang) * len * 0.45 + 4;
-      const mx = tx + Math.cos(ang) * len * 0.5, my = ty - 3;
+      g.strokeStyle = col; g.lineWidth = 5; g.lineCap = 'round';
+      const ex = tx + Math.cos(ang) * len, ey = ty + Math.sin(ang) * len * 0.45 + 5;
+      const mx = tx + Math.cos(ang) * len * 0.5, my = ty - 4;
       g.beginPath(); g.moveTo(tx, ty); g.quadraticCurveTo(mx, my, ex, ey); g.stroke();
     };
     g.fillStyle = '#1e5b20';
-    g.beginPath(); g.arc(tx, ty, 13, 0, 7); g.fill();
-    frond(Math.PI * 1.05, 15, '#1e5b20'); frond(Math.PI * 1.45, 15, '#1e5b20');
-    frond(Math.PI * 1.85, 15, '#1e5b20'); frond(Math.PI * 0.15, 15, '#1e5b20');
-    frond(Math.PI * 0.85, 14, '#2e7d32'); frond(Math.PI * 1.65, 14, '#2e7d32');
-    frond(Math.PI * 0.05, 13, '#2e7d32'); frond(Math.PI * 1.25, 13, '#2e7d32');
+    g.beginPath(); g.arc(tx, ty, 12, 0, 7); g.fill();
+    frond(Math.PI * 1.05, 22, '#1e5b20'); frond(Math.PI * 1.45, 22, '#1e5b20');
+    frond(Math.PI * 1.85, 22, '#1e5b20'); frond(Math.PI * 0.15, 22, '#1e5b20');
+    frond(Math.PI * 0.85, 20, '#2e7d32'); frond(Math.PI * 1.65, 20, '#2e7d32');
+    frond(Math.PI * 0.05, 19, '#2e7d32'); frond(Math.PI * 1.25, 19, '#2e7d32');
     g.fillStyle = '#43a047';
-    g.fillRect(tx - 6 + sway, ty - 5, 5, 2); g.fillRect(tx + 2 + sway, ty - 4, 4, 2);
+    g.fillRect(tx - 7 + sway, ty - 6, 6, 3); g.fillRect(tx + 2 + sway, ty - 5, 5, 3);
     // cocos em cacho
     g.fillStyle = '#5e3a17';
-    g.beginPath(); g.arc(tx - 3, ty + 3, 3, 0, 7); g.fill();
-    g.beginPath(); g.arc(tx + 3, ty + 3, 3, 0, 7); g.fill();
-    g.beginPath(); g.arc(tx, ty + 6, 3, 0, 7); g.fill();
+    g.beginPath(); g.arc(tx - 4, ty + 4, 4, 0, 7); g.fill();
+    g.beginPath(); g.arc(tx + 4, ty + 4, 4, 0, 7); g.fill();
+    g.beginPath(); g.arc(tx, ty + 8, 4, 0, 7); g.fill();
     g.fillStyle = '#8a5a2b';
-    g.fillRect(tx - 4, ty + 2, 2, 2); g.fillRect(tx + 2, ty + 2, 2, 2);
+    g.fillRect(tx - 5, ty + 3, 2, 2); g.fillRect(tx + 3, ty + 3, 2, 2);
   }
 }

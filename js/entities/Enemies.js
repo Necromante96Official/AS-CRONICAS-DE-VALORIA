@@ -2,6 +2,7 @@
  * Enemies — bestiário + fábrica de encontros por região.
  * @module entities/Enemies
  */
+import { makeSlime, makeBat, makeGolem, makeDragon, makeKing, makeWisp, makeCrab, makeScorpion, makeShroom, makeSkeleton, makeOrc, makeToad, makeWolf, makeAncient } from '../core/SpriteFactory.js';
 
 /** @typedef {{id:string,name:string,hp:number,maxHp:number,atk:number,def:number,spd:number,xp:number,gold:number,sprite:string,boss?:boolean}} Enemy */
 
@@ -66,3 +67,33 @@ export const makeBoss = () => makeEnemy('dragon', 1.15);
 
 /** Mini-chefe opcional do deserto: o Golem Ancião da clareira. */
 export const makeElite = () => makeEnemy('ancient', 1.0);
+
+/** Canvas do sprite de um inimigo (p/ monstros visíveis no mapa). @param {string} id @returns {HTMLCanvasElement} */
+export function foeImage(id) {
+  switch (id) {
+    case 'slime': return makeSlime('#4fe07a');
+    case 'bat': return makeBat('#6a5cff');
+    case 'golem': return makeGolem();
+    case 'wisp': return makeWisp();
+    case 'crab': return makeCrab();
+    case 'scorpion': return makeScorpion();
+    case 'shroom': return makeShroom();
+    case 'skeleton': return makeSkeleton();
+    case 'orc': return makeOrc();
+    case 'toad': return makeToad();
+    case 'wolf': return makeWolf();
+    case 'ancient': return makeAncient();
+    case 'king': return makeKing();
+    case 'dragon': return makeDragon();
+    default: return makeSlime();
+  }
+}
+
+/** Sorteia o id de um monstro da região (p/ patrulha visível). @param {string} region */
+export function pickWalkerEnemy(region) {
+  const table = encounterTable(region);
+  const total = table.reduce((s, [, w]) => s + w, 0);
+  let r = Math.random() * total;
+  for (const [id, w] of table) { r -= w; if (r <= 0) return id; }
+  return table[0][0];
+}

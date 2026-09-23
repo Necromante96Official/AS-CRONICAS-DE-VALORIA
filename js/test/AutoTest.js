@@ -95,6 +95,7 @@ export async function runAutoTest(game) {
     // o diálogo de intro aparece após o fade: espera ele abrir antes de dispensar
     log(await waitFor(() => game.dialog.active, 10000), 'intro-abriu');
     log(await dismissDialog(), 'intro-dispensada');
+    game.walkersEnabled = false; // patrulha visível desligada p/ determinismo (teste próprio em 9b)
 
     // ---- 2. movimento por teclado (caminho reto, sem encontros) ----
     teleport(20, 30, 'right');
@@ -402,6 +403,45 @@ export async function runAutoTest(game) {
     }
     log(game.inv.antidote === 0, 'bomba-consome-foge');
     log(fled && game.state === 'FIELD', 'fuga-funciona');
+
+    // ---- 9b. patrulheiro visível: spawn, encosto inicia batalha, fuga volta ao campo ----
+    game.walkersEnabled = true;
+    game.walkers.length = 0;
+    game._walkerT = 9999; // sem nascimentos naturais durante o teste
+    game.party.forEach((h) => { h.hp = h.maxHp; h.mp = h.maxMp; });
+    game.inv.antidote = 1;
+    let w0 = null;
+    for (const [tx, ty] of [[30, 25], [25, 25], [35, 25], [30, 20]]) {
+      teleport(tx, ty, 'right');
+      await frames(2);
+      w0 = game._debugSpawnWalker();
+      if (w0) break;
+    }
+    log(!!w0 && game.walkers.length === 1, 'patrulha-spawna');
+    if (w0) {
+      // cola no patrulheiro: o encosto dispara a batalha (após a graça pós-fuga)
+      game.player.x = w0.cx - 12; game.player.y = w0.cy - 10;
+    }
+    log(await waitFor(() => game.state === 'BATTLE', 15000), 'patrulha-encosto-batalha');
+    await frames(3);
+    log(game.battle.active && game.battle.enemies.length >= 1, 'patrulha-grupo-formado');
+    let fled2 = false;
+    {
+      const t0 = performance.now();
+      while (performance.now() - t0 < 60000 && !fled2) {
+        if (!game.battle.active) { fled2 = game.state === 'FIELD'; break; }
+        if (game.battle.phase === 'command') {
+          while (game.battle.phase === 'command' && game.battle.active) {
+            const a = game.inv.antidote > 0 ? { type: 'flee', item: 'antidote' } : { type: 'flee' };
+            game.battle._act(game.battle.heroIdx, a);
+            await frames(1);
+          }
+        }
+        await frames(3);
+      }
+    }
+    log(fled2 && game.state === 'FIELD', 'patrulha-foge');
+    game.walkersEnabled = false;
 
     // ---- 10. derrota determinística -> game over -> título ----
     // (zera o HP na fase de comando; o próximo passo detecta o wipe)

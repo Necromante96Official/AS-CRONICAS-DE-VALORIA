@@ -2,7 +2,7 @@
  * Engine — orquestra o jogo: título, exploração, diálogo, loja, batalha, saves.
  * @module core/Engine
  */
-import { TILE, VIEW_W, VIEW_H, ENCOUNTER_RATE } from './Config.js';
+import { TILE, VIEW_W, VIEW_H, ENCOUNTER_RATE, ACTOR_HD } from './Config.js';
 import { Input } from './Input.js';
 import { AudioMan } from './Audio.js';
 import { Camera } from './Camera.js';
@@ -12,7 +12,7 @@ import { isEncounterTile, tileColor, T } from '../world/Tiles.js';
 import { NPC } from '../world/NPCs.js';
 import { Player } from '../entities/Player.js';
 import { newParty, aliveHeroes, restoreParty, serializeParty, fullHeal } from '../entities/Party.js';
-import { makeEncounter, makeBoss, makeElite } from '../entities/Enemies.js';
+import { makeEncounter, makeBoss, makeElite, makeEnemy, pickWalkerEnemy, foeImage } from '../entities/Enemies.js';
 import { newInventory, useItem, ITEMS, SHOP_STOCK } from '../systems/Inventory.js';
 import { SaveSystem } from '../systems/SaveSystem.js';
 import { loadSettings, saveSettings, SPEED_ORDER } from '../systems/Settings.js';
@@ -99,6 +99,12 @@ export class Engine {
     this.time = 0;
     this.gold = 120;
     this.flags = { bossDefeated: false, metElder: false };
+    // monstros visíveis patrulhando o mapa (encosto = batalha)
+    this.walkers = [];
+    this.walkersEnabled = true;
+    this._walkerT = 0;
+    this._touchGrace = 0;
+    this._foeImg = {};
     this.npcArt = {};
     for (const [k, p] of Object.entries(NPC_PALETTES)) this.npcArt[k] = makeHumanoid(p, { kind: k });
     this.heroArts = {};
@@ -205,6 +211,8 @@ export class Engine {
     this.place = { kind: 'world' };
     this.npcs = NPC_DEFS.map((d) => new NPC(d));
     this.worldNpcs = this.npcs;
+    this.walkers.length = 0;
+    this._touchGrace = 0;
     this.camera.snap(this.player.cx, this.player.cy, this.map.w * TILE, this.map.h * TILE);
   }
 
@@ -244,6 +252,7 @@ export class Engine {
       this.player.slideX = 0; this.player.slideY = 0;
       this._path = null; this._tapAct = null; this._tapMark = null;
       this._fishing = null;
+      this.walkers.length = 0;
       const [mw, mh] = this._mapPx();
       this.camera.snap(this.player.cx, this.player.cy, mw, mh);
       this._lastRegion = id;
@@ -277,6 +286,7 @@ export class Engine {
       this.player.slideX = 0; this.player.slideY = 0;
       this._path = null; this._tapAct = null; this._tapMark = null;
       this._fishing = null;
+      this._touchGrace = 1.0; // não ser emboscado na porta de saída
       const [mw, mh] = this._mapPx();
       this.camera.snap(this.player.cx, this.player.cy, mw, mh);
       this._lastRegion = regionAt(this.player.tileX, this.player.tileY);
@@ -386,6 +396,8 @@ export class Engine {
     }
     const [mw, mh] = [this.map.w * TILE, this.map.h * TILE];
     this.camera.snap(this.player.cx, this.player.cy, mw, mh);
+    this.walkers.length = 0;
+    this._touchGrace = 1.0;
   }
 
   _snapshot() {
@@ -548,7 +560,7 @@ export class Engine {
       n.update(dt, this.map);
       // patrulha levanta poeirinha atrás dos pés (fora do sprite)
       if (n.moving && Math.random() < dt * 5 && this._wx.length < 110) {
-        const b = this._behind(n.x + 16 + this.camera.ox, n.y + 20 + this.camera.oy, n.dir, 3);
+        const b = this._behind(n.x + 16 + this.camera.ox, n.y + 28 + this.camera.oy, n.dir, 3);
         this._wx.push({
           type: 'stepdust',
           x: b.x, y: b.y,
@@ -562,6 +574,9 @@ export class Engine {
     this.camera.update(dt);
     // clima/ambiente do bioma atual (só visual, sem gameplay)
     this._wxTick(dt, this._curRegion());
+    // patrulheiros visíveis (podem iniciar batalha ao encostar)
+    this._updateWalkers(dt);
+    if (this._busy || this.state !== 'FIELD') return; // encostou num monstro: batalha começou
 
     // encontros aleatórios na grama (só no mundo, nunca dentro de casa)
     const steps = this.player.consumeSteps();
@@ -581,7 +596,7 @@ export class Engine {
     const want = this._isInterior() || region === 'town' || region === 'beach' ? 'town' : region === 'dungeon' || region === 'altar' || region === 'swamp' ? 'dungeon' : 'field';
     if (this.audio.ctx && this.audio.currentTrack !== want) this.audio.playMusic(want);
     if (this.hud.mm) this.hud.mm.style.display = this._isInterior() ? 'none' : '';
-    if (!this._isInterior()) this.hud.renderMinimap(this.mmBase, this.camera.ox, this.camera.oy, this.player.tileX, this.player.tileY, this.flags.bossDefeated ? null : BOSS_ALTAR);
+    if (!this._isInterior()) this.hud.renderMinimap(this.mmBase, this.camera.ox, this.camera.oy, this.player.tileX, this.player.tileY, this.flags.bossDefeated ? null : BOSS_ALTAR, this.walkers.map((w) => ({ x: Math.floor(w.cx / TILE), y: Math.floor(w.cy / TILE) })));
     const sig = `${region}|${this.gold}|${this.audio.muted}|${this.party.map((h) => `${Math.ceil(h.hp)}/${Math.ceil(h.mp)}/${h.level}`).join(',')}`;
     if (sig !== this._hudSig) { this._hudSig = sig; this.hud.render(this.party, this.gold, region, this.faces, this.audio.muted); }
   }
@@ -702,6 +717,9 @@ export class Engine {
     const npc = this.npcs.find((n) =>
       Math.floor((n.x + 12) / TILE) === tx && Math.floor((n.y + 12) / TILE) === ty);
     if (npc) return { kind: 'npc', npc };
+    const foe = this.walkers.find((w) =>
+      Math.floor(w.cx / TILE) === tx && Math.floor(w.cy / TILE) === ty);
+    if (foe) return { kind: 'foe', foe };
     if (this._isInterior()) {
       if (tx === INTERIOR_DOOR.x && ty === INTERIOR_DOOR.y) return { kind: 'house-exit' };
       return null;
@@ -733,6 +751,12 @@ export class Engine {
       if (Math.hypot(nx - this.player.cx, ny - this.player.cy) > TILE * 1.8) return;
       this._faceToward(nx, ny);
       this._talk(act.npc);
+    } else if (act.kind === 'foe') {
+      const w = act.foe;
+      if (!this.walkers.includes(w)) return;
+      if (Math.hypot(w.cx - this.player.cx, w.cy - this.player.cy) > TILE * 2) return;
+      this._faceToward(w.cx, w.cy);
+      this._startWalkerBattle(w, this._walkerRegion() || regionAt(this.player.tileX, this.player.tileY));
     } else if (act.kind === 'house-enter') {
       const house = HOUSES.find((h) => h.id === act.id);
       if (house) {
@@ -1333,8 +1357,145 @@ export class Engine {
     return true;
   }
 
+  // ---------- monstros visíveis patrulhando o mapa ----------
+  /** Regiões onde monstros andam à vista (encosto = batalha). */
+  _walkerRegion() {
+    if (this._isInterior()) return null;
+    const r = regionAt(this.player.tileX, this.player.tileY);
+    return ['field', 'forest', 'dungeon', 'altar', 'snow', 'beach', 'desert', 'swamp'].includes(r) ? r : null;
+  }
+
+  /** Sprite em cache de um patrulheiro. */
+  _walkerImg(id) {
+    if (!this._foeImg[id]) { try { this._foeImg[id] = foeImage(id); } catch { this._foeImg[id] = null; } }
+    return this._foeImg[id];
+  }
+
+  /** Tenta gerar um patrulheiro num anel de 6–11 tiles do jogador. */
+  _spawnWalker(region) {
+    const px = this.player.tileX, py = this.player.tileY;
+    for (let tries = 0; tries < 24; tries++) {
+      const a = Math.random() * Math.PI * 2;
+      const d = 6 + Math.random() * 5;
+      const tx = Math.round(px + Math.cos(a) * d), ty = Math.round(py + Math.sin(a) * d);
+      if (tx < 2 || ty < 2 || tx >= this.map.w - 2 || ty >= this.map.h - 2) continue;
+      if (regionAt(tx, ty) !== region) continue;
+      if (this.map.solid(tx, ty)) continue;
+      if (this.map.tile(tx, ty) === T.WATER) continue;
+      if (tx === BOSS_ALTAR.x && ty === BOSS_ALTAR.y) continue;
+      if (CHESTS.some((c) => c.x === tx && c.y === ty)) continue;
+      if (this.npcs.some((n) => Math.floor((n.x + 12) / TILE) === tx && Math.floor((n.y + 12) / TILE) === ty)) continue;
+      const id = pickWalkerEnemy(region);
+      const img = this._walkerImg(id);
+      if (!img) continue;
+      this.walkers.push({
+        id, img,
+        cx: tx * TILE + 16, cy: ty * TILE + 16,
+        hx: tx * TILE + 16, hy: ty * TILE + 16, // território
+        tx: tx * TILE + 16, ty: ty * TILE + 16,
+        dir: 'down', moving: false, animT: 0,
+        wt: 1 + Math.random() * 2, spd: 50 + Math.random() * 20,
+        aggro: false,
+      });
+      return true;
+    }
+    return false;
+  }
+
+  /** Força um patrulheiro adjacente ao jogador (usado pelo autoteste). */
+  _debugSpawnWalker() {
+    const region = this._walkerRegion() || 'field';
+    const px = this.player.tileX, py = this.player.tileY;
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1], [2, 0], [0, 2]]) {
+      const tx = px + dx, ty = py + dy;
+      if (tx < 1 || ty < 1 || tx >= this.map.w - 1 || ty >= this.map.h - 1) continue;
+      if (this.map.solid(tx, ty) || this.map.tile(tx, ty) === T.WATER) continue;
+      const id = pickWalkerEnemy(region);
+      const img = this._walkerImg(id);
+      if (!img) return null;
+      const w = {
+        id, img, cx: tx * TILE + 16, cy: ty * TILE + 16,
+        hx: tx * TILE + 16, hy: ty * TILE + 16,
+        tx: tx * TILE + 16, ty: ty * TILE + 16,
+        dir: dx > 0 ? 'left' : dx < 0 ? 'right' : dy > 0 ? 'up' : 'down',
+        moving: false, animT: 0, wt: 99, spd: 55, aggro: false,
+      };
+      this.walkers.push(w);
+      return w;
+    }
+    return null;
+  }
+
+  /** Atualiza patrulheiros: vagar, perseguir de perto e encostar = batalha. */
+  _updateWalkers(dt) {
+    if (this._touchGrace > 0) this._touchGrace -= dt;
+    const region = this.walkersEnabled ? this._walkerRegion() : null;
+    if (!region) {
+      if (this.walkers.length) this.walkers.length = 0;
+      return;
+    }
+    // remove os que ficaram longe / mudaram de região
+    this.walkers = this.walkers.filter((w) =>
+      Math.hypot(w.cx - this.player.cx, w.cy - this.player.cy) < TILE * 18);
+    // repõe a patrulha (máx 5)
+    this._walkerT -= dt;
+    if (this._walkerT <= 0) {
+      this._walkerT = 1.4;
+      if (this.walkers.length < 5) this._spawnWalker(region);
+    }
+    for (const w of this.walkers) {
+      const dp = Math.hypot(w.cx - this.player.cx, w.cy - this.player.cy);
+      w.aggro = dp < TILE * 4.5;
+      if (w.aggro && dp > 10) {
+        // persegue devagar (com colisão)
+        const sp = 72 * dt, dx = this.player.cx - w.cx, dy = this.player.cy - w.cy;
+        const d = Math.hypot(dx, dy) || 1;
+        w.dir = Math.abs(dx) >= Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up');
+        const nx = w.cx + (dx / d) * sp, ny = w.cy + (dy / d) * sp;
+        if (!this.map.collides(nx - 10, ny - 10, 20, 20)) { w.cx = nx; w.cy = ny; w.moving = true; }
+        else w.moving = false;
+        w.animT += dt;
+      } else if (w.moving) {
+        const sp = w.spd * dt, dx = w.tx - w.cx, dy = w.ty - w.cy;
+        const d = Math.hypot(dx, dy);
+        if (d <= sp) { w.cx = w.tx; w.cy = w.ty; w.moving = false; w.animT = 0; }
+        else { w.cx += (dx / d) * sp; w.cy += (dy / d) * sp; w.animT += dt; }
+      } else {
+        w.wt -= dt;
+        if (w.wt <= 0) {
+          w.wt = 1.5 + Math.random() * 2.5;
+          const dirs = [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]];
+          const [dx, dy] = dirs[Math.floor(Math.random() * dirs.length)];
+          const nx = w.cx + dx * TILE, ny = w.cy + dy * TILE;
+          const tx = Math.floor(nx / TILE), ty = Math.floor(ny / TILE);
+          if (Math.hypot(nx - w.hx, ny - w.hy) < TILE * 4 &&
+              !this.map.solid(tx, ty) && this.map.tile(tx, ty) !== T.WATER) {
+            if (dx !== 0 || dy !== 0) { w.tx = nx; w.ty = ny; w.moving = true; w.animT = 0.01; }
+            w.dir = dx > 0 ? 'right' : dx < 0 ? 'left' : dy > 0 ? 'down' : dy < 0 ? 'up' : w.dir;
+          }
+        }
+      }
+      // encostou = batalha (fora do período de graça pós-batalha)
+      if (this._touchGrace <= 0 && Math.hypot(w.cx - this.player.cx, w.cy - this.player.cy) < 26) {
+        this._startWalkerBattle(w, region);
+        return;
+      }
+    }
+  }
+
+  /** Batalha contra o patrulheiro encostado (ele + 30% de chance de um parceiro). */
+  _startWalkerBattle(w, region) {
+    const i = this.walkers.indexOf(w);
+    if (i >= 0) this.walkers.splice(i, 1);
+    this._touchGrace = 2.0;
+    this.audio.sfx('encounter');
+    const ids = [w.id];
+    if (Math.random() < 0.3) ids.push(pickWalkerEnemy(region));
+    this._startWildBattle(region, ids);
+  }
+
   // ---------- batalhas ----------
-  async _startWildBattle(region) {
+  async _startWildBattle(region, forcedIds = null) {
     if (this._busy) return;
     this._path = null; this._tapAct = null; this._tapMark = null;
     this._busy = true;
@@ -1344,8 +1505,12 @@ export class Engine {
       await Transition.swirl(650);
       this.state = 'BATTLE';
       this.hud.hide();
+      this.walkers.length = 0; // patrulha dispersa ao entrar em batalha
       const avg = this.party.reduce((s, h) => s + h.level, 0) / this.party.length;
-      const enemies = makeEncounter(region, avg);
+      const scale = forcedIds ? 1 + (avg - 1) * 0.22 : 0;
+      const enemies = forcedIds
+        ? forcedIds.map((id) => makeEnemy(id, scale || 1))
+        : makeEncounter(region, avg);
     this.battle.start(this.party, this.inv, enemies, {
       region,
       onEnd: (r) => this._afterBattle(r, region),
@@ -1409,6 +1574,7 @@ export class Engine {
   }
 
   async _afterBattle(result, region) {
+    this._touchGrace = 2.0; // patrulha dispersou: fôlego antes do próximo encosto
     if (result.fled) {
       this.state = 'FIELD';
       this.hud.show();
@@ -1491,6 +1657,8 @@ export class Engine {
       this.map = this.worldMap;
       this.npcs = this.worldNpcs || NPC_DEFS.map((d) => new NPC(d));
       this.worldNpcs = this.npcs;
+      this.walkers.length = 0;
+      this._touchGrace = 0;
       this.player = new Player(SPAWN.x, SPAWN.y);
       for (const h of this.party) { h.hp = Math.ceil(h.maxHp / 2); h.mp = Math.ceil(h.maxMp / 2); }
       this.camera.snap(this.player.cx, this.player.cy, this.map.w * TILE, this.map.h * TILE);
@@ -1531,10 +1699,11 @@ export class Engine {
 
     const ox = this.camera.ox, oy = this.camera.oy;
     const p = this.player;
-    // retângulos dos atores (p/ oclusão das copas)
+    // retângulos dos atores (p/ oclusão das copas) — cobrem o sprite HD 48x60
     const actorRects = [
-      ...this.npcs.map((n) => ({ x: n.x + ox, y: n.y + oy, w: 32, h: 40 })),
-      { x: p.x + ox - 4, y: p.y + oy - 12, w: 32, h: 40 },
+      ...this.npcs.map((n) => ({ x: n.x + ox - 8, y: n.y + oy - 20, w: 48, h: 60 })),
+      ...this.walkers.map((w) => ({ x: w.cx + ox - 24, y: w.cy + oy - 24, w: 48, h: 48 })),
+      { x: p.x + ox - 12, y: p.y + oy - 32, w: 48, h: 60 },
     ];
     this.map.draw(g, ox, oy, this.time, actorRects);
 
@@ -1614,8 +1783,8 @@ export class Engine {
       g.fillStyle = 'rgba(0,0,10,.28)';
       g.beginPath(); g.ellipse(sx, sy, w, w * 0.32, 0, 0, 7); g.fill();
     };
-    for (const n of this.npcs) shadow(n.x + ox + 16, n.y + oy + 36, n.id === 'kid' ? 9 : 12);
-    shadow(p.x + ox + 12, p.y + oy + 26, 12);
+    for (const n of this.npcs) shadow(n.x + ox + 16, n.y + oy + 36, n.id === 'kid' ? 13 : 17);
+    shadow(p.x + ox + 12, p.y + oy + 26, 17);
     // entidades ordenadas por Y (Pip é criança: desenhado menor)
     /** @type {{y:number, draw:()=>void}[]} */
     const ents = [];
@@ -1623,6 +1792,9 @@ export class Engine {
       const sc = n.id === 'kid' ? 0.78 : 1;
       const seed = (n.x * 0.07 + n.y * 0.13) % 6.28;
       ents.push({ y: n.y, draw: () => this._drawActor(n.x + ox, n.y + oy, this.npcArt[n.kind] || this.npcArt.elder, n.dir, n.moving ? n.animT : 0, sc, seed) });
+    }
+    for (const w of this.walkers) {
+      ents.push({ y: w.cy - 16, draw: () => this._drawWalker(w, ox, oy) });
     }
     ents.push({ y: p.y, draw: () => this._drawActor(p.x + ox - 4, p.y + oy - 12, this.heroArt, p.dir, p.moving ? p.animT : 0, 1, 0.7) });
     ents.sort((a, b) => a.y - b.y).forEach((e) => e.draw());
@@ -1713,7 +1885,7 @@ export class Engine {
       g.fillStyle = '#ffd75e';
       g.font = 'bold 22px monospace';
       g.strokeStyle = '#000'; g.lineWidth = 4;
-      const qx = qn.x + ox + 8, qy = qn.y + oy - 24 + Math.sin(this.time * 5) * 3;
+      const qx = qn.x + ox + 8, qy = qn.y + oy - 40 + Math.sin(this.time * 5) * 3;
       g.strokeText('!', qx, qy);
       g.fillText('!', qx, qy);
     }
@@ -1723,7 +1895,7 @@ export class Engine {
       g.fillStyle = '#fff';
       g.font = 'bold 20px monospace';
       g.strokeStyle = '#000'; g.lineWidth = 4;
-      const bx = npc.x + ox + 8, by = npc.y + oy - 22 + Math.sin(this.time * 5) * 2;
+      const bx = npc.x + ox + 8, by = npc.y + oy - 38 + Math.sin(this.time * 5) * 2;
       g.strokeText('▼ E', bx - 8, by);
       g.fillText('▼ E', bx - 8, by);
     }
@@ -1943,7 +2115,7 @@ export class Engine {
     const f = this._fishing;
     if (!f) return;
     const p = this.player;
-    const hx = p.x + ox + 12, hy = p.y + oy - 4; // cabeça
+    const hx = p.x + ox + 12, hy = p.y + oy - 22; // cabeça (sprite HD 48x60)
     const aim = { x: f.bobWX + ox, y: f.bobWY + oy };
     const dx = aim.x - hx, dy = aim.y - hy;
     const len = Math.max(1, Math.hypot(dx, dy));
@@ -2413,8 +2585,8 @@ export class Engine {
         const img = this.player.animT > 0 ? frames[Math.floor(this.player.animT * 8) % frames.length] : frames[0];
         this._wx.push({
           type: 'ghost', img,
-          x: this.player.x + this.camera.ox - 4, y: this.player.y + this.camera.oy - 12,
-          w: 32, h: 40, vx: 0, vy: 0, t: 0, life: 0.32, seed: 0,
+          x: this.player.x + this.camera.ox - 12, y: this.player.y + this.camera.oy - 32,
+          w: 32 * ACTOR_HD, h: 40 * ACTOR_HD, vx: 0, vy: 0, t: 0, life: 0.32, seed: 0,
         });
       }
       this._walkT = 0;
@@ -2451,9 +2623,33 @@ export class Engine {
       bob = Math.sin(br) * -1.1;
       squash = 1 + Math.sin(br) * 0.008;
     }
-    const w = 32 * squash * scale, h = 40 * scale;
+    const s = scale * ACTOR_HD; // atores proporcionais ao HD (48x60 base)
+    const w = 32 * squash * s, h = 40 * s;
     // ancora pelos pés para o menor (criança) não flutuar
-    this.g.drawImage(img, x + (32 - w) / 2, y + (40 - h) + bob * scale, w, h);
+    this.g.drawImage(img, x + (32 - w) / 2, y + (40 - h) + bob * s, w, h);
+  }
+
+  /** Desenha um monstro patrulheiro (~48px, âncora nos pés) + "!" se farejou o herói. */
+  _drawWalker(w, ox, oy) {
+    const g = this.g;
+    const img = w.img;
+    if (!img) return;
+    const sc = 48 / Math.max(img.width, img.height);
+    const dw = img.width * sc, dh = img.height * sc;
+    const hop = (w.moving || w.aggro)
+      ? -Math.abs(Math.sin(w.animT * 9)) * 5
+      : Math.sin(this.time * 3 + w.hx * 0.05) * -1.5;
+    g.fillStyle = 'rgba(0,0,10,.28)';
+    g.beginPath(); g.ellipse(w.cx + ox, w.cy + oy + 13, 14, 4.5, 0, 0, 7); g.fill();
+    g.drawImage(img, w.cx + ox - dw / 2, w.cy + oy + 13 - dh + hop, dw, dh);
+    if (w.aggro) {
+      g.fillStyle = '#ff6b6b';
+      g.font = 'bold 24px monospace';
+      g.strokeStyle = '#000'; g.lineWidth = 4;
+      const ay = w.cy + oy - 34 + Math.sin(this.time * 6) * 3;
+      g.strokeText('!', w.cx + ox - 5, ay);
+      g.fillText('!', w.cx + ox - 5, ay);
+    }
   }
 
   _drawTitleBg() {

@@ -94,8 +94,6 @@ export class Dialog {
 
   _render() {
     let html = this.fullText.slice(0, Math.floor(this.charsShown)).replace(/</g, '&lt;');
-    // retrato "fala" (pulso) enquanto o typewriter corre
-    if (this.faceEl) this.faceEl.classList.toggle('talking', this.open && !this._complete());
     if (this._complete() && this.currentOptions) {
       html += '<div id="dlg-opts">' + this.currentOptions.map((o, i) =>
         `<div class="opt ${i === this.optSel ? 'sel' : ''}">${o.label}</div>`).join('') + '</div>';
@@ -172,6 +170,5 @@ export class Dialog {
     this.el.classList.add('hidden');
     this.queue.length = 0;
     this.currentOptions = null;
-    if (this.faceEl) this.faceEl.classList.remove('talking');
   }
 }

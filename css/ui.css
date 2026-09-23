@@ -141,12 +141,6 @@
   image-rendering: pixelated;
   box-shadow: 0 0 14px #ffd75e55, 0 3px 8px #000a;
 }
-/* retrato "fala" enquanto o typewriter corre */
-#dialog-face.talking { animation: talk-bob .36s ease-in-out infinite; }
-@keyframes talk-bob {
-  0%, 100% { transform: translateY(0) scale(1); }
-  50% { transform: translateY(-2px) scale(1.03); }
-}
 #dialog-main { flex: 1; min-width: 0; overflow-y: auto; }
 #dialog-name {
   display: inline-block;
@@ -266,25 +260,20 @@
   -webkit-text-fill-color: transparent;
   filter: drop-shadow(0 0 22px #ffd75e66) drop-shadow(3px 3px 0 #000);
   line-height: 1.1;
-  animation: title-shine 4s ease-in-out infinite;
 }
-@keyframes title-shine { 50% { filter: drop-shadow(0 0 34px #ffd75eaa) drop-shadow(3px 3px 0 #000); } }
 #title .subtitle { opacity: .85; font-size: clamp(11px, 2vw, 15px); letter-spacing: 2px; }
 #title-heroes { display: flex; gap: 14px; align-items: flex-end; margin: 2px 0 4px; }
 #title-heroes .title-hero img {
   width: 56px; height: 56px;
   image-rendering: pixelated;
   filter: drop-shadow(0 0 10px #4fc3ff55) drop-shadow(0 3px 4px rgba(0,0,0,.7));
-  animation: hero-bob 2.8s ease-in-out infinite;
 }
 #title-heroes .title-hero:nth-child(2) img { width: 64px; height: 64px; }
-@keyframes hero-bob { 50% { transform: translateY(-6px); } }
 #title .version { opacity: .5; font-size: 11px; letter-spacing: 1px; }
 .title-crystal {
   width: 54px; height: 54px;
   background: linear-gradient(135deg, #e8fbff, #4fc3ff 35%, #1b2f9e 70%, #bff3ff);
   clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
-  animation: float 2.4s ease-in-out infinite;
   filter: drop-shadow(0 0 18px #4fc3ff) drop-shadow(0 0 42px #4fc3ff66);
   position: relative;
 }
@@ -293,7 +282,6 @@
   background: linear-gradient(#ffffffee, transparent);
   clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
 }
-@keyframes float { 50% { transform: translateY(-10px) rotate(8deg); } }
 #title-list { min-width: min(78%, 320px); }
 #title-list .opt { padding: 8px; font-size: clamp(14px, 2.4vw, 19px); border-radius: 5px; }
 #title-list .opt.sel { background: #ffffff22; color: var(--ff-yellow); }

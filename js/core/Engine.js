@@ -155,8 +155,8 @@ export class Engine {
       if (th) {
         th.innerHTML = [
           ['hero', 'Kael'], ['mage', 'Lyra'], ['cleric', 'Milo'],
-        ].map(([k, nm], i) =>
-          `<span class="title-hero" style="animation-delay:${i * 0.35}s" title="${nm}"><img src="${this.faces[k]}" alt="${nm}" /></span>`).join('');
+        ].map(([k, nm]) =>
+          `<span class="title-hero" title="${nm}"><img src="${this.faces[k]}" alt="${nm}" /></span>`).join('');
       }
     } catch { /* título sem heróis */ }
     // preferências + tempo de jogo
@@ -185,6 +185,9 @@ export class Engine {
       this._handleTap(e.clientX, e.clientY);
     });
     this.cv.addEventListener('pointercancel', () => { this._tapDown = null; });
+    // sem menu de toque longo no Android (segurar = andar, não selecionar)
+    this.cv.addEventListener('contextmenu', (e) => e.preventDefault());
+    document.getElementById('game-wrap')?.addEventListener('contextmenu', (e) => e.preventDefault());
   }
 
   init() {
@@ -575,7 +578,7 @@ export class Engine {
         this._wx.push({
           type: 'stepdust',
           x: b.x, y: b.y,
-          vx: -b.dx * 14 + (Math.random() - 0.5) * 10, vy: -b.dy * 8 - 12 - Math.random() * 8,
+          vx: -b.dx * 18 + (Math.random() - 0.5) * 8, vy: -b.dy * 12 - 4 - Math.random() * 6,
           t: 0, life: 0.4, seed: Math.random() * 9, col: '210,200,180',
         });
       }
@@ -2543,15 +2546,15 @@ export class Engine {
     return '210,200,180';
   }
 
-  /** Ponto de emissão ATRÁS do ator (nunca em cima do sprite): centro - direção*26. */
-  _behind(cx, cy, dir, jitter = 4) {
+  /** Ponto de emissão ATRÁS do ator (nunca em cima do sprite): centro - direção*back. */
+  _behind(cx, cy, dir, jitter = 4, back = 30) {
     const d = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] }[dir] || [0, 1];
     // jitter lateral (perpendicular) + pequeno ao longo do eixo (sem invadir o sprite)
     const jx = (Math.random() - 0.5) * jitter * 2;
     const jz = (Math.random() - 0.5) * 6;
     return {
-      x: cx - d[0] * (26 + jz) + -d[1] * jx,
-      y: cy - d[1] * (26 + jz) + d[0] * jx,
+      x: cx - d[0] * (back + jz) + -d[1] * jx,
+      y: cy - d[1] * (back + jz) + d[0] * jx,
       dx: d[0], dy: d[1],
     };
   }
@@ -2563,28 +2566,28 @@ export class Engine {
     const sy = this.player.cy + this.camera.oy - 2;
     const tint = this._trailTint();
     if (this.player.running) {
-      // poeira grossa chutada para trás
+      // poeira grossa chutada para trás (deriva p/ trás, quase sem subir: nunca cobre o sprite)
       this._poofT = (this._poofT || 0) + dt;
       if (this._poofT > 0.09 && this._wx.length < 110) {
         this._poofT = 0;
-        const b = this._behind(sx, sy, this.player.dir);
+        const b = this._behind(sx, sy, this.player.dir, 4, 34);
         this._wx.push({
           type: 'poof',
           x: b.x, y: b.y,
-          vx: -b.dx * 26 + (Math.random() - 0.5) * 22, vy: -b.dy * 14 - 26 - Math.random() * 22,
-          t: 0, life: 0.6, seed: Math.random() * 9, col: tint, big: true,
+          vx: -b.dx * 52 + (Math.random() - 0.5) * 16, vy: -b.dy * 34 - 4 - Math.random() * 8,
+          t: 0, life: 0.5, seed: Math.random() * 9, col: tint, big: true,
         });
       }
-      // fumaça cinza subindo atrás (esforço da corrida)
+      // fumaça do esforço: escorre para trás, subindo só um pouco
       this._smokeT = (this._smokeT || 0) + dt;
       if (this._smokeT > 0.22 && this._wx.length < 110) {
         this._smokeT = 0;
-        const b = this._behind(sx, sy, this.player.dir);
+        const b = this._behind(sx, sy, this.player.dir, 4, 34);
         this._wx.push({
           type: 'smoke',
           x: b.x, y: b.y - 4,
-          vx: -b.dx * 12 + (Math.random() - 0.5) * 10, vy: -b.dy * 10 - 44 - Math.random() * 18,
-          t: 0, life: 0.9, seed: Math.random() * 9,
+          vx: -b.dx * 26 + (Math.random() - 0.5) * 8, vy: -b.dy * 20 - 8 - Math.random() * 10,
+          t: 0, life: 0.7, seed: Math.random() * 9,
         });
       }
       // afterimage: rastro do corpo
@@ -2606,12 +2609,12 @@ export class Engine {
       this._walkT = (this._walkT || 0) + dt;
       if (this._walkT > 0.3 && this._wx.length < 110) {
         this._walkT = 0;
-        const b = this._behind(sx, sy, this.player.dir, 3);
+        const b = this._behind(sx, sy, this.player.dir, 3, 30);
         this._wx.push({
           type: 'stepdust',
           x: b.x, y: b.y,
-          vx: -b.dx * 14 + (Math.random() - 0.5) * 10, vy: -b.dy * 8 - 14 - Math.random() * 8,
-          t: 0, life: 0.42, seed: Math.random() * 9, col: tint,
+          vx: -b.dx * 22 + (Math.random() - 0.5) * 8, vy: -b.dy * 16 - 3 - Math.random() * 6,
+          t: 0, life: 0.38, seed: Math.random() * 9, col: tint,
         });
       }
       this._poofT = 0; this._smokeT = 0; this._ghostT = 0;
@@ -2621,23 +2624,27 @@ export class Engine {
   _drawActor(x, y, art, dir, animT, scale = 1, seed = 0) {
     const set = art[dir] || art.down;
     const frames = Array.isArray(set) ? set : [set];
-    let img, bob, squash;
+    let img, bob, squash, leanX = 0, leanY = 0, swayX = 0;
     if (animT > 0) {
-      // andando: alterna os 2 frames de passo
+      // andando: alterna os 2 frames de passo, com inclinação p/ frente e quique duplo
       img = frames[Math.floor(animT * 8) % frames.length];
-      bob = Math.abs(Math.sin(animT * 10)) * -3;
-      squash = 1 + Math.sin(animT * 10) * 0.02;
+      const stride = animT * 10;
+      bob = Math.abs(Math.sin(stride)) * -3.4;
+      squash = 1 + Math.sin(stride) * 0.025;
+      leanX = dir === 'left' ? -2 : dir === 'right' ? 2 : Math.sin(stride) * 0.8;
+      leanY = dir === 'down' ? 1.5 : dir === 'up' ? -1 : Math.abs(Math.cos(stride)) * 0.8;
     } else {
-      // parado mas vivo: respiração (sobe/desce 1px, peito estufa de leve)
+      // parado mas vivo: respiração + deslocamento de peso ocasional
       img = frames[0];
       const br = this.time * 2.2 + seed;
       bob = Math.sin(br) * -1.1;
       squash = 1 + Math.sin(br) * 0.008;
+      swayX = Math.sin(br * 0.5) * 1.2;
     }
     const s = scale * ACTOR_HD; // atores proporcionais ao HD (48x60 base)
     const w = 32 * squash * s, h = 40 * s;
     // ancora pelos pés para o menor (criança) não flutuar
-    this.g.drawImage(img, x + (32 - w) / 2, y + (40 - h) + bob * s, w, h);
+    this.g.drawImage(img, x + (32 - w) / 2 + (leanX + swayX) * s, y + (40 - h) + (bob + leanY) * s, w, h);
   }
 
   /** Desenha um monstro patrulheiro (~48px, âncora nos pés) + "!" se farejou o herói. */
@@ -2650,9 +2657,19 @@ export class Engine {
     const hop = (w.moving || w.aggro)
       ? -Math.abs(Math.sin(w.animT * 9)) * 5
       : Math.sin(this.time * 3 + w.hx * 0.05) * -1.5;
+    // squash & stretch no pulo + sombra que encolhe no ar
+    const lift = Math.min(1, -hop / 5);
+    const sx = 1 - lift * 0.06, sy = 1 + lift * 0.09;
+    const shR = 14 - lift * 3;
     g.fillStyle = 'rgba(0,0,10,.28)';
-    g.beginPath(); g.ellipse(w.cx + ox, w.cy + oy + 13, 14, 4.5, 0, 0, 7); g.fill();
-    g.drawImage(img, w.cx + ox - dw / 2, w.cy + oy + 13 - dh + hop, dw, dh);
+    g.beginPath(); g.ellipse(w.cx + ox, w.cy + oy + 13, shR, shR * 0.32, 0, 0, 7); g.fill();
+    // inclina p/ a direção do movimento
+    const tilt = w.moving ? (w.dir === 'left' ? -0.06 : w.dir === 'right' ? 0.06 : 0) : 0;
+    g.save();
+    g.translate(w.cx + ox, w.cy + oy + 13 + hop);
+    g.rotate(tilt);
+    g.drawImage(img, -dw * sx / 2, -dh * sy, dw * sx, dh * sy);
+    g.restore();
     if (w.aggro) {
       g.fillStyle = '#ff6b6b';
       g.font = 'bold 24px monospace';

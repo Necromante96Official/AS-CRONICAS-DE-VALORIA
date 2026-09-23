@@ -50,7 +50,7 @@ export class Player {
         this.y = ny; this.moving = true;
       }
       if (this.moving) {
-        this.animT += dt;
+        this.animT += dt * (this.running ? 1.45 : 1); // corrida pedala mais rápido
         this.stepAcc += Math.hypot(dx, dy) * spd * dt;
       }
     } else if (Math.hypot(this.slideX, this.slideY) > 12) {

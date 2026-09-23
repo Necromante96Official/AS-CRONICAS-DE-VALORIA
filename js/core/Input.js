@@ -34,6 +34,9 @@ export class Input {
       if (!a) return;
       this.held[a] = false;
     });
+    // perdeu o foco (troca de app no Android, notificação): solta tudo, sem tecla presa
+    window.addEventListener('blur', () => this.releaseAll());
+    document.addEventListener('visibilitychange', () => { if (document.hidden) this.releaseAll(); });
 
     // Botões touch (data-k). "run" é alternador (liga/desliga correr).
     document.querySelectorAll('#touch [data-k]').forEach((btn) => {
@@ -57,7 +60,10 @@ export class Input {
     });
     this._initTouchDrag();
 
-    if ('ontouchstart' in window) document.getElementById('touch')?.classList.remove('hidden');
+    // mostra os botões em qualquer aparelho touch (Android/iOS), não só com ontouchstart
+    const isTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) ||
+      (window.matchMedia?.('(pointer: coarse)').matches);
+    if (isTouch) document.getElementById('touch')?.classList.remove('hidden');
   }
 
   /** Posição personalizada do bloco touch (segurar p/ arrastar, 2 toques p/ resetar). */
@@ -128,6 +134,12 @@ export class Input {
       el.addEventListener('pointerup', end);
       el.addEventListener('pointercancel', end);
     }
+  }
+
+  /** Solta todas as teclas/botões (anti-trava). */
+  releaseAll() {
+    for (const k of Object.keys(this.held)) this.held[k] = false;
+    document.querySelectorAll('#touch [data-k="run"].on').forEach((b) => b.classList.remove('on'));
   }
 
   /** Deve ser chamado no fim de cada frame. */

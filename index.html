@@ -2,7 +2,11 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#05060f" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <title>CRÔNICAS DE VALORIA — JRPG Topdown</title>
   <style>
 /* ============ BASE — layout, canvas, caixas estilo FF ============ */
@@ -27,6 +31,9 @@ html, body {
   color: var(--ff-text);
   font-family: var(--px);
   overflow: hidden;
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
 #stage {
@@ -35,11 +42,14 @@ html, body {
   align-items: center;
   justify-content: center;
   padding: 8px;
+  padding: max(8px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
+  touch-action: none;
 }
 
 #game-wrap {
   position: relative;
   width: min(96vw, 1280px);
+  max-width: calc(96dvh * 16 / 9);
   aspect-ratio: 16 / 9;
   background: #000;
   border: 3px solid #3a478c;
@@ -47,6 +57,10 @@ html, body {
   overflow: hidden;
   box-shadow: 0 0 0 1px #0a1030, 0 0 70px #2a357066, 0 0 140px #4fc3ff22, 0 20px 60px #000c;
   max-height: 96dvh;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
 /* vinheta retrô + scanlines sutis sobre o mundo (abaixo da UI) */
 #game-wrap::before {
@@ -170,6 +184,22 @@ html, body {
 #tbtns.moving { opacity: .65; }
 #tbtns.moving button { border-style: dashed; }
 #tbtns button.on { background: #ffd75e55; border-color: var(--ff-yellow); color: var(--ff-yellow); }
+
+/* ---------- celular / telas touch (qualquer resolução) ---------- */
+@media (pointer: coarse) {
+  #tbtns { gap: 14px; }
+  #tbtns button { width: 76px; height: 76px; font-size: 22px; }
+  #touch { padding: 12px 16px calc(16px + env(safe-area-inset-bottom)); }
+  .ff-btn { font-size: 18px; padding: 14px 26px; }
+  #dialog { font-size: clamp(16px, 4vw, 21px); }
+}
+/* retrato/paisagem baixos: garante o palco inteiro sempre visível */
+@media (max-height: 500px) {
+  #stage { padding: 4px; }
+  #game-wrap { border-width: 2px; border-radius: 8px; }
+  #touch { padding: 6px 10px 8px; }
+  #tbtns button { width: 54px; height: 54px; }
+}
 
 </style>
   <style>
@@ -316,12 +346,6 @@ html, body {
   image-rendering: pixelated;
   box-shadow: 0 0 14px #ffd75e55, 0 3px 8px #000a;
 }
-/* retrato "fala" enquanto o typewriter corre */
-#dialog-face.talking { animation: talk-bob .36s ease-in-out infinite; }
-@keyframes talk-bob {
-  0%, 100% { transform: translateY(0) scale(1); }
-  50% { transform: translateY(-2px) scale(1.03); }
-}
 #dialog-main { flex: 1; min-width: 0; overflow-y: auto; }
 #dialog-name {
   display: inline-block;
@@ -441,25 +465,20 @@ html, body {
   -webkit-text-fill-color: transparent;
   filter: drop-shadow(0 0 22px #ffd75e66) drop-shadow(3px 3px 0 #000);
   line-height: 1.1;
-  animation: title-shine 4s ease-in-out infinite;
 }
-@keyframes title-shine { 50% { filter: drop-shadow(0 0 34px #ffd75eaa) drop-shadow(3px 3px 0 #000); } }
 #title .subtitle { opacity: .85; font-size: clamp(11px, 2vw, 15px); letter-spacing: 2px; }
 #title-heroes { display: flex; gap: 14px; align-items: flex-end; margin: 2px 0 4px; }
 #title-heroes .title-hero img {
   width: 56px; height: 56px;
   image-rendering: pixelated;
   filter: drop-shadow(0 0 10px #4fc3ff55) drop-shadow(0 3px 4px rgba(0,0,0,.7));
-  animation: hero-bob 2.8s ease-in-out infinite;
 }
 #title-heroes .title-hero:nth-child(2) img { width: 64px; height: 64px; }
-@keyframes hero-bob { 50% { transform: translateY(-6px); } }
 #title .version { opacity: .5; font-size: 11px; letter-spacing: 1px; }
 .title-crystal {
   width: 54px; height: 54px;
   background: linear-gradient(135deg, #e8fbff, #4fc3ff 35%, #1b2f9e 70%, #bff3ff);
   clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
-  animation: float 2.4s ease-in-out infinite;
   filter: drop-shadow(0 0 18px #4fc3ff) drop-shadow(0 0 42px #4fc3ff66);
   position: relative;
 }
@@ -468,7 +487,6 @@ html, body {
   background: linear-gradient(#ffffffee, transparent);
   clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
 }
-@keyframes float { 50% { transform: translateY(-10px) rotate(8deg); } }
 #title-list { min-width: min(78%, 320px); }
 #title-list .opt { padding: 8px; font-size: clamp(14px, 2.4vw, 19px); border-radius: 5px; }
 #title-list .opt.sel { background: #ffffff22; color: var(--ff-yellow); }
@@ -871,6 +889,9 @@ class Input {
       if (!a) return;
       this.held[a] = false;
     });
+    // perdeu o foco (troca de app no Android, notificação): solta tudo, sem tecla presa
+    window.addEventListener('blur', () => this.releaseAll());
+    document.addEventListener('visibilitychange', () => { if (document.hidden) this.releaseAll(); });
 
     // Botões touch (data-k). "run" é alternador (liga/desliga correr).
     document.querySelectorAll('#touch [data-k]').forEach((btn) => {
@@ -894,7 +915,10 @@ class Input {
     });
     this._initTouchDrag();
 
-    if ('ontouchstart' in window) document.getElementById('touch')?.classList.remove('hidden');
+    // mostra os botões em qualquer aparelho touch (Android/iOS), não só com ontouchstart
+    const isTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) ||
+      (window.matchMedia?.('(pointer: coarse)').matches);
+    if (isTouch) document.getElementById('touch')?.classList.remove('hidden');
   }
 
   /** Posição personalizada do bloco touch (segurar p/ arrastar, 2 toques p/ resetar). */
@@ -965,6 +989,12 @@ class Input {
       el.addEventListener('pointerup', end);
       el.addEventListener('pointercancel', end);
     }
+  }
+
+  /** Solta todas as teclas/botões (anti-trava). */
+  releaseAll() {
+    for (const k of Object.keys(this.held)) this.held[k] = false;
+    document.querySelectorAll('#touch [data-k="run"].on').forEach((b) => b.classList.remove('on'));
   }
 
   /** Deve ser chamado no fim de cada frame. */
@@ -2967,7 +2997,7 @@ class Player {
         this.y = ny; this.moving = true;
       }
       if (this.moving) {
-        this.animT += dt;
+        this.animT += dt * (this.running ? 1.45 : 1); // corrida pedala mais rápido
         this.stepAcc += Math.hypot(dx, dy) * spd * dt;
       }
     } else if (Math.hypot(this.slideX, this.slideY) > 12) {
@@ -4628,8 +4658,6 @@ class Dialog {
 
   _render() {
     let html = this.fullText.slice(0, Math.floor(this.charsShown)).replace(/</g, '&lt;');
-    // retrato "fala" (pulso) enquanto o typewriter corre
-    if (this.faceEl) this.faceEl.classList.toggle('talking', this.open && !this._complete());
     if (this._complete() && this.currentOptions) {
       html += '<div id="dlg-opts">' + this.currentOptions.map((o, i) =>
         `<div class="opt ${i === this.optSel ? 'sel' : ''}">${o.label}</div>`).join('') + '</div>';
@@ -4706,7 +4734,6 @@ class Dialog {
     this.el.classList.add('hidden');
     this.queue.length = 0;
     this.currentOptions = null;
-    if (this.faceEl) this.faceEl.classList.remove('talking');
   }
 }
 
@@ -7163,10 +7190,15 @@ class BattleSystem {
     const a = this.anim;
     if (!a || a.who !== who || a.idx !== idx) return { x: 0, y: 0 };
     const el = Math.min(1, Math.max(0, 1 - a.t / (a.dur || 0.35)));
-    if (a.tx == null) return { x: (who === 'hero' ? -40 : 34) * Math.sin(el * Math.PI), y: 0 };
+    if (a.tx == null) {
+      // golpe curto: recuo de antecipação + avanço
+      const pull = el > 0.9 ? 0.18 * (el - 0.9) / 0.1 : 0;
+      return { x: (who === 'hero' ? -40 : 34) * (Math.sin(el * Math.PI) - pull), y: 0 };
+    }
     const dx = a.tx - a.fx, dy = a.ty - a.fy;
     let k;
     if (el < 0.45) { const u = el / 0.45; k = (1 - Math.pow(1 - u, 3)) * 0.85; }
+    else if (el > 0.93) { k = -0.12 * (el - 0.93) / 0.07; } // antecipação: recua antes de avançar
     else { const u = (el - 0.45) / 0.55; k = 0.85 * (1 - u); }
     return { x: dx * k, y: dy * k };
   }
@@ -7743,8 +7775,8 @@ class Engine {
       if (th) {
         th.innerHTML = [
           ['hero', 'Kael'], ['mage', 'Lyra'], ['cleric', 'Milo'],
-        ].map(([k, nm], i) =>
-          `<span class="title-hero" style="animation-delay:${i * 0.35}s" title="${nm}"><img src="${this.faces[k]}" alt="${nm}" /></span>`).join('');
+        ].map(([k, nm]) =>
+          `<span class="title-hero" title="${nm}"><img src="${this.faces[k]}" alt="${nm}" /></span>`).join('');
       }
     } catch { /* título sem heróis */ }
     // preferências + tempo de jogo
@@ -7773,6 +7805,9 @@ class Engine {
       this._handleTap(e.clientX, e.clientY);
     });
     this.cv.addEventListener('pointercancel', () => { this._tapDown = null; });
+    // sem menu de toque longo no Android (segurar = andar, não selecionar)
+    this.cv.addEventListener('contextmenu', (e) => e.preventDefault());
+    document.getElementById('game-wrap')?.addEventListener('contextmenu', (e) => e.preventDefault());
   }
 
   init() {
@@ -8163,7 +8198,7 @@ class Engine {
         this._wx.push({
           type: 'stepdust',
           x: b.x, y: b.y,
-          vx: -b.dx * 14 + (Math.random() - 0.5) * 10, vy: -b.dy * 8 - 12 - Math.random() * 8,
+          vx: -b.dx * 18 + (Math.random() - 0.5) * 8, vy: -b.dy * 12 - 4 - Math.random() * 6,
           t: 0, life: 0.4, seed: Math.random() * 9, col: '210,200,180',
         });
       }
@@ -10131,15 +10166,15 @@ class Engine {
     return '210,200,180';
   }
 
-  /** Ponto de emissão ATRÁS do ator (nunca em cima do sprite): centro - direção*26. */
-  _behind(cx, cy, dir, jitter = 4) {
+  /** Ponto de emissão ATRÁS do ator (nunca em cima do sprite): centro - direção*back. */
+  _behind(cx, cy, dir, jitter = 4, back = 30) {
     const d = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] }[dir] || [0, 1];
     // jitter lateral (perpendicular) + pequeno ao longo do eixo (sem invadir o sprite)
     const jx = (Math.random() - 0.5) * jitter * 2;
     const jz = (Math.random() - 0.5) * 6;
     return {
-      x: cx - d[0] * (26 + jz) + -d[1] * jx,
-      y: cy - d[1] * (26 + jz) + d[0] * jx,
+      x: cx - d[0] * (back + jz) + -d[1] * jx,
+      y: cy - d[1] * (back + jz) + d[0] * jx,
       dx: d[0], dy: d[1],
     };
   }
@@ -10151,28 +10186,28 @@ class Engine {
     const sy = this.player.cy + this.camera.oy - 2;
     const tint = this._trailTint();
     if (this.player.running) {
-      // poeira grossa chutada para trás
+      // poeira grossa chutada para trás (deriva p/ trás, quase sem subir: nunca cobre o sprite)
       this._poofT = (this._poofT || 0) + dt;
       if (this._poofT > 0.09 && this._wx.length < 110) {
         this._poofT = 0;
-        const b = this._behind(sx, sy, this.player.dir);
+        const b = this._behind(sx, sy, this.player.dir, 4, 34);
         this._wx.push({
           type: 'poof',
           x: b.x, y: b.y,
-          vx: -b.dx * 26 + (Math.random() - 0.5) * 22, vy: -b.dy * 14 - 26 - Math.random() * 22,
-          t: 0, life: 0.6, seed: Math.random() * 9, col: tint, big: true,
+          vx: -b.dx * 52 + (Math.random() - 0.5) * 16, vy: -b.dy * 34 - 4 - Math.random() * 8,
+          t: 0, life: 0.5, seed: Math.random() * 9, col: tint, big: true,
         });
       }
-      // fumaça cinza subindo atrás (esforço da corrida)
+      // fumaça do esforço: escorre para trás, subindo só um pouco
       this._smokeT = (this._smokeT || 0) + dt;
       if (this._smokeT > 0.22 && this._wx.length < 110) {
         this._smokeT = 0;
-        const b = this._behind(sx, sy, this.player.dir);
+        const b = this._behind(sx, sy, this.player.dir, 4, 34);
         this._wx.push({
           type: 'smoke',
           x: b.x, y: b.y - 4,
-          vx: -b.dx * 12 + (Math.random() - 0.5) * 10, vy: -b.dy * 10 - 44 - Math.random() * 18,
-          t: 0, life: 0.9, seed: Math.random() * 9,
+          vx: -b.dx * 26 + (Math.random() - 0.5) * 8, vy: -b.dy * 20 - 8 - Math.random() * 10,
+          t: 0, life: 0.7, seed: Math.random() * 9,
         });
       }
       // afterimage: rastro do corpo
@@ -10194,12 +10229,12 @@ class Engine {
       this._walkT = (this._walkT || 0) + dt;
       if (this._walkT > 0.3 && this._wx.length < 110) {
         this._walkT = 0;
-        const b = this._behind(sx, sy, this.player.dir, 3);
+        const b = this._behind(sx, sy, this.player.dir, 3, 30);
         this._wx.push({
           type: 'stepdust',
           x: b.x, y: b.y,
-          vx: -b.dx * 14 + (Math.random() - 0.5) * 10, vy: -b.dy * 8 - 14 - Math.random() * 8,
-          t: 0, life: 0.42, seed: Math.random() * 9, col: tint,
+          vx: -b.dx * 22 + (Math.random() - 0.5) * 8, vy: -b.dy * 16 - 3 - Math.random() * 6,
+          t: 0, life: 0.38, seed: Math.random() * 9, col: tint,
         });
       }
       this._poofT = 0; this._smokeT = 0; this._ghostT = 0;
@@ -10209,23 +10244,27 @@ class Engine {
   _drawActor(x, y, art, dir, animT, scale = 1, seed = 0) {
     const set = art[dir] || art.down;
     const frames = Array.isArray(set) ? set : [set];
-    let img, bob, squash;
+    let img, bob, squash, leanX = 0, leanY = 0, swayX = 0;
     if (animT > 0) {
-      // andando: alterna os 2 frames de passo
+      // andando: alterna os 2 frames de passo, com inclinação p/ frente e quique duplo
       img = frames[Math.floor(animT * 8) % frames.length];
-      bob = Math.abs(Math.sin(animT * 10)) * -3;
-      squash = 1 + Math.sin(animT * 10) * 0.02;
+      const stride = animT * 10;
+      bob = Math.abs(Math.sin(stride)) * -3.4;
+      squash = 1 + Math.sin(stride) * 0.025;
+      leanX = dir === 'left' ? -2 : dir === 'right' ? 2 : Math.sin(stride) * 0.8;
+      leanY = dir === 'down' ? 1.5 : dir === 'up' ? -1 : Math.abs(Math.cos(stride)) * 0.8;
     } else {
-      // parado mas vivo: respiração (sobe/desce 1px, peito estufa de leve)
+      // parado mas vivo: respiração + deslocamento de peso ocasional
       img = frames[0];
       const br = this.time * 2.2 + seed;
       bob = Math.sin(br) * -1.1;
       squash = 1 + Math.sin(br) * 0.008;
+      swayX = Math.sin(br * 0.5) * 1.2;
     }
     const s = scale * ACTOR_HD; // atores proporcionais ao HD (48x60 base)
     const w = 32 * squash * s, h = 40 * s;
     // ancora pelos pés para o menor (criança) não flutuar
-    this.g.drawImage(img, x + (32 - w) / 2, y + (40 - h) + bob * s, w, h);
+    this.g.drawImage(img, x + (32 - w) / 2 + (leanX + swayX) * s, y + (40 - h) + (bob + leanY) * s, w, h);
   }
 
   /** Desenha um monstro patrulheiro (~48px, âncora nos pés) + "!" se farejou o herói. */
@@ -10238,9 +10277,19 @@ class Engine {
     const hop = (w.moving || w.aggro)
       ? -Math.abs(Math.sin(w.animT * 9)) * 5
       : Math.sin(this.time * 3 + w.hx * 0.05) * -1.5;
+    // squash & stretch no pulo + sombra que encolhe no ar
+    const lift = Math.min(1, -hop / 5);
+    const sx = 1 - lift * 0.06, sy = 1 + lift * 0.09;
+    const shR = 14 - lift * 3;
     g.fillStyle = 'rgba(0,0,10,.28)';
-    g.beginPath(); g.ellipse(w.cx + ox, w.cy + oy + 13, 14, 4.5, 0, 0, 7); g.fill();
-    g.drawImage(img, w.cx + ox - dw / 2, w.cy + oy + 13 - dh + hop, dw, dh);
+    g.beginPath(); g.ellipse(w.cx + ox, w.cy + oy + 13, shR, shR * 0.32, 0, 0, 7); g.fill();
+    // inclina p/ a direção do movimento
+    const tilt = w.moving ? (w.dir === 'left' ? -0.06 : w.dir === 'right' ? 0.06 : 0) : 0;
+    g.save();
+    g.translate(w.cx + ox, w.cy + oy + 13 + hop);
+    g.rotate(tilt);
+    g.drawImage(img, -dw * sx / 2, -dh * sy, dw * sx, dh * sy);
+    g.restore();
     if (w.aggro) {
       g.fillStyle = '#ff6b6b';
       g.font = 'bold 24px monospace';

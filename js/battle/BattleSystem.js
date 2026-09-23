@@ -1051,10 +1051,15 @@ export class BattleSystem {
     const a = this.anim;
     if (!a || a.who !== who || a.idx !== idx) return { x: 0, y: 0 };
     const el = Math.min(1, Math.max(0, 1 - a.t / (a.dur || 0.35)));
-    if (a.tx == null) return { x: (who === 'hero' ? -40 : 34) * Math.sin(el * Math.PI), y: 0 };
+    if (a.tx == null) {
+      // golpe curto: recuo de antecipação + avanço
+      const pull = el > 0.9 ? 0.18 * (el - 0.9) / 0.1 : 0;
+      return { x: (who === 'hero' ? -40 : 34) * (Math.sin(el * Math.PI) - pull), y: 0 };
+    }
     const dx = a.tx - a.fx, dy = a.ty - a.fy;
     let k;
     if (el < 0.45) { const u = el / 0.45; k = (1 - Math.pow(1 - u, 3)) * 0.85; }
+    else if (el > 0.93) { k = -0.12 * (el - 0.93) / 0.07; } // antecipação: recua antes de avançar
     else { const u = (el - 0.45) / 0.55; k = 0.85 * (1 - u); }
     return { x: dx * k, y: dy * k };
   }

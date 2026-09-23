@@ -149,6 +149,16 @@ export class Engine {
       'DRAGÃO DO CAOS': dragonFace(this.dragonArt),
     };
     this.dialog.portraitProvider = (name) => this.faceCanvas[name] || null;
+    // trio de heróis na tela de título
+    try {
+      const th = document.getElementById('title-heroes');
+      if (th) {
+        th.innerHTML = [
+          ['hero', 'Kael'], ['mage', 'Lyra'], ['cleric', 'Milo'],
+        ].map(([k, nm], i) =>
+          `<span class="title-hero" style="animation-delay:${i * 0.35}s" title="${nm}"><img src="${this.faces[k]}" alt="${nm}" /></span>`).join('');
+      }
+    } catch { /* título sem heróis */ }
     // preferências + tempo de jogo
     const cfg = loadSettings();
     this.dialog.speed = cfg.speed || 'normal';
@@ -497,7 +507,8 @@ export class Engine {
     } else if (inp.pressed.menu || inp.pressed.cancel) {
       this.audio.unlock(); this.audio.sfx('confirm');
       this._path = null; this._tapAct = null;
-      this.menu.show({ party: this.party, inv: this.inv, gold: this.gold, time: this._fmtTime(), flags: this.flags }, (m) => toast(m), this._menuActions());
+      this.menu.show({ party: this.party, inv: this.inv, gold: this.gold, time: this._fmtTime(),
+        flags: this.flags, faces: this.faces }, (m) => toast(m), this._menuActions());
       return;
     }
 

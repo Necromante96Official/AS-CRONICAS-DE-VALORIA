@@ -104,7 +104,9 @@ export class Menu {
   }
 
   _heroLine(h) {
-    return `${h.hp <= 0 ? '✝ ' : ''}${h.name} <span class="row-sub">${h.cls} Nv${h.level} · ${Math.ceil(h.hp)}/${h.maxHp} HP · ${Math.ceil(h.mp)}/${h.maxMp} MP</span>`;
+    const face = this.ctx?.faces?.[h.sprite]
+      ? `<img class="menu-face" src="${this.ctx.faces[h.sprite]}" alt="" />` : '';
+    return `${face}${h.hp <= 0 ? '✝ ' : ''}${h.name} <span class="row-sub">${h.cls} Nv${h.level} · ${Math.ceil(h.hp)}/${h.maxHp} HP · ${Math.ceil(h.mp)}/${h.maxMp} MP</span>`;
   }
 
   _render() {
@@ -154,7 +156,9 @@ export class Menu {
       this.listEl.innerHTML = party.map((h, i) =>
         `<div class="opt ${i === this.sel ? 'sel' : ''}">${this._heroLine(h)}</div>`).join('');
       const h = party[this.sel];
-      this.detailEl.innerHTML = `<h3>${h.name} <span class="row-sub">${h.cls} · Nv ${h.level}</span></h3>
+      const face = this.ctx?.faces?.[h.sprite]
+        ? `<img class="menu-face big" src="${this.ctx.faces[h.sprite]}" alt="" />` : '';
+      this.detailEl.innerHTML = `<h3>${face}${h.name} <span class="row-sub">${h.cls} · Nv ${h.level}</span></h3>
         <div class="stat-grid">
           <b>HP</b><span>${Math.ceil(h.hp)} / ${h.maxHp}</span>
           <b>MP</b><span>${Math.ceil(h.mp)} / ${h.maxMp}</span>

@@ -78,13 +78,13 @@ export class Dialog {
     this.charsShown = 0;
     this.currentOptions = line.options || null;
     this.optSel = 0;
-    // retrato do falante
+    // retrato do falante (medalhão 72px preenche o canvas)
     const face = this.portraitProvider?.(line.name) || null;
     if (face && this.faceEl) {
       const g = this.faceEl.getContext('2d');
       g.imageSmoothingEnabled = false;
       g.clearRect(0, 0, this.faceEl.width, this.faceEl.height);
-      g.drawImage(face, 0, 0);
+      g.drawImage(face, 0, 0, this.faceEl.width, this.faceEl.height);
       this.faceEl.style.display = 'block';
     } else if (this.faceEl) {
       this.faceEl.style.display = 'none';
@@ -94,6 +94,8 @@ export class Dialog {
 
   _render() {
     let html = this.fullText.slice(0, Math.floor(this.charsShown)).replace(/</g, '&lt;');
+    // retrato "fala" (pulso) enquanto o typewriter corre
+    if (this.faceEl) this.faceEl.classList.toggle('talking', this.open && !this._complete());
     if (this._complete() && this.currentOptions) {
       html += '<div id="dlg-opts">' + this.currentOptions.map((o, i) =>
         `<div class="opt ${i === this.optSel ? 'sel' : ''}">${o.label}</div>`).join('') + '</div>';
@@ -170,5 +172,6 @@ export class Dialog {
     this.el.classList.add('hidden');
     this.queue.length = 0;
     this.currentOptions = null;
+    if (this.faceEl) this.faceEl.classList.remove('talking');
   }
 }

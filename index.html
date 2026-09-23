@@ -197,11 +197,13 @@ html, body {
   box-shadow: 0 3px 10px #000b, inset 0 1px 0 #ffffff22;
 }
 .hud-face {
-  width: 42px; height: 42px;
-  border-radius: 8px;
-  border: 1px solid #ffffff44;
-  background: #0008;
+  width: 46px; height: 46px;
+  border-radius: 10px;
+  border: none;
+  background: transparent;
   flex: none;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 2px 3px rgba(0,0,0,.6));
 }
 .hud-info { flex: 1; min-width: 0; }
 .hud-card .nm { font-weight: bold; font-size: 14px; }
@@ -307,12 +309,18 @@ html, body {
   padding: 16px 20px;
 }
 #dialog-face {
-  width: 72px; height: 72px; flex: none;
-  border: 2px solid var(--ff-yellow);
-  border-radius: 12px;
-  background: linear-gradient(160deg, #1b2f9e, #000);
+  width: 76px; height: 76px; flex: none;
+  border: none;
+  border-radius: 14px;
+  background: transparent;
   image-rendering: pixelated;
-  box-shadow: 0 0 12px #ffd75e44, 0 3px 8px #000a;
+  box-shadow: 0 0 14px #ffd75e55, 0 3px 8px #000a;
+}
+/* retrato "fala" enquanto o typewriter corre */
+#dialog-face.talking { animation: talk-bob .36s ease-in-out infinite; }
+@keyframes talk-bob {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-2px) scale(1.03); }
 }
 #dialog-main { flex: 1; min-width: 0; overflow-y: auto; }
 #dialog-name {
@@ -397,6 +405,9 @@ html, body {
   overflow-y: auto; max-height: 44vh;
 }
 #menu-detail h3 { color: var(--ff-yellow); font-size: 1em; margin-bottom: 3px; }
+#menu-detail h3 .menu-face.big { width: 52px; height: 52px; vertical-align: -18px; margin-right: 8px; }
+#menu-list .menu-face { width: 34px; height: 34px; vertical-align: -11px; margin-right: 7px; border-radius: 8px; }
+.menu-face { image-rendering: pixelated; filter: drop-shadow(0 2px 2px rgba(0,0,0,.55)); }
 #menu-detail .dead { color: var(--ff-red); }
 #menu-detail .stat-grid { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; }
 #menu-detail .stat-grid b { color: var(--ff-dim); font-weight: normal; }
@@ -434,6 +445,15 @@ html, body {
 }
 @keyframes title-shine { 50% { filter: drop-shadow(0 0 34px #ffd75eaa) drop-shadow(3px 3px 0 #000); } }
 #title .subtitle { opacity: .85; font-size: clamp(11px, 2vw, 15px); letter-spacing: 2px; }
+#title-heroes { display: flex; gap: 14px; align-items: flex-end; margin: 2px 0 4px; }
+#title-heroes .title-hero img {
+  width: 56px; height: 56px;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 0 10px #4fc3ff55) drop-shadow(0 3px 4px rgba(0,0,0,.7));
+  animation: hero-bob 2.8s ease-in-out infinite;
+}
+#title-heroes .title-hero:nth-child(2) img { width: 64px; height: 64px; }
+@keyframes hero-bob { 50% { transform: translateY(-6px); } }
 #title .version { opacity: .5; font-size: 11px; letter-spacing: 1px; }
 .title-crystal {
   width: 54px; height: 54px;
@@ -583,11 +603,12 @@ html, body {
 #battle-foes .bfoe { flex-direction: row; }
 #battle-party .bchar { flex-direction: row-reverse; text-align: right; }
 #battle-foes img, #battle-party .bface {
-  width: auto; height: 40px;
-  border-radius: 6px;
-  background: #00000080;
+  width: auto; height: 42px;
+  border-radius: 9px;
+  background: transparent;
   image-rendering: pixelated;
   flex: none;
+  filter: drop-shadow(0 2px 2px rgba(0,0,0,.6));
 }
 #battle-foes .bfoe-info, #battle-party .bchar-info { flex: 1; min-width: 0; }
 #battle-foes .bfoe-nm { font-weight: bold; font-size: .86em; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -732,9 +753,10 @@ html, body {
         <div class="title-crystal"></div>
         <h1>CRÔNICAS<br />DE VALORIA</h1>
         <p class="subtitle">— um JRPG topdown em HTML —</p>
+        <div id="title-heroes"></div>
         <div id="title-list" class="ff-box"></div>
         <p class="controls-hint">Setas / WASD mover · Shift correr · <b>E</b> confirmar / falar / <b>entrar nas casas</b> · <b>Q</b> menu · <b>M</b> som · Encontros na grama alta!<br />No celular: <b>toque na tela</b> para andar · 🏃 correr · <b>segure</b> os botões para movê-los (2 toques restaura)</p>
-        <p class="version">v2.1 · HD 1280×720 · casas visitáveis 💎</p>
+        <p class="version">v2.2 · HD 1280×720 · retratos medalhão 💎</p>
       </div>
 
       <!-- Game Over / Ending -->
@@ -4228,10 +4250,23 @@ function makeCrystal() {
 }
 
 /* ---------- retratos (close-up p/ diálogo e HUD) ---------- */
-const FACE = 52;
+const FACE = 72;
+
+/** Caminho de retângulo arredondado (retratos). */
+function rrPath(g, x, y, w, h, r) {
+  g.beginPath();
+  g.moveTo(x + r, y);
+  g.arcTo(x + w, y, x + w, y + h, r);
+  g.arcTo(x + w, y + h, x, y + h, r);
+  g.arcTo(x, y + h, x, y, r);
+  g.arcTo(x, y, x + w, y, r);
+  g.closePath();
+}
 
 /**
- * Recorta (sx,sy,sw,sh) de um sprite e encaixa num retrato 52x52.
+ * Recorta (sx,sy,sw,sh) de um sprite e encaixa num retrato 72x72 estilo medalhão:
+ * cantos arredondados transparentes, fundo azul-escuro com brilho no topo e
+ * moldura dourada com filete escuro — rosto com respiro (escala inteira).
  * @param {HTMLCanvasElement} src
  */
 function makePortrait(src, sx, sy, sw, sh) {
@@ -4239,21 +4274,46 @@ function makePortrait(src, sx, sy, sw, sh) {
   c.width = FACE; c.height = FACE;
   const g = c.getContext('2d');
   g.imageSmoothingEnabled = false;
+  g.clearRect(0, 0, FACE, FACE);
+  // fundo do medalhão (clipado nos cantos arredondados)
+  g.save();
+  rrPath(g, 3, 3, FACE - 6, FACE - 6, 13);
+  g.clip();
   const grad = g.createLinearGradient(0, 0, 0, FACE);
-  grad.addColorStop(0, '#1b2f9e'); grad.addColorStop(1, '#0a1030');
+  grad.addColorStop(0, '#2a3a8c'); grad.addColorStop(0.5, '#1b2f9e'); grad.addColorStop(1, '#0d1449');
   g.fillStyle = grad; g.fillRect(0, 0, FACE, FACE);
-  const k = Math.min(FACE / sw, FACE / sh);
+  // brilho superior + sombra inferior (profundidade)
+  const glow = g.createRadialGradient(FACE / 2, 6, 2, FACE / 2, 6, 52);
+  glow.addColorStop(0, 'rgba(255,255,255,.20)'); glow.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = glow; g.fillRect(0, 0, FACE, FACE);
+  const shade = g.createLinearGradient(0, FACE * 0.62, 0, FACE);
+  shade.addColorStop(0, 'rgba(0,0,8,0)'); shade.addColorStop(1, 'rgba(0,0,8,.38)');
+  g.fillStyle = shade; g.fillRect(0, 0, FACE, FACE);
+  // rosto: escala inteira para caber em ~50px (pixel crocante, com respiro)
+  let k = Math.max(1, Math.floor(50 / Math.max(sw, sh)));
+  if (k * Math.max(sw, sh) < 38) k = 50 / Math.max(sw, sh);
   const dw = sw * k, dh = sh * k;
-  g.drawImage(src, sx, sy, sw, sh, (FACE - dw) / 2, (FACE - dh) / 2, dw, dh);
+  g.drawImage(src, sx, sy, sw, sh, (FACE - dw) / 2, (FACE - dh) / 2 + 1, dw, dh);
+  g.restore();
+  // moldura: filete escuro externo + ouro interno
+  g.lineWidth = 5;
+  g.strokeStyle = '#0a1030';
+  rrPath(g, 3.5, 3.5, FACE - 7, FACE - 7, 12); g.stroke();
+  g.lineWidth = 3;
+  g.strokeStyle = '#ffd75e';
+  rrPath(g, 6.5, 6.5, FACE - 13, FACE - 13, 10); g.stroke();
+  // fio de luz no topo da moldura
+  g.lineWidth = 1.5;
+  g.strokeStyle = 'rgba(255,243,196,.85)';
+  g.beginPath(); g.arc(FACE / 2, FACE / 2, FACE / 2 - 8, Math.PI * 1.15, Math.PI * 1.6); g.stroke();
   return c;
 }
 
-/** Rosto de um humanoide 32x40 (vista de frente). @param {{down:HTMLCanvasElement}} art */
-/** Rosto de um humanoide (sempre o frame parado). @param {{down:HTMLCanvasElement|HTMLCanvasElement[]}} art */
+/** Rosto de um humanoide (sempre o frame parado, vista de frente). @param {{down:HTMLCanvasElement|HTMLCanvasElement[]}} art */
 const humanoidFace = (art) => {
   const down = Array.isArray(art.down) ? art.down[0] : (art.down || art);
   const src = (down && down.width ? down : art);
-  return makePortrait(src, 5, 0, 22, 21);
+  return makePortrait(src, 4, 0, 24, 24);
 };
 /** Focinho do dragão 136x100. @param {HTMLCanvasElement} art */
 const dragonFace = (art) => makePortrait(art, 44, 0, 48, 38);
@@ -4552,13 +4612,13 @@ class Dialog {
     this.charsShown = 0;
     this.currentOptions = line.options || null;
     this.optSel = 0;
-    // retrato do falante
+    // retrato do falante (medalhão 72px preenche o canvas)
     const face = this.portraitProvider?.(line.name) || null;
     if (face && this.faceEl) {
       const g = this.faceEl.getContext('2d');
       g.imageSmoothingEnabled = false;
       g.clearRect(0, 0, this.faceEl.width, this.faceEl.height);
-      g.drawImage(face, 0, 0);
+      g.drawImage(face, 0, 0, this.faceEl.width, this.faceEl.height);
       this.faceEl.style.display = 'block';
     } else if (this.faceEl) {
       this.faceEl.style.display = 'none';
@@ -4568,6 +4628,8 @@ class Dialog {
 
   _render() {
     let html = this.fullText.slice(0, Math.floor(this.charsShown)).replace(/</g, '&lt;');
+    // retrato "fala" (pulso) enquanto o typewriter corre
+    if (this.faceEl) this.faceEl.classList.toggle('talking', this.open && !this._complete());
     if (this._complete() && this.currentOptions) {
       html += '<div id="dlg-opts">' + this.currentOptions.map((o, i) =>
         `<div class="opt ${i === this.optSel ? 'sel' : ''}">${o.label}</div>`).join('') + '</div>';
@@ -4644,6 +4706,7 @@ class Dialog {
     this.el.classList.add('hidden');
     this.queue.length = 0;
     this.currentOptions = null;
+    if (this.faceEl) this.faceEl.classList.remove('talking');
   }
 }
 
@@ -5593,7 +5656,9 @@ class Menu {
   }
 
   _heroLine(h) {
-    return `${h.hp <= 0 ? '✝ ' : ''}${h.name} <span class="row-sub">${h.cls} Nv${h.level} · ${Math.ceil(h.hp)}/${h.maxHp} HP · ${Math.ceil(h.mp)}/${h.maxMp} MP</span>`;
+    const face = this.ctx?.faces?.[h.sprite]
+      ? `<img class="menu-face" src="${this.ctx.faces[h.sprite]}" alt="" />` : '';
+    return `${face}${h.hp <= 0 ? '✝ ' : ''}${h.name} <span class="row-sub">${h.cls} Nv${h.level} · ${Math.ceil(h.hp)}/${h.maxHp} HP · ${Math.ceil(h.mp)}/${h.maxMp} MP</span>`;
   }
 
   _render() {
@@ -5643,7 +5708,9 @@ class Menu {
       this.listEl.innerHTML = party.map((h, i) =>
         `<div class="opt ${i === this.sel ? 'sel' : ''}">${this._heroLine(h)}</div>`).join('');
       const h = party[this.sel];
-      this.detailEl.innerHTML = `<h3>${h.name} <span class="row-sub">${h.cls} · Nv ${h.level}</span></h3>
+      const face = this.ctx?.faces?.[h.sprite]
+        ? `<img class="menu-face big" src="${this.ctx.faces[h.sprite]}" alt="" />` : '';
+      this.detailEl.innerHTML = `<h3>${face}${h.name} <span class="row-sub">${h.cls} · Nv ${h.level}</span></h3>
         <div class="stat-grid">
           <b>HP</b><span>${Math.ceil(h.hp)} / ${h.maxHp}</span>
           <b>MP</b><span>${Math.ceil(h.mp)} / ${h.maxMp}</span>
@@ -6100,8 +6167,7 @@ class BattleSystem {
     this.heroIcons = {};
     for (const k of Object.keys(this.heroArt)) {
       try {
-        const d = this.heroArt[k].down;
-        this.heroIcons[k] = (Array.isArray(d) ? d[0] : d).toDataURL();
+        this.heroIcons[k] = humanoidFace(this.heroArt[k]).toDataURL();
       } catch { this.heroIcons[k] = ''; }
     }
     this._resetFx();
@@ -6173,7 +6239,7 @@ class BattleSystem {
     if (opts.region) this.el.classList.add('bg-' + opts.region);
     if (this.isBoss) this.el.classList.add('bg-boss');
     this.enemyArt = enemies.map((e) => enemySprite(e.sprite));
-    this.enemyIcons = this.enemyArt.map((cv) => { try { return cv.toDataURL(); } catch { return ''; } });
+    this.enemyIcons = this.enemyArt.map((cv) => { try { return makePortrait(cv, 0, 0, cv.width, cv.height).toDataURL(); } catch { return ''; } });
     if (this.isBoss && enemies[0]) {
       this.bossName.textContent = `☠ ${enemies[0].name} ☠`;
       this.bossBar.classList.remove('hidden');
@@ -7671,6 +7737,16 @@ class Engine {
       'DRAGÃO DO CAOS': dragonFace(this.dragonArt),
     };
     this.dialog.portraitProvider = (name) => this.faceCanvas[name] || null;
+    // trio de heróis na tela de título
+    try {
+      const th = document.getElementById('title-heroes');
+      if (th) {
+        th.innerHTML = [
+          ['hero', 'Kael'], ['mage', 'Lyra'], ['cleric', 'Milo'],
+        ].map(([k, nm], i) =>
+          `<span class="title-hero" style="animation-delay:${i * 0.35}s" title="${nm}"><img src="${this.faces[k]}" alt="${nm}" /></span>`).join('');
+      }
+    } catch { /* título sem heróis */ }
     // preferências + tempo de jogo
     const cfg = loadSettings();
     this.dialog.speed = cfg.speed || 'normal';
@@ -8019,7 +8095,8 @@ class Engine {
     } else if (inp.pressed.menu || inp.pressed.cancel) {
       this.audio.unlock(); this.audio.sfx('confirm');
       this._path = null; this._tapAct = null;
-      this.menu.show({ party: this.party, inv: this.inv, gold: this.gold, time: this._fmtTime(), flags: this.flags }, (m) => toast(m), this._menuActions());
+      this.menu.show({ party: this.party, inv: this.inv, gold: this.gold, time: this._fmtTime(),
+        flags: this.flags, faces: this.faces }, (m) => toast(m), this._menuActions());
       return;
     }
 

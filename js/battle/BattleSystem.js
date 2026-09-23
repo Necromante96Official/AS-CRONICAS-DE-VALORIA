@@ -6,7 +6,7 @@ import { SPELLS, grantXp, aliveHeroes, partyWiped } from '../entities/Party.js';
 import { ITEMS } from '../systems/Inventory.js';
 import { foeImage } from '../entities/Enemies.js';
 import { ic } from '../ui/ItemIcons.js';
-import { makeHumanoid } from '../core/SpriteFactory.js';
+import { makeHumanoid, humanoidFace, makePortrait } from '../core/SpriteFactory.js';
 
 const PALETTES = {
   hero:   { skin: '#f2c89b', hair: '#7a4a21', tunic: '#2b6fd6', pants: '#3a3a5a', cape: '#c22a3a' },
@@ -55,8 +55,7 @@ export class BattleSystem {
     this.heroIcons = {};
     for (const k of Object.keys(this.heroArt)) {
       try {
-        const d = this.heroArt[k].down;
-        this.heroIcons[k] = (Array.isArray(d) ? d[0] : d).toDataURL();
+        this.heroIcons[k] = humanoidFace(this.heroArt[k]).toDataURL();
       } catch { this.heroIcons[k] = ''; }
     }
     this._resetFx();
@@ -128,7 +127,7 @@ export class BattleSystem {
     if (opts.region) this.el.classList.add('bg-' + opts.region);
     if (this.isBoss) this.el.classList.add('bg-boss');
     this.enemyArt = enemies.map((e) => enemySprite(e.sprite));
-    this.enemyIcons = this.enemyArt.map((cv) => { try { return cv.toDataURL(); } catch { return ''; } });
+    this.enemyIcons = this.enemyArt.map((cv) => { try { return makePortrait(cv, 0, 0, cv.width, cv.height).toDataURL(); } catch { return ''; } });
     if (this.isBoss && enemies[0]) {
       this.bossName.textContent = `☠ ${enemies[0].name} ☠`;
       this.bossBar.classList.remove('hidden');

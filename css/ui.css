@@ -22,11 +22,13 @@
   box-shadow: 0 3px 10px #000b, inset 0 1px 0 #ffffff22;
 }
 .hud-face {
-  width: 42px; height: 42px;
-  border-radius: 8px;
-  border: 1px solid #ffffff44;
-  background: #0008;
+  width: 46px; height: 46px;
+  border-radius: 10px;
+  border: none;
+  background: transparent;
   flex: none;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 2px 3px rgba(0,0,0,.6));
 }
 .hud-info { flex: 1; min-width: 0; }
 .hud-card .nm { font-weight: bold; font-size: 14px; }
@@ -132,12 +134,18 @@
   padding: 16px 20px;
 }
 #dialog-face {
-  width: 72px; height: 72px; flex: none;
-  border: 2px solid var(--ff-yellow);
-  border-radius: 12px;
-  background: linear-gradient(160deg, #1b2f9e, #000);
+  width: 76px; height: 76px; flex: none;
+  border: none;
+  border-radius: 14px;
+  background: transparent;
   image-rendering: pixelated;
-  box-shadow: 0 0 12px #ffd75e44, 0 3px 8px #000a;
+  box-shadow: 0 0 14px #ffd75e55, 0 3px 8px #000a;
+}
+/* retrato "fala" enquanto o typewriter corre */
+#dialog-face.talking { animation: talk-bob .36s ease-in-out infinite; }
+@keyframes talk-bob {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-2px) scale(1.03); }
 }
 #dialog-main { flex: 1; min-width: 0; overflow-y: auto; }
 #dialog-name {
@@ -222,6 +230,9 @@
   overflow-y: auto; max-height: 44vh;
 }
 #menu-detail h3 { color: var(--ff-yellow); font-size: 1em; margin-bottom: 3px; }
+#menu-detail h3 .menu-face.big { width: 52px; height: 52px; vertical-align: -18px; margin-right: 8px; }
+#menu-list .menu-face { width: 34px; height: 34px; vertical-align: -11px; margin-right: 7px; border-radius: 8px; }
+.menu-face { image-rendering: pixelated; filter: drop-shadow(0 2px 2px rgba(0,0,0,.55)); }
 #menu-detail .dead { color: var(--ff-red); }
 #menu-detail .stat-grid { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; }
 #menu-detail .stat-grid b { color: var(--ff-dim); font-weight: normal; }
@@ -259,6 +270,15 @@
 }
 @keyframes title-shine { 50% { filter: drop-shadow(0 0 34px #ffd75eaa) drop-shadow(3px 3px 0 #000); } }
 #title .subtitle { opacity: .85; font-size: clamp(11px, 2vw, 15px); letter-spacing: 2px; }
+#title-heroes { display: flex; gap: 14px; align-items: flex-end; margin: 2px 0 4px; }
+#title-heroes .title-hero img {
+  width: 56px; height: 56px;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 0 10px #4fc3ff55) drop-shadow(0 3px 4px rgba(0,0,0,.7));
+  animation: hero-bob 2.8s ease-in-out infinite;
+}
+#title-heroes .title-hero:nth-child(2) img { width: 64px; height: 64px; }
+@keyframes hero-bob { 50% { transform: translateY(-6px); } }
 #title .version { opacity: .5; font-size: 11px; letter-spacing: 1px; }
 .title-crystal {
   width: 54px; height: 54px;

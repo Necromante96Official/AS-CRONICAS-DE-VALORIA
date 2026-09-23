@@ -83,11 +83,12 @@
 #battle-foes .bfoe { flex-direction: row; }
 #battle-party .bchar { flex-direction: row-reverse; text-align: right; }
 #battle-foes img, #battle-party .bface {
-  width: auto; height: 40px;
-  border-radius: 6px;
-  background: #00000080;
+  width: auto; height: 42px;
+  border-radius: 9px;
+  background: transparent;
   image-rendering: pixelated;
   flex: none;
+  filter: drop-shadow(0 2px 2px rgba(0,0,0,.6));
 }
 #battle-foes .bfoe-info, #battle-party .bchar-info { flex: 1; min-width: 0; }
 #battle-foes .bfoe-nm { font-weight: bold; font-size: .86em; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

@@ -1174,10 +1174,23 @@ export function makeCrystal() {
 }
 
 /* ---------- retratos (close-up p/ diálogo e HUD) ---------- */
-const FACE = 52;
+const FACE = 72;
+
+/** Caminho de retângulo arredondado (retratos). */
+function rrPath(g, x, y, w, h, r) {
+  g.beginPath();
+  g.moveTo(x + r, y);
+  g.arcTo(x + w, y, x + w, y + h, r);
+  g.arcTo(x + w, y + h, x, y + h, r);
+  g.arcTo(x, y + h, x, y, r);
+  g.arcTo(x, y, x + w, y, r);
+  g.closePath();
+}
 
 /**
- * Recorta (sx,sy,sw,sh) de um sprite e encaixa num retrato 52x52.
+ * Recorta (sx,sy,sw,sh) de um sprite e encaixa num retrato 72x72 estilo medalhão:
+ * cantos arredondados transparentes, fundo azul-escuro com brilho no topo e
+ * moldura dourada com filete escuro — rosto com respiro (escala inteira).
  * @param {HTMLCanvasElement} src
  */
 export function makePortrait(src, sx, sy, sw, sh) {
@@ -1185,21 +1198,46 @@ export function makePortrait(src, sx, sy, sw, sh) {
   c.width = FACE; c.height = FACE;
   const g = c.getContext('2d');
   g.imageSmoothingEnabled = false;
+  g.clearRect(0, 0, FACE, FACE);
+  // fundo do medalhão (clipado nos cantos arredondados)
+  g.save();
+  rrPath(g, 3, 3, FACE - 6, FACE - 6, 13);
+  g.clip();
   const grad = g.createLinearGradient(0, 0, 0, FACE);
-  grad.addColorStop(0, '#1b2f9e'); grad.addColorStop(1, '#0a1030');
+  grad.addColorStop(0, '#2a3a8c'); grad.addColorStop(0.5, '#1b2f9e'); grad.addColorStop(1, '#0d1449');
   g.fillStyle = grad; g.fillRect(0, 0, FACE, FACE);
-  const k = Math.min(FACE / sw, FACE / sh);
+  // brilho superior + sombra inferior (profundidade)
+  const glow = g.createRadialGradient(FACE / 2, 6, 2, FACE / 2, 6, 52);
+  glow.addColorStop(0, 'rgba(255,255,255,.20)'); glow.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = glow; g.fillRect(0, 0, FACE, FACE);
+  const shade = g.createLinearGradient(0, FACE * 0.62, 0, FACE);
+  shade.addColorStop(0, 'rgba(0,0,8,0)'); shade.addColorStop(1, 'rgba(0,0,8,.38)');
+  g.fillStyle = shade; g.fillRect(0, 0, FACE, FACE);
+  // rosto: escala inteira para caber em ~50px (pixel crocante, com respiro)
+  let k = Math.max(1, Math.floor(50 / Math.max(sw, sh)));
+  if (k * Math.max(sw, sh) < 38) k = 50 / Math.max(sw, sh);
   const dw = sw * k, dh = sh * k;
-  g.drawImage(src, sx, sy, sw, sh, (FACE - dw) / 2, (FACE - dh) / 2, dw, dh);
+  g.drawImage(src, sx, sy, sw, sh, (FACE - dw) / 2, (FACE - dh) / 2 + 1, dw, dh);
+  g.restore();
+  // moldura: filete escuro externo + ouro interno
+  g.lineWidth = 5;
+  g.strokeStyle = '#0a1030';
+  rrPath(g, 3.5, 3.5, FACE - 7, FACE - 7, 12); g.stroke();
+  g.lineWidth = 3;
+  g.strokeStyle = '#ffd75e';
+  rrPath(g, 6.5, 6.5, FACE - 13, FACE - 13, 10); g.stroke();
+  // fio de luz no topo da moldura
+  g.lineWidth = 1.5;
+  g.strokeStyle = 'rgba(255,243,196,.85)';
+  g.beginPath(); g.arc(FACE / 2, FACE / 2, FACE / 2 - 8, Math.PI * 1.15, Math.PI * 1.6); g.stroke();
   return c;
 }
 
-/** Rosto de um humanoide 32x40 (vista de frente). @param {{down:HTMLCanvasElement}} art */
-/** Rosto de um humanoide (sempre o frame parado). @param {{down:HTMLCanvasElement|HTMLCanvasElement[]}} art */
+/** Rosto de um humanoide (sempre o frame parado, vista de frente). @param {{down:HTMLCanvasElement|HTMLCanvasElement[]}} art */
 export const humanoidFace = (art) => {
   const down = Array.isArray(art.down) ? art.down[0] : (art.down || art);
   const src = (down && down.width ? down : art);
-  return makePortrait(src, 5, 0, 22, 21);
+  return makePortrait(src, 4, 0, 24, 24);
 };
 /** Focinho do dragão 136x100. @param {HTMLCanvasElement} art */
 export const dragonFace = (art) => makePortrait(art, 44, 0, 48, 38);

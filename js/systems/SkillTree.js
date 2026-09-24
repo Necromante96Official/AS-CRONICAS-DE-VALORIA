@@ -52,6 +52,7 @@ export const NODES = [
   { id: 'l_arch', cls: 'Maga', name: 'Arquimaga', desc: 'Poder de outro patamar.', icon: 'magic', x: 64, y: 44, req: ['l_focus'], max: 1, effect: { kind: 'stat', stat: 'mag', per: 5 } },
   { id: 'l_frost', cls: 'Maga', name: 'Pele Gélida', desc: 'Fria como o inverno: sofre menos dano.', icon: 'tough', x: 88, y: 44, req: ['l_ice'], max: 2, effect: { kind: 'passive', passive: 'tough' } },
   { id: 'l_hp1', cls: 'Maga', name: 'Corpo São', desc: 'Um corpo mais resistente.', icon: 'potion', x: 50, y: 58, req: ['l_focus'], max: 2, effect: { kind: 'stat', stat: 'maxHp', per: 10 } },
+  { id: 'l_quake', cls: 'Maga', name: 'Tremor Maior', desc: 'Aprende a magia Terremoto.', icon: 'quake', x: 88, y: 58, req: ['l_arch'], reqLevel: 5, max: 1, effect: { kind: 'spell', spell: 'quake' } },
   { id: 'l_dodge', cls: 'Maga', name: 'Corpo Etéreo', desc: 'Quase intangível por instantes.', icon: 'flee', x: 14, y: 56, req: ['l_crit'], reqLevel: 3, max: 2, effect: { kind: 'passive', passive: 'dodge' } },
   { id: 'l_swift', cls: 'Maga', name: 'Pressa Arcana', desc: 'Magia acelera os reflexos.', icon: 'spark', x: 30, y: 58, req: ['l_cure'], reqLevel: 3, max: 2, effect: { kind: 'passive', passive: 'swift' } },
   { id: 'l_gold', cls: 'Maga', name: 'Alquimia', desc: 'Transmuta restos em ouro.', icon: 'gold', x: 70, y: 58, req: ['l_arch'], reqLevel: 4, max: 2, effect: { kind: 'passive', passive: 'gold' } },
@@ -66,6 +67,7 @@ export const NODES = [
   { id: 'm_def1', cls: 'Clérigo', name: 'Manto Protetor', desc: 'Proteção abençoada.', icon: 'guard', x: 64, y: 44, req: ['m_focus'], max: 3, effect: { kind: 'stat', stat: 'def', per: 2 } },
   { id: 'm_ice', cls: 'Clérigo', name: 'Luz Gélida', desc: 'Aprende a magia Gelo.', icon: 'ice', x: 88, y: 44, req: ['m_thunder'], max: 1, effect: { kind: 'spell', spell: 'ice' } },
   { id: 'm_tough', cls: 'Clérigo', name: 'Rocha da Fé', desc: 'Inabalável como a fé.', icon: 'tough', x: 70, y: 58, req: ['m_def1'], max: 2, effect: { kind: 'passive', passive: 'tough' } },
+  { id: 'm_haste', cls: 'Clérigo', name: 'Vento Sagrado', desc: 'Aprende a magia Pressa.', icon: 'haste', x: 88, y: 58, req: ['m_ice'], reqLevel: 5, max: 1, effect: { kind: 'spell', spell: 'haste' } },
   { id: 'm_endure', cls: 'Clérigo', name: 'Milagre', desc: 'A luz não deixa você cair.', icon: 'guard', x: 12, y: 58, req: ['m_crit'], reqLevel: 4, max: 2, effect: { kind: 'passive', passive: 'endure' } },
   { id: 'm_charm', cls: 'Clérigo', name: 'Presença Santa', desc: 'Vitórias rendem mais XP.', icon: 'elixir', x: 46, y: 58, req: ['m_regen'], reqLevel: 2, max: 2, effect: { kind: 'passive', passive: 'charm' } },
 ];

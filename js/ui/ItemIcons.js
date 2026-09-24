@@ -921,6 +921,130 @@ function p_tonic(g) {
   gloss(g, 20.5, 18.5, 2.4, 6);
 }
 
+function p_sword(g) {
+  drop(g, 24, 39, 11);
+  // espada diagonal: lâmina, guarda e pomo
+  g.fillStyle = vg(g, 8, 36, [[0, '#ffffff'], [1, '#8d9db8']]);
+  g.beginPath();
+  g.moveTo(15, 33); g.lineTo(30, 12); g.lineTo(34, 14); g.lineTo(19, 35);
+  g.closePath(); g.fill(); ln(g, 1.8);
+  g.fillStyle = '#c98d2e';
+  g.fillRect(14, 31, 10, 3.4);
+  ln(g, 1.4); g.strokeRect(14, 31, 10, 3.4);
+  g.fillStyle = '#8c5a10';
+  g.beginPath(); g.arc(15, 37, 3, 0, 7); g.fill(); ln(g, 1.2);
+  g.strokeStyle = 'rgba(255,255,255,.85)'; g.lineWidth = 1.4;
+  g.beginPath(); g.moveTo(19, 30); g.lineTo(30, 15); g.stroke();
+  gloss(g, 24, 33, 2, 2);
+}
+
+function p_armor(g) {
+  drop(g, 24, 39, 11);
+  // peitoral com ombreiras
+  const bg = vg(g, 10, 38, [[0, '#8d9db8'], [1, '#3a4358']]);
+  g.fillStyle = bg;
+  rr(g, 17, 14, 14, 24, 5); g.fill(); ln(g, 2);
+  g.fillStyle = vg(g, 8, 16, [[0, '#c9d4ea'], [1, '#5a6270']]);
+  g.fillRect(11, 10, 9, 6); g.fillRect(28, 10, 9, 6);
+  ln(g, 1.6); g.strokeRect(11, 10, 9, 6); g.strokeRect(28, 10, 9, 6);
+  g.fillStyle = '#ffd75e';
+  g.fillRect(22, 20, 4, 12); g.fillRect(18, 23, 12, 4);
+  ln(g, 1.2);
+  gloss(g, 21, 18, 2.6, 5);
+}
+
+function p_charm(g) {
+  drop(g, 24, 39, 9);
+  // medalhão com corrente
+  g.strokeStyle = '#c98d2e'; g.lineWidth = 2.4;
+  g.beginPath(); g.moveTo(24, 6);
+  g.quadraticCurveTo(14, 12, 16, 20);
+  g.moveTo(24, 6);
+  g.quadraticCurveTo(34, 12, 32, 20);
+  g.stroke();
+  const bg = g.createRadialGradient(21, 24, 2, 24, 27, 13);
+  bg.addColorStop(0, '#fff3c4'); bg.addColorStop(0.5, '#e8a91e'); bg.addColorStop(1, '#8c5a10');
+  g.fillStyle = bg;
+  g.beginPath(); g.arc(24, 27, 11, 0, 7); g.fill(); ln(g, 2);
+  g.fillStyle = '#c22a3a';
+  g.beginPath(); g.arc(24, 27, 4.4, 0, 7); g.fill();
+  g.fillStyle = '#ff9db3';
+  g.beginPath(); g.arc(22.8, 25.8, 1.4, 0, 7); g.fill();
+  gloss(g, 20, 18, 2.6, 3);
+}
+
+function p_quake(g) {
+  drop(g, 24, 39, 11);
+  // chão rachado com poeira subindo
+  g.fillStyle = vg(g, 14, 36, [[0, '#c9a86a'], [1, '#6e4a2f']]);
+  rr(g, 10, 26, 28, 12, 4); g.fill(); ln(g, 2);
+  g.strokeStyle = '#3a2412'; g.lineWidth = 2.2;
+  g.beginPath();
+  g.moveTo(16, 26); g.lineTo(21, 31); g.lineTo(19, 36);
+  g.moveTo(28, 26); g.lineTo(26, 32); g.lineTo(30, 36);
+  g.stroke();
+  g.strokeStyle = '#ff7b2e'; g.lineWidth = 1.6;
+  g.beginPath();
+  g.moveTo(24, 27); g.lineTo(24, 35);
+  g.stroke();
+  // pedras quicando + poeira
+  g.fillStyle = '#8a5a2b';
+  g.fillRect(14, 16, 5, 5); g.fillRect(29, 13, 4, 4); g.fillRect(22, 9, 3, 3);
+  ln(g, 1.2);
+  g.fillStyle = 'rgba(216,190,140,.7)';
+  g.fillRect(11, 21, 3, 2); g.fillRect(34, 19, 3, 2); g.fillRect(25, 15, 2, 2);
+  gloss(g, 17, 28, 3, 2);
+}
+
+function p_haste(g) {
+  drop(g, 24, 39, 10);
+  // bota alada com linhas de velocidade
+  g.strokeStyle = '#7fd4ff'; g.lineWidth = 2.6; g.lineCap = 'round';
+  for (const [y, x0, x1] of [[16, 6, 20], [23, 4, 20], [30, 6, 20]]) {
+    g.beginPath(); g.moveTo(x0, y); g.lineTo(x1, y); g.stroke();
+  }
+  g.fillStyle = vg(g, 18, 36, [[0, '#e8b878'], [1, '#7a4e22']]);
+  g.beginPath();
+  g.moveTo(22, 16); g.lineTo(32, 16); g.lineTo(34, 30); g.lineTo(36, 36);
+  g.lineTo(22, 36); g.lineTo(22, 16);
+  g.closePath(); g.fill(); ln(g, 2);
+  g.fillStyle = '#e8ecff';
+  for (const [wx, wy] of [[28, 12], [31, 17], [26, 22]]) {
+    g.beginPath();
+    g.ellipse(wx, wy, 3.2, 5, -0.5, 0, 7); g.fill();
+  }
+  ln(g, 1.2);
+  g.fillStyle = '#ffd75e';
+  g.fillRect(23, 28, 8, 2.4);
+  gloss(g, 25, 20, 2.2, 3);
+}
+
+function p_moonfish(g) {
+  drop(g, 24, 39, 10);
+  // peixe prateado sob o luar
+  g.fillStyle = 'rgba(190,215,255,.25)';
+  g.beginPath(); g.arc(24, 18, 13, 0, 7); g.fill();
+  g.fillStyle = '#e8ecff';
+  g.beginPath(); g.arc(33, 12, 5, 0, 7); g.fill();
+  g.fillStyle = '#8d9db8';
+  g.beginPath(); g.arc(31.5, 12, 4.4, 0, 7); g.fill();
+  const bg = g.createLinearGradient(12, 0, 36, 0);
+  bg.addColorStop(0, '#8d9db8'); bg.addColorStop(0.5, '#e8f2ff'); bg.addColorStop(1, '#5a6e9c');
+  g.fillStyle = bg;
+  g.beginPath(); g.ellipse(23, 29, 11, 6, 0, 0, 7); g.fill(); ln(g, 1.8);
+  g.fillStyle = '#8d9db8';
+  g.beginPath();
+  g.moveTo(12, 29); g.lineTo(5, 24); g.lineTo(5, 34);
+  g.closePath(); g.fill(); ln(g, 1.4);
+  g.fillStyle = '#fff';
+  g.beginPath(); g.arc(28, 27.5, 2, 0, 7); g.fill();
+  g.fillStyle = '#1c1c2a';
+  g.beginPath(); g.arc(28.6, 27.5, 1, 0, 7); g.fill();
+  g.fillStyle = 'rgba(255,255,255,.8)';
+  g.fillRect(15, 30, 6, 1.2); g.fillRect(20, 32, 4, 1.2);
+  gloss(g, 19, 25, 3, 2);
+}
+
 /* ================= REGISTRO ================= */
 
 const PAINT = {
@@ -929,7 +1053,11 @@ const PAINT = {
   fish: p_fish, lambari: p_lambari, royal: p_royal, goldfish: p_goldfish, phoenix: p_phoenix,
   goldphoenix: p_goldphoenix,
   bomb: p_bomb, megabomb: p_megabomb, hiether: p_hiether, elixir: p_elixir, tonic: p_tonic,
-  fire: p_fire, ice: p_ice, thunder: p_thunder, cure: p_cure,
+  sword1: p_sword, sword2: p_sword, sword3: p_sword,
+  armor1: p_armor, armor2: p_armor, armor3: p_armor,
+  charm1: p_charm, charm2: p_charm, charm3: p_charm,
+  fire: p_fire, ice: p_ice, thunder: p_thunder, cure: p_cure, quake: p_quake, haste: p_haste,
+  moonfish: p_moonfish,
   attack: p_attack, magic: p_magic, item: p_item, scan: p_scan, flee: p_flee, guard: p_guard,
   gold: p_gold, bed: p_bed, save: p_save, quest: p_quest, status: p_status, config: p_config,
   sound: p_sound, mute: p_mute, slot: p_slot, qdone: p_qdone, qtodo: p_qtodo,
@@ -949,12 +1077,18 @@ function accentFor(id) {
     case 'thunder': return ['#ffe95e', true];
     case 'fire': return ['#ff8a6b', false];
     case 'cure': return ['#37e08b', false];
+    case 'quake': return ['#c98d4e', false];
+    case 'haste': return ['#7fd4ff', true];
+    case 'moonfish': return ['#b9c8de', true];
     case 'strongpotion': return ['#37e08b', false];
     case 'megapotion': return ['#ffd75e', true];
     case 'bigether': return ['#7fd4ff', false];
     case 'goldphoenix': return ['#ffd75e', true];
     case 'megabomb': return ['#ff6b6b', true];
     case 'tonic': return ['#c9a8ff', false];
+    case 'sword1': case 'sword2': case 'sword3': return ['#c9d4ea', false];
+    case 'armor1': case 'armor2': case 'armor3': return ['#8d9db8', false];
+    case 'charm1': case 'charm2': case 'charm3': return ['#ffd75e', false];
     case 'gold': return ['#ffd75e', true];
     default: return ['#e8ecff', false];
   }

@@ -23,8 +23,9 @@ export class HUD {
    * @param {string} region
    * @param {Record<string,string>} [faces] dataURLs dos retratos por sprite
    * @param {boolean} [muted]
+   * @param {string} [clock] ícone/hora do dia (ex. "☀️ manhã")
    */
-  render(party, gold, region, faces = {}, muted = false) {
+  render(party, gold, region, faces = {}, muted = false, clock = '') {
     this.partyEl.innerHTML = party.map((h) => {
       const hpPct = Math.max(0, (100 * h.hp / h.maxHp)).toFixed(0);
       const mpPct = Math.max(0, (100 * h.mp / h.maxMp)).toFixed(0);
@@ -39,19 +40,20 @@ export class HUD {
         </div>
       </div>`;
     }).join('');
-    this.locEl.textContent = LOCATIONS[region] || region;
+    this.locEl.textContent = `${LOCATIONS[region] || region}${clock ? ` ${clock}` : ''}`;
     this.goldEl.innerHTML = `${ic(muted ? 'mute' : 'gold', 20)}<span>${gold} G</span>`;
   }
 
   /**
-   * Minimapa: base pré-renderizada + viewport + jogador + altar (+ patrulheiros).
+   * Minimapa: base pré-renderizada + viewport + jogador + altar (+ patrulheiros e portas).
    * @param {HTMLCanvasElement} base (2px por tile)
    * @param {number} ox @param {number} oy offsets da câmera
    * @param {number} ptx @param {number} pty tile do jogador
    * @param {{x:number,y:number}|null} altar
    * @param {Array<{x:number,y:number}>} [foes] patrulheiros (tiles) em vermelho
+   * @param {Array<{x:number,y:number}>} [doors] portas visitáveis (tiles) em dourado
    */
-  renderMinimap(base, ox, oy, ptx, pty, altar, foes = []) {
+  renderMinimap(base, ox, oy, ptx, pty, altar, foes = [], doors = []) {
     if (!this.mm || !base) return;
     const g = this.mm.getContext('2d');
     g.imageSmoothingEnabled = false;
@@ -64,6 +66,10 @@ export class HUD {
       g.fillRect(altar.x * 2 - 2, altar.y * 2 - 2, 5, 5);
       g.fillStyle = '#fff';
       g.fillRect(altar.x * 2 - 1, altar.y * 2 - 1, 3, 3);
+    }
+    for (const d of doors) {
+      g.fillStyle = '#ffd75e';
+      g.fillRect(d.x * 2 - 1, d.y * 2 - 1, 3, 3);
     }
     for (const f of foes) {
       g.fillStyle = '#ff3b3b';

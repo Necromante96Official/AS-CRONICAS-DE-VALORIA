@@ -3,8 +3,9 @@
  * ←→ troca de aba · ↑↓ navega · E confirma · Q fecha.
  * @module ui/Menu
  */
-import { ITEMS, ITEM_CATS } from '../systems/Inventory.js';
-import { SPELLS, aliveHeroes } from '../entities/Party.js';
+import { ITEMS, ITEM_CATS, equippedBy } from '../systems/Inventory.js';
+import { SPELLS, aliveHeroes, equipBonusText } from '../entities/Party.js';
+import { BESTIARY, BEAST_FLAVOR, foeImage } from '../entities/Enemies.js';
 import { listPassives, treeFor, getRank } from '../systems/SkillTree.js';
 import { xpForLevel } from '../core/Config.js';
 import { SPEED_ORDER } from '../systems/Settings.js';
@@ -20,6 +21,7 @@ const TABS = [
   { id: 'save', label: `${ic('save', 18)} Salvar` },
   { id: 'quests', label: `${ic('quest', 18)} Quests` },
   { id: 'skills', label: `${ic('spark', 18)} Skills` },
+  { id: 'beast', label: `${ic('scan', 18)} Bestiário` },
 ];
 
 export class Menu {
@@ -142,12 +144,16 @@ export class Menu {
     const tabId = TABS[this.tab].id;
 
     if (this.sub) {
-      const what = this.sub.kind === 'item' ? ITEMS[this.sub.id].name : SPELLS[this.sub.spell].name;
-      const whatIc = this.sub.kind === 'item' ? ic(this.sub.id) : ic(this.sub.spell);
+      const what = this.sub.kind === 'item' ? ITEMS[this.sub.id].name : this.sub.kind === 'equip' ? ITEMS[this.sub.id].name : SPELLS[this.sub.spell].name;
+      const whatIc = this.sub.kind === 'spell' ? ic(this.sub.spell) : ic(this.sub.id);
       this.rows = party.map((_, i) => i);
-      this.listEl.innerHTML = `<div class="list-head">Usar ${whatIc} ${what} em quem?</div>` +
-        party.map((h, i) => `<div class="opt ${i === this.sel ? 'sel' : ''}">${this._heroLine(h)}${h.hp <= 0 ? ' <span class="row-sub">(CAÍDO)</span>' : ''}</div>`).join('');
-      this.detailEl.innerHTML = `<h3>${whatIc} ${what}</h3>Q cancela a escolha.`;
+      const head = this.sub.kind === 'equip' ? `Equipar ${whatIc} ${what} em quem?` : `Usar ${whatIc} ${what} em quem?`;
+      this.listEl.innerHTML = `<div class="list-head">${head}</div>` +
+        party.map((h, i) => {
+          const worn = this.sub.kind === 'equip' && h.equip?.[ITEMS[this.sub.id].slot] === this.sub.id;
+          return `<div class="opt ${i === this.sel ? 'sel' : ''}">${this._heroLine(h)}${h.hp <= 0 ? ' <span class="row-sub">(CAÍDO)</span>' : ''}${worn ? ' <span class="count">vestido</span>' : ''}</div>`;
+        }).join('');
+      this.detailEl.innerHTML = `<h3>${whatIc} ${what}</h3>${this.sub.kind === 'equip' ? 'E equipa (ou remove, se já vestido). Q cancela.' : 'Q cancela a escolha.'}`;
       this._foot(gold, time);
       return;
     }
@@ -172,9 +178,10 @@ export class Menu {
       this.listEl.innerHTML = html;
       const selId = ids[this.sel];
       const it = ITEMS[selId];
+      const wornBy = it.slot ? equippedBy(party, selId) : null;
       this.detailEl.innerHTML = `<h3>${ic(selId, 44)} ${it.name}</h3>` +
-        `<div class="sk-fx">${this._itemFx(it)} <span class="row-sub">· ${this._itemWhere(it)}</span></div>` +
-        `${it.desc}<br/><span class="row-sub">Preço na loja: ${it.price}G · possui ×${inv[selId] || 0}</span>`;
+        (it.slot ? `<div class="sk-fx">${equipBonusText(it)} <span class="row-sub">· ${it.slot === 'weapon' ? 'Arma' : it.slot === 'armor' ? 'Armadura' : 'Amuleto'}</span></div>` : `<div class="sk-fx">${this._itemFx(it)} <span class="row-sub">· ${this._itemWhere(it)}</span></div>`) +
+        `${it.desc}<br/><span class="row-sub">Preço na loja: ${it.price}G · possui ×${inv[selId] || 0}${wornBy ? ` · vestido em ${wornBy.name}` : ''}</span>`;
     } else if (tabId === 'magic') {
       if (this.spellHero == null) {
         this.rows = party.map((_, i) => i);
@@ -190,7 +197,8 @@ export class Menu {
           h.spells.map((s, i) =>
             `<div class="opt ${i === this.sel ? 'sel' : ''}${h.mp < SPELLS[s].mp ? ' nomp' : ''}">${ic(s)}${SPELLS[s].name}<span class="row-cost">${SPELLS[s].mp}MP</span></div>`).join('');
         const s = h.spells[this.sel];
-        this.detailEl.innerHTML = s ? `<h3>${ic(s, 44)} ${SPELLS[s].name}</h3>${SPELLS[s].desc}<br/><span class="row-sub">Custo: ${SPELLS[s].mp} MP · Poder ×${SPELLS[s].power} · Alvo: ${SPELLS[s].target === 'ally' ? 'aliado' : 'inimigo'}</span>` : '';
+        const sDesc = s ? (SPELLS[s].buff ? `Custo: ${SPELLS[s].mp} MP · Bônus: +5 VEL · Alvo: aliado` : `Custo: ${SPELLS[s].mp} MP · Poder ×${SPELLS[s].power} · Alvo: ${SPELLS[s].target === 'ally' ? 'aliado' : SPELLS[s].aoe ? 'todos os inimigos' : 'inimigo'}`) : '';
+        this.detailEl.innerHTML = s ? `<h3>${ic(s, 44)} ${SPELLS[s].name}</h3>${SPELLS[s].desc}<br/><span class="row-sub">${sDesc}</span>` : '';
       }
     } else if (tabId === 'status') {
       this.rows = party.map((_, i) => i);
@@ -203,6 +211,8 @@ export class Menu {
       const xpLeft = Math.max(0, xpForLevel(h.level) - h.xp);
       const pass = listPassives(h);
       const sk = this._skillCount(h);
+      const gear = ['weapon', 'armor', 'charm']
+        .map((s) => h.equip?.[s] && ITEMS[h.equip[s]] ? ITEMS[h.equip[s]].name : '—').join(' · ');
       this.detailEl.innerHTML = `<h3>${face}${h.name} <span class="row-sub">${h.cls} · Nv ${h.level}</span></h3>
         <div class="stat-grid">
           <b>HP</b><span>${Math.ceil(h.hp)} / ${h.maxHp}</span>
@@ -212,6 +222,7 @@ export class Menu {
           <b>XP</b><span><span class="xpbar"><span style="width:${xpPct}%"></span></span> ${h.xp}/${xpForLevel(h.level)}</span>
           <b>Próx. Nv</b><span>faltam ${xpLeft} XP</span>
           <b>Skill ✦</b><span>${h.sp || 0} ponto(s) · nós ${sk.got}/${sk.max} — aba Skills</span>
+          <b>Equipe</b><span>${gear}</span>
           <b>Magias</b><span>${h.spells.map((s) => SPELLS[s].name).join(', ') || '—'}</span>
           ${pass.length ? `<b>Passivas</b><span>${pass.map((p) => `${p.name} ${p.rank}`).join(' · ')}</span>` : ''}
         </div>`;
@@ -259,8 +270,35 @@ export class Menu {
       const h = party[this.sel];
       this.detailEl.innerHTML = `<h3>${ic('spark', 44)} Árvore de Skills</h3>` +
         (h ? `E abre a árvore de <b>${h.name}</b> (${h.sp || 0} ✦ ponto(s)).<br/><span class="row-sub">Nós ligados se desbloqueiam em cadeia.</span>` : '');
+    } else if (tabId === 'beast') {
+      const best = this.ctx?.flags?.bestiary || {};
+      const ids = Object.keys(BESTIARY);
+      const seen = ids.filter((id) => (best[id] || 0) > 0);
+      this.rows = ids;
+      this.listEl.innerHTML = `<div class="list-head">Bestiário — ${seen.length}/${ids.length} espécies</div>` +
+        ids.map((id, i) => {
+          const n = best[id] || 0;
+          const icon = n > 0 ? `<img class="menu-face" src="${this._beastIcon(id)}" alt="" />` : ic('scan');
+          return `<div class="opt ${i === this.sel ? 'sel' : ''}">${icon}${n > 0 ? BESTIARY[id].name : '???'}<span class="count">×${n}</span></div>`;
+        }).join('');
+      const id = ids[this.sel];
+      const n = (best[id] || 0);
+      const b = BESTIARY[id];
+      this.detailEl.innerHTML = n > 0
+        ? `<h3><img class="menu-face big" src="${this._beastIcon(id)}" alt="" /> ${b.name}</h3>${BEAST_FLAVOR[id] || ''}<br/><span class="row-sub">Derrotados: ×${n} · HP ${b.hp} · ATK ${b.atk} · DEF ${b.def} · VEL ${b.spd}<br/>Recompensa: ${b.xp} XP · ${b.gold}G</span>`
+        : `<h3>${ic('scan', 44)} ???</h3><span class="row-sub">Ainda não enfrentado. Explore Valoria!</span>`;
     }
     this._foot(gold, time);
+  }
+
+  /** Ícone do monstro (sprite real, memoizado). */
+  _beastIcon(id) {
+    this._beastCache = this._beastCache || {};
+    if (!this._beastCache[id]) {
+      try { this._beastCache[id] = foeImage(BESTIARY[id].sprite).toDataURL(); }
+      catch { this._beastCache[id] = ''; }
+    }
+    return this._beastCache[id];
   }
 
   /** Diário: deriva o estado das quests a partir das flags do save. */
@@ -286,6 +324,10 @@ export class Menu {
     if (f.pearlRewarded) qs.push({ t: 'Peixe Real do Tumba', d: 'O velho marinheiro sorri para o mar.', done: true });
     else if (!f.pearlQuest) qs.push({ t: '???', d: 'Um velho na Praia do Sol conta histórias de pesca...', done: false });
     else qs.push({ t: 'Peixe Real do Tumba', d: 'Pesque um PEIXE REAL encarando a água (E). Na praia é mais fácil!', done: false });
+    if (f.forgeRewarded) qs.push({ t: 'Eco da Forja', d: 'Rurik forjou com o metal do Eco. Lâmina pronta!', done: true });
+    else if (!f.forgeQuest) qs.push({ t: '???', d: 'A aprendiz da ferraria, na Vila Lumen, cochicha sobre um sonho do mestre...', done: false });
+    else if (f.caveCleared) qs.push({ t: 'Eco da Forja', d: 'Eco derrotado! Volte à Sana, na ferraria.', done: false });
+    else qs.push({ t: 'Eco da Forja', d: 'Derrote o ECO ANTIGO na Caverna Ecoante, a oeste das Ruínas.', done: false });
     const opened = CHESTS.filter((c) => f[`chest_${c.id}`]).length;
     qs.push(opened >= CHESTS.length
       ? { t: `Baús do tesouro`, d: 'Todos abertos! Olho de águia.', done: true }
@@ -332,7 +374,9 @@ export class Menu {
 
     if (this.sub) {
       const h = party[this.sel];
-      if (this.sub.kind === 'item') {
+      if (this.sub.kind === 'equip') {
+        actions.equip(this.sub.id, this.sel);
+      } else if (this.sub.kind === 'item') {
         const it = ITEMS[this.sub.id];
         if (it.revive && h.hp > 0) { this.notify(`${h.name} ainda está de pé!`); this.audio.sfx('flee-fail'); return; }
         if (it.heal && h.hp <= 0) { this.notify(`${h.name} está caído! Use uma Pena de Fênix.`); this.audio.sfx('flee-fail'); return; }
@@ -349,8 +393,9 @@ export class Menu {
     if (tabId === 'items') {
       const id = this.rows[this.sel];
       if ((inv[id] || 0) <= 0) { this.notify(`Você não tem ${ITEMS[id].name}!`); this.audio.sfx('flee-fail'); return; }
-      if (ITEMS[id].flee || ITEMS[id].dmg) { this.notify(`${ITEMS[id].name} só funciona em batalha!`); this.audio.sfx('flee-fail'); return; }
-      this.sub = { kind: 'item', id }; this.sel = 0;
+      if (ITEMS[id].slot) { this.sub = { kind: 'equip', id }; this.sel = 0; }
+      else if (ITEMS[id].flee || ITEMS[id].dmg) { this.notify(`${ITEMS[id].name} só funciona em batalha!`); this.audio.sfx('flee-fail'); return; }
+      else { this.sub = { kind: 'item', id }; this.sel = 0; }
     } else if (tabId === 'magic') {
       if (this.spellHero == null) {
         if (!party[this.sel]) return;
@@ -373,6 +418,10 @@ export class Menu {
     } else if (tabId === 'skills') {
       if (party[this.sel]) actions.openSkills?.(this.sel);
       else { this.notify('Sem herói.'); this.audio.sfx('flee-fail'); }
+    } else if (tabId === 'beast') {
+      const id = this.rows[this.sel];
+      const n = this.ctx?.flags?.bestiary?.[id] || 0;
+      this.notify(n > 0 ? `${BESTIARY[id].name}: ${BEAST_FLAVOR[id] || ''}` : 'Espécie ainda não registrada.');
     } else if (tabId === 'save') {
       const slot = this.rows[this.sel];
       if (SaveSystem.info(slot) && this._armSave !== slot) {

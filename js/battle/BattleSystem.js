@@ -592,6 +592,28 @@ export class BattleSystem {
       const sp = SPELLS[act.spell];
       h.mp -= sp.mp;
       if (sp.target === 'enemy') {
+        if (sp.aoe) {
+          // Terremoto: atinge todos os inimigos vivos
+          this.audio.sfx(spellSfx(act.spell));
+          this.anim = { who: 'hero', idx: hi, t: 0.4, dur: 0.4 };
+          this._shake(7, 0.35);
+          const names = [];
+          this.enemies.forEach((e, i) => {
+            if (e.hp <= 0) return;
+            const dmg = magDmg(h.mag, sp.power, e.def);
+            e.hp -= dmg;
+            e.hitT = 0.4;
+            const to = this.enemyPos(i);
+            this._burstFx(to, '#c98d4e', 16);
+            this._ringFx(to, '#c98d4e');
+            this._floatDmg(to, dmg, '#e8b878', false);
+            names.push(`${e.name} (${dmg})`);
+            if (e.hp <= 0) { this.audio.sfx('die'); this._soulFx(to); }
+          });
+          this._log(`${h.name} conjura ${sp.name}! O chão treme: ${names.join(' · ') || 'sem alvo'}!`);
+          this._renderAll();
+          return;
+        }
         const ti = this._resolveEnemyTarget(act.target ?? 0);
         if (ti < 0) return;
         const e = this.enemies[ti];
@@ -641,6 +663,18 @@ export class BattleSystem {
           ti = alt;
         }
         const a = this.party[ti];
+        if (sp.buff === 'spd') {
+          // Pressa: +5 VEL até o fim da batalha (acumula)
+          a.spd += 5;
+          this.audio.sfx('heal');
+          this.anim = { who: 'hero', idx: hi, t: 0.35, dur: 0.35 };
+          this._healFx(this.heroPos(ti), '#ffe95e');
+          this._ringFx(this.heroPos(ti), '#ffe95e');
+          this._floatDmg(this.heroPos(ti), '+VEL', '#ffe95e', false);
+          this._log(`${h.name} conjura ${sp.name} em ${a.name}! Velocidade aumentada!`);
+          this._renderAll();
+          return;
+        }
         if (a.hp >= a.maxHp) { this._log(`${a.name} já está com HP cheio!`); this.audio.sfx('flee-fail'); return; }
         const v = Math.min(Math.round(h.mag * sp.power * 3), a.maxHp - Math.max(0, a.hp));
         a.hp = Math.min(a.maxHp, Math.max(0, a.hp) + v);
@@ -1580,5 +1614,5 @@ export class BattleSystem {
   }
 }
 
-const spellColor = (s) => (s === 'fire' ? '#ff9b3c' : s === 'thunder' ? '#ffe94f' : s === 'ice' ? '#7fd4ff' : '#7dff9a');
-const spellSfx = (s) => (s === 'cure' ? 'heal' : 'fire');
+const spellColor = (s) => (s === 'fire' ? '#ff9b3c' : s === 'thunder' ? '#ffe94f' : s === 'ice' ? '#7fd4ff' : s === 'quake' ? '#e8b878' : s === 'haste' ? '#ffe95e' : '#7dff9a');
+const spellSfx = (s) => (s === 'cure' || s === 'haste' ? 'heal' : 'fire');

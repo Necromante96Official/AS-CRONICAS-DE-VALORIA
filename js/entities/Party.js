@@ -10,9 +10,11 @@ export const SPELLS = {
   ice:     { name: 'Gelo',     mp: 6,  power: 2.0, target: 'enemy', desc: 'Dano de gelo; pode atordoar' },
   thunder: { name: 'Trovão',   mp: 7,  power: 2.4, target: 'enemy', desc: 'Dano alto num inimigo' },
   cure:    { name: 'Cura',     mp: 5,  power: 2.2, target: 'ally',  desc: 'Restaura HP de um aliado' },
+  quake:   { name: 'Terremoto', mp: 8, power: 1.8, target: 'enemy', aoe: true, desc: 'Dano de terra em TODOS os inimigos' },
+  haste:   { name: 'Pressa',   mp: 6,  power: 0, target: 'ally', buff: 'spd', desc: '+5 VEL ao aliado até o fim da batalha' },
 };
 
-/** @typedef {{name:string,cls:string,level:number,xp:number,hp:number,maxHp:number,mp:number,maxMp:number,atk:number,def:number,spd:number,mag:number,spells:string[],sprite:string,sp:number,skills:Record<string,number>}} Hero */
+/** @typedef {{name:string,cls:string,level:number,xp:number,hp:number,maxHp:number,mp:number,maxMp:number,atk:number,def:number,spd:number,mag:number,spells:string[],sprite:string,sp:number,skills:Record<string,number>,equip:{weapon:string|null,armor:string|null,charm:string|null}}} Hero */
 
 const BASE = [
   { name: 'Kael', cls: 'Guerreiro', maxHp: 42, maxMp: 8,  atk: 11, def: 8, spd: 7, mag: 3, spells: [],               sprite: 'hero' },
@@ -31,7 +33,24 @@ const SPD_EVEN = { Guerreiro: true, Clérigo: true };
 
 /** @returns {Hero[]} */
 export function newParty() {
-  return BASE.map((b) => ({ ...b, level: 1, xp: 0, hp: b.maxHp, mp: b.maxMp, sp: 0, skills: {} }));
+  return BASE.map((b) => ({ ...b, level: 1, xp: 0, hp: b.maxHp, mp: b.maxMp, sp: 0, skills: {}, equip: { weapon: null, armor: null, charm: null } }));
+}
+
+/** Aplica/remove bônus de equipamento (soma direta nos stats). @param {Hero} h @param {{bonus?:Record<string,number>}} it @param {1|-1} [sign=1] */
+export function applyEquipBonus(h, it, sign = 1) {
+  if (!it?.bonus) return;
+  for (const [k, v] of Object.entries(it.bonus)) {
+    h[k] = Math.max(1, (h[k] || 0) + sign * v);
+  }
+  if (it.bonus.maxHp) h.hp = Math.min(h.maxHp, Math.max(1, h.hp + (sign > 0 ? it.bonus.maxHp : 0)));
+  if (it.bonus.maxMp) h.mp = Math.min(h.maxMp, Math.max(0, h.mp + (sign > 0 ? it.bonus.maxMp : 0)));
+}
+
+/** Texto de bônus p/ UI. @param {{bonus?:Record<string,number>}} it */
+export function equipBonusText(it) {
+  if (!it?.bonus) return '';
+  const names = { atk: 'ATK', def: 'DEF', mag: 'MAG', spd: 'VEL', maxHp: 'HP máx', maxMp: 'MP máx' };
+  return Object.entries(it.bonus).map(([k, v]) => `+${v} ${names[k] || k}`).join(' · ');
 }
 
 /**
@@ -83,9 +102,10 @@ export const serializeParty = (party) => JSON.parse(JSON.stringify(party));
 /** @param {any[]} data @returns {Hero[]} */
 export function restoreParty(data) {
   return data.map((h) => {
-    const r = { spells: [], sp: 0, skills: {}, ...h };
+    const r = { spells: [], sp: 0, skills: {}, equip: { weapon: null, armor: null, charm: null }, ...h };
     if (r.skills == null || typeof r.skills !== 'object') r.skills = {};
     if (typeof r.sp !== 'number') r.sp = 0;
+    if (!r.equip || typeof r.equip !== 'object') r.equip = { weapon: null, armor: null, charm: null };
     // saves de antes dos pontos de skill: compensa 1✦ por nível já ganho
     if (h.sp === undefined && (r.level || 1) > 1 && Object.keys(r.skills).length === 0) {
       r.sp = Math.max(0, r.level - 1);

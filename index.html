@@ -928,6 +928,22 @@ const ENCOUNTER_RATE = 0.05;
 /** XP necessário para sair do nível `level` (curva JRPG: início fiel, fim íngreme). */
 const xpForLevel = (level) => Math.floor(14 * Math.pow(level, 1.8) + 6 * level);
 
+/** Duração de um dia inteiro em segundos (amanhecer → noite). */
+const DAY_LEN = 300;
+
+/**
+ * Fase do dia p/ shaders e HUD. t=0 é o amanhecer.
+ * @param {number} timeSec tempo acumulado do jogo
+ * @returns {{t:number, night:number, label:string, icon:string}} night 0 (dia) .. 1 (noite funda)
+ */
+function dayInfo(timeSec) {
+  const t = (((timeSec % DAY_LEN) + DAY_LEN) % DAY_LEN) / DAY_LEN;
+  const night = Math.pow(Math.max(0, -Math.sin(t * Math.PI * 2)), 0.7);
+  const label = t < 0.12 ? 'madrugada' : t < 0.38 ? 'manhã' : t < 0.55 ? 'tarde' : t < 0.68 ? 'entardecer' : 'noite';
+  const icon = night > 0.5 ? '🌙' : '☀️';
+  return { t, night, label, icon };
+}
+
 /** Paleta / nomes de locais. */
 const LOCATIONS = {
   town: 'Vila Lumen',
@@ -943,6 +959,7 @@ const LOCATIONS = {
   snow: 'Pico Nevado',
   desert: 'Deserto Dourado',
   swamp: 'Pântano Sombrio',
+  cave: 'Caverna Ecoante',
 };
 
 /* ===== js\core\Input.js ===== */
@@ -2594,6 +2611,15 @@ function buildMap() {
   // pilares simétricos na entrada das ruínas
   set(52, 12, T.RUIN); set(56, 12, T.RUIN);
   set(52, 16, T.RUIN); set(56, 16, T.RUIN);
+  // fenda da Caverna Ecoante (oeste das Ruínas): boca + placa + chão firme
+  for (let y = 13; y <= 15; y++) for (let x = 45; x <= 47; x++) {
+    if (x === 46 && y === 14) continue;
+    if (get(x, y) !== T.WATER) set(x, y, T.DARK_GRASS);
+  }
+  set(46, 14, T.DOOR);
+  set(46, 15, T.PATH);
+  set(45, 14, T.SIGN);
+  set(45, 13, T.STONE); set(47, 13, T.STONE);
   // arvoredo ao redor da vila (mantém respiro: só fora do terreno 6..25 / 30..47)
   for (let x = 5; x <= 26; x++) {
     if (hash2(x, 11) > 0.35 && get(x, 29) === T.GRASS) set(x, 29, T.TREE);
@@ -2819,13 +2845,14 @@ const NPC_DEFS = [
   },
 ];
 
-/** Casas visitáveis da Vila Lumen: porta externa (mundo) → interior.
+/** Casas visitáveis da Vila Lumen (+ Caverna Ecoante): porta externa (mundo) → interior.
  * door = tile da porta; front = tile em frente à porta (retorno ao sair). */
 const HOUSES = [
   { id: 'elder', name: 'Casa do Ancião', door: { x: 10, y: 34 }, front: { x: 10, y: 35 } },
   { id: 'shop', name: 'Loja da Mira', door: { x: 21, y: 34 }, front: { x: 21, y: 35 } },
   { id: 'inn', name: 'Estalagem do Bram', door: { x: 10, y: 45 }, front: { x: 10, y: 46 } },
   { id: 'smith', name: 'Ferraria do Rurik', door: { x: 21, y: 45 }, front: { x: 21, y: 46 } },
+  { id: 'cave', name: 'Caverna Ecoante', door: { x: 46, y: 14 }, front: { x: 46, y: 15 } },
 ];
 
 /** Dimensões dos interiores (tiles). */
@@ -2834,18 +2861,30 @@ const INTERIOR_H = 15;
 /** Porta de saída dentro do interior (parede sul) + spawn ao entrar. */
 const INTERIOR_DOOR = { x: 11, y: 14 };
 const INTERIOR_SPAWN = { x: 11, y: 12 };
+/** Geometria por interior (padrão = constantes acima). */
+const INTERIOR_GEO = {
+  elder: { w: 22, h: 15, door: { x: 11, y: 14 }, spawn: { x: 11, y: 12 } },
+  shop: { w: 22, h: 15, door: { x: 11, y: 14 }, spawn: { x: 11, y: 12 } },
+  inn: { w: 22, h: 15, door: { x: 11, y: 14 }, spawn: { x: 11, y: 12 } },
+  smith: { w: 22, h: 15, door: { x: 11, y: 14 }, spawn: { x: 11, y: 12 } },
+  cave: { w: 26, h: 18, door: { x: 13, y: 17 }, spawn: { x: 13, y: 15 } },
+};
+/** Guardião da caverna (tile do NPC Eco). */
+const CAVE_GUARDIAN = { x: 13, y: 6 };
 
 /** @returns {{tiles: Uint8Array, w: number, h: number}} interior da casa `id`. */
 function buildInterior(id) {
-  const w = INTERIOR_W, h = INTERIOR_H;
+  const geo = INTERIOR_GEO[id] || { w: INTERIOR_W, h: INTERIOR_H, door: INTERIOR_DOOR, spawn: INTERIOR_SPAWN };
+  const w = geo.w, h = geo.h;
   const tiles = new Uint8Array(w * h);
   const set = (x, y, t) => { if (x >= 0 && y >= 0 && x < w && y < h) tiles[y * w + x] = t; };
   const rect = (x0, y0, x1, y1, t) => { for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) set(x, y, t); };
-  rect(0, 0, w - 1, h - 1, T.FLOOR);
-  // paredes externas (telhado não aparece por dentro)
-  for (let x = 0; x < w; x++) { set(x, 0, T.WALL); set(x, h - 1, T.WALL); }
-  for (let y = 0; y < h; y++) { set(0, y, T.WALL); set(w - 1, y, T.WALL); }
-  set(INTERIOR_DOOR.x, INTERIOR_DOOR.y, T.DOOR);
+  const isCave = id === 'cave';
+  rect(0, 0, w - 1, h - 1, isCave ? T.SOIL : T.FLOOR);
+  // paredes externas (telhado não aparece por dentro; caverna usa rocha)
+  for (let x = 0; x < w; x++) { set(x, 0, isCave ? T.RUIN : T.WALL); set(x, h - 1, isCave ? T.RUIN : T.WALL); }
+  for (let y = 0; y < h; y++) { set(0, y, isCave ? T.RUIN : T.WALL); set(w - 1, y, isCave ? T.RUIN : T.WALL); }
+  set(geo.door.x, geo.door.y, T.DOOR);
   // tapete central
   rect(8, 6, 13, 10, T.PLAZA);
   set(10, 8, T.PLAZA); set(11, 8, T.PLAZA);
@@ -2883,6 +2922,26 @@ function buildInterior(id) {
     set(18, 2, T.CRATE); set(19, 2, T.CRATE); set(19, 3, T.CRATE);
     set(18, 11, T.STONE); set(3, 11, T.STONE);
     set(10, 5, T.FLOWER);
+  } else if (id === 'cave') {
+    // Caverna Ecoante: estalactites (ruína), braseiros (lâmpada) e círculo ritual
+    for (let y = 3; y <= 13; y += 5) {
+      for (let x = 3; x <= 22; x += 6) {
+        if ((x === 13 && y >= 4 && y <= 8) || (x === 12 && y === 8)) continue; // corredor do ritual
+        set(x, y, T.RUIN);
+        if (hash2(x, y) > 0.5) set(x + 1, y + 1, T.RUIN);
+      }
+    }
+    // círculo ritual de pedra ao norte (o Eco aguarda no centro)
+    for (let y = 4; y <= 8; y++) for (let x = 11; x <= 15; x++) {
+      if (Math.hypot(x - 13, y - 6) < 2.6) set(x, y, T.PLAZA);
+    }
+    // braseiros acesos
+    set(2, 2, T.LAMP); set(23, 2, T.LAMP);
+    set(2, 15, T.LAMP); set(23, 15, T.LAMP);
+    set(10, 6, T.LAMP); set(16, 6, T.LAMP);
+    // poça d'água subterrânea
+    set(20, 12, T.WATER); set(21, 12, T.WATER); set(20, 13, T.WATER);
+    set(5, 12, T.WATER); set(5, 13, T.WATER); set(6, 13, T.WATER);
   }
   return { tiles, w, h };
 }
@@ -2902,6 +2961,7 @@ const INTERIOR_NPCS = {
       id: 'lia', x: 15, y: 9, name: 'Lia (Aprendiz)', kind: 'sage', wander: true,
       lines: [
         'O Ancião me ensina a ler os mapas antigos... as Ruínas ficam a nordeste!',
+        'Dizem que há uma fenda a oeste das Ruínas, e um Eco antigo lá dentro...',
         'Traga ervas do pântano para a Yara — ela faz tônicos que salvam vidas!',
       ],
     },
@@ -2942,6 +3002,15 @@ const INTERIOR_NPCS = {
       lines: [
         'O mestre Rurik forjou minha lança! Com BOMBAS, até golem cai!',
         'O Golem Ancião do deserto? Nem o mestre encara... mas você parece forte!',
+      ],
+    },
+  ],
+  cave: [
+    {
+      id: 'echo', x: 13, y: 6, name: 'Eco Antigo', kind: 'hermit', wander: false,
+      lines: [
+        'QUEM... OUSA... ACORDAR... O ECO?',
+        'Fui herói como você, há cem luas. Minha voz ficou presa nestas pedras.',
       ],
     },
   ],
@@ -3189,6 +3258,7 @@ const NODES = [
   { id: 'l_arch', cls: 'Maga', name: 'Arquimaga', desc: 'Poder de outro patamar.', icon: 'magic', x: 64, y: 44, req: ['l_focus'], max: 1, effect: { kind: 'stat', stat: 'mag', per: 5 } },
   { id: 'l_frost', cls: 'Maga', name: 'Pele Gélida', desc: 'Fria como o inverno: sofre menos dano.', icon: 'tough', x: 88, y: 44, req: ['l_ice'], max: 2, effect: { kind: 'passive', passive: 'tough' } },
   { id: 'l_hp1', cls: 'Maga', name: 'Corpo São', desc: 'Um corpo mais resistente.', icon: 'potion', x: 50, y: 58, req: ['l_focus'], max: 2, effect: { kind: 'stat', stat: 'maxHp', per: 10 } },
+  { id: 'l_quake', cls: 'Maga', name: 'Tremor Maior', desc: 'Aprende a magia Terremoto.', icon: 'quake', x: 88, y: 58, req: ['l_arch'], reqLevel: 5, max: 1, effect: { kind: 'spell', spell: 'quake' } },
   { id: 'l_dodge', cls: 'Maga', name: 'Corpo Etéreo', desc: 'Quase intangível por instantes.', icon: 'flee', x: 14, y: 56, req: ['l_crit'], reqLevel: 3, max: 2, effect: { kind: 'passive', passive: 'dodge' } },
   { id: 'l_swift', cls: 'Maga', name: 'Pressa Arcana', desc: 'Magia acelera os reflexos.', icon: 'spark', x: 30, y: 58, req: ['l_cure'], reqLevel: 3, max: 2, effect: { kind: 'passive', passive: 'swift' } },
   { id: 'l_gold', cls: 'Maga', name: 'Alquimia', desc: 'Transmuta restos em ouro.', icon: 'gold', x: 70, y: 58, req: ['l_arch'], reqLevel: 4, max: 2, effect: { kind: 'passive', passive: 'gold' } },
@@ -3203,6 +3273,7 @@ const NODES = [
   { id: 'm_def1', cls: 'Clérigo', name: 'Manto Protetor', desc: 'Proteção abençoada.', icon: 'guard', x: 64, y: 44, req: ['m_focus'], max: 3, effect: { kind: 'stat', stat: 'def', per: 2 } },
   { id: 'm_ice', cls: 'Clérigo', name: 'Luz Gélida', desc: 'Aprende a magia Gelo.', icon: 'ice', x: 88, y: 44, req: ['m_thunder'], max: 1, effect: { kind: 'spell', spell: 'ice' } },
   { id: 'm_tough', cls: 'Clérigo', name: 'Rocha da Fé', desc: 'Inabalável como a fé.', icon: 'tough', x: 70, y: 58, req: ['m_def1'], max: 2, effect: { kind: 'passive', passive: 'tough' } },
+  { id: 'm_haste', cls: 'Clérigo', name: 'Vento Sagrado', desc: 'Aprende a magia Pressa.', icon: 'haste', x: 88, y: 58, req: ['m_ice'], reqLevel: 5, max: 1, effect: { kind: 'spell', spell: 'haste' } },
   { id: 'm_endure', cls: 'Clérigo', name: 'Milagre', desc: 'A luz não deixa você cair.', icon: 'guard', x: 12, y: 58, req: ['m_crit'], reqLevel: 4, max: 2, effect: { kind: 'passive', passive: 'endure' } },
   { id: 'm_charm', cls: 'Clérigo', name: 'Presença Santa', desc: 'Vitórias rendem mais XP.', icon: 'elixir', x: 46, y: 58, req: ['m_regen'], reqLevel: 2, max: 2, effect: { kind: 'passive', passive: 'charm' } },
 ];
@@ -3305,9 +3376,11 @@ const SPELLS = {
   ice:     { name: 'Gelo',     mp: 6,  power: 2.0, target: 'enemy', desc: 'Dano de gelo; pode atordoar' },
   thunder: { name: 'Trovão',   mp: 7,  power: 2.4, target: 'enemy', desc: 'Dano alto num inimigo' },
   cure:    { name: 'Cura',     mp: 5,  power: 2.2, target: 'ally',  desc: 'Restaura HP de um aliado' },
+  quake:   { name: 'Terremoto', mp: 8, power: 1.8, target: 'enemy', aoe: true, desc: 'Dano de terra em TODOS os inimigos' },
+  haste:   { name: 'Pressa',   mp: 6,  power: 0, target: 'ally', buff: 'spd', desc: '+5 VEL ao aliado até o fim da batalha' },
 };
 
-/** @typedef {{name:string,cls:string,level:number,xp:number,hp:number,maxHp:number,mp:number,maxMp:number,atk:number,def:number,spd:number,mag:number,spells:string[],sprite:string,sp:number,skills:Record<string,number>}} Hero */
+/** @typedef {{name:string,cls:string,level:number,xp:number,hp:number,maxHp:number,mp:number,maxMp:number,atk:number,def:number,spd:number,mag:number,spells:string[],sprite:string,sp:number,skills:Record<string,number>,equip:{weapon:string|null,armor:string|null,charm:string|null}}} Hero */
 
 const BASE = [
   { name: 'Kael', cls: 'Guerreiro', maxHp: 42, maxMp: 8,  atk: 11, def: 8, spd: 7, mag: 3, spells: [],               sprite: 'hero' },
@@ -3326,7 +3399,24 @@ const SPD_EVEN = { Guerreiro: true, Clérigo: true };
 
 /** @returns {Hero[]} */
 function newParty() {
-  return BASE.map((b) => ({ ...b, level: 1, xp: 0, hp: b.maxHp, mp: b.maxMp, sp: 0, skills: {} }));
+  return BASE.map((b) => ({ ...b, level: 1, xp: 0, hp: b.maxHp, mp: b.maxMp, sp: 0, skills: {}, equip: { weapon: null, armor: null, charm: null } }));
+}
+
+/** Aplica/remove bônus de equipamento (soma direta nos stats). @param {Hero} h @param {{bonus?:Record<string,number>}} it @param {1|-1} [sign=1] */
+function applyEquipBonus(h, it, sign = 1) {
+  if (!it?.bonus) return;
+  for (const [k, v] of Object.entries(it.bonus)) {
+    h[k] = Math.max(1, (h[k] || 0) + sign * v);
+  }
+  if (it.bonus.maxHp) h.hp = Math.min(h.maxHp, Math.max(1, h.hp + (sign > 0 ? it.bonus.maxHp : 0)));
+  if (it.bonus.maxMp) h.mp = Math.min(h.maxMp, Math.max(0, h.mp + (sign > 0 ? it.bonus.maxMp : 0)));
+}
+
+/** Texto de bônus p/ UI. @param {{bonus?:Record<string,number>}} it */
+function equipBonusText(it) {
+  if (!it?.bonus) return '';
+  const names = { atk: 'ATK', def: 'DEF', mag: 'MAG', spd: 'VEL', maxHp: 'HP máx', maxMp: 'MP máx' };
+  return Object.entries(it.bonus).map(([k, v]) => `+${v} ${names[k] || k}`).join(' · ');
 }
 
 /**
@@ -3378,9 +3468,10 @@ const serializeParty = (party) => JSON.parse(JSON.stringify(party));
 /** @param {any[]} data @returns {Hero[]} */
 function restoreParty(data) {
   return data.map((h) => {
-    const r = { spells: [], sp: 0, skills: {}, ...h };
+    const r = { spells: [], sp: 0, skills: {}, equip: { weapon: null, armor: null, charm: null }, ...h };
     if (r.skills == null || typeof r.skills !== 'object') r.skills = {};
     if (typeof r.sp !== 'number') r.sp = 0;
+    if (!r.equip || typeof r.equip !== 'object') r.equip = { weapon: null, armor: null, charm: null };
     // saves de antes dos pontos de skill: compensa 1✦ por nível já ganho
     if (h.sp === undefined && (r.level || 1) > 1 && Object.keys(r.skills).length === 0) {
       r.sp = Math.max(0, r.level - 1);
@@ -4642,6 +4733,7 @@ const dragonFace = (art) => makePortrait(art, 44, 0, 48, 38);
 
 /** @typedef {{id:string,name:string,hp:number,maxHp:number,atk:number,def:number,spd:number,xp:number,gold:number,sprite:string,boss?:boolean}} Enemy */
 
+/** Exportado p/ o Bestiário do menu. */
 const BESTIARY = {
   slime:  { name: 'Slime',        hp: 22, atk: 7,  def: 3, spd: 4,  xp: 9,  gold: 8,  sprite: 'slime' },
   bat:    { name: 'Morcego Sombrio', hp: 18, atk: 9,  def: 2, spd: 12, xp: 12, gold: 10, sprite: 'bat' },
@@ -4657,6 +4749,26 @@ const BESTIARY = {
   king:   { name: 'SLIME REI',    hp: 70, atk: 15, def: 9, spd: 6,  xp: 70, gold: 80, sprite: 'king' },
   ancient: { name: 'GOLEM ANCIÃO', hp: 130, atk: 18, def: 11, spd: 4, xp: 150, gold: 300, sprite: 'ancient', boss: true },
   dragon: { name: 'DRAGÃO DO CAOS', hp: 220, atk: 22, def: 12, spd: 9, xp: 250, gold: 500, sprite: 'dragon', boss: true },
+  echo:   { name: 'ECO ANTIGO',   hp: 95, atk: 16, def: 8, spd: 9,  xp: 120, gold: 250, sprite: 'echo', boss: true },
+};
+
+/** Sabor de cada fera p/ o Bestiário. */
+const BEAST_FLAVOR = {
+  slime: 'Gosma dócil até ser chutada. O primeiro troféu de todo herói.',
+  bat: 'Caça de olhos vendados: mira nos mais frágeis do grupo.',
+  golem: 'Pedra teimosa. Magia de fogo e trovão racham sua couraça.',
+  wisp: 'Fagulha perdida do cristal. Rápida, quente e vingativa.',
+  crab: 'Pinça esmagadora da Praia do Sol. Não subestime o tamanho.',
+  scorpion: 'Ferrão fura-defesa do Deserto Dourado. Desvie ou cure.',
+  shroom: 'Cura os próprios esporos. Queime antes que se regenere.',
+  skeleton: 'Ossos velhos das Ruínas com ódio novo. Gelo os torna lentos.',
+  orc: 'Bebe da água do oásis e volta maior. Bombas ajudam.',
+  toad: 'Língua comprida do pântano. Bata primeiro, pergunte depois.',
+  wolf: 'Caça em matilha no Pico Nevado. Derrube o mais rápido.',
+  king: 'Raro e majestoso. Dizem que coroa de gosma traz sorte.',
+  ancient: 'Sentinela do deserto. Pedra não perdoa... mas agradece.',
+  dragon: 'O pesadelo do Altar do Caos. Queime-o antes que queime você.',
+  echo: 'Voz presa na Caverna Ecoante. Repete seu último grito.',
 };
 
 /** Tabela de encontros por região: [id, peso]. @param {string} region */
@@ -4704,6 +4816,9 @@ const makeBoss = () => makeEnemy('dragon', 1.15);
 /** Mini-chefe opcional do deserto: o Golem Ancião da clareira. */
 const makeElite = () => makeEnemy('ancient', 1.0);
 
+/** Guardião da Caverna Ecoante. */
+const makeEcho = () => makeEnemy('echo', 1.0);
+
 /** Canvas do sprite de um inimigo (p/ monstros visíveis no mapa). @param {string} id @returns {HTMLCanvasElement} */
 function foeImage(id) {
   switch (id) {
@@ -4721,6 +4836,7 @@ function foeImage(id) {
     case 'ancient': return makeAncient();
     case 'king': return makeKing();
     case 'dragon': return makeDragon();
+    case 'echo': return makeWisp('#c9a8ff');
     default: return makeSlime();
   }
 }
@@ -4751,6 +4867,7 @@ const ITEMS = {
   lambari:   { name: 'Lambari Prateado', price: 8, heal: 25, desc: 'Pequeno e rápido. Restaura 25 HP', battle: true },
   royal:     { name: 'Peixe Real', price: 30, heal: 70, desc: 'Escamas azuis. Restaura 70 HP', battle: true },
   goldfish:  { name: 'Dourado Lendário', price: 90, heal: 140, desc: 'Lenda da Praia do Sol. Restaura 140 HP', battle: true },
+  moonfish:  { name: 'Peixe-Lua', price: 45, heal: 90, desc: 'Só morde à noite. Restaura 90 HP', battle: true },
   phoenix:   { name: 'Pena de Fênix', price: 200, revive: 0.5, desc: 'Revive um aliado caído com 50% do HP', battle: true },
   goldphoenix: { name: 'Pena Dourada', price: 450, revive: 1.0, desc: 'Revive um aliado caído com 100% do HP', battle: true },
   bomb:      { name: 'Bomba de Fogo', price: 90, dmg: 90, desc: 'Explode num inimigo (90 de dano)', battle: true },
@@ -4758,21 +4875,44 @@ const ITEMS = {
   hiether:   { name: 'Hi-Éter', price: 280, mp: 60, desc: 'Restaura 60 MP de um aliado', battle: true },
   elixir:    { name: 'Elixir', price: 400, heal: 200, mp: 40, desc: 'Restaura 200 HP e 40 MP de um aliado', battle: true },
   tonic:     { name: 'Tônico Completo', price: 150, heal: 60, mp: 15, desc: 'Restaura 60 HP e 15 MP de um aliado', battle: true },
+  // ---- equipamentos (E no menu equipa; bônus somem aos stats) ----
+  sword1:    { name: 'Espada de Treino', price: 80, desc: 'Madeira envernizada. +2 ATK', battle: false, slot: 'weapon', bonus: { atk: 2 } },
+  sword2:    { name: 'Lâmina Rúnica', price: 300, desc: 'Aço gravado. +4 ATK', battle: false, slot: 'weapon', bonus: { atk: 4 } },
+  sword3:    { name: 'Espada do Alvorecer', price: 800, desc: 'Brilha ao amanhecer. +7 ATK, +2 VEL', battle: false, slot: 'weapon', bonus: { atk: 7, spd: 2 } },
+  armor1:    { name: 'Couro Batido', price: 100, desc: 'Couro grosso. +2 DEF', battle: false, slot: 'armor', bonus: { def: 2 } },
+  armor2:    { name: 'Cota de Malha', price: 320, desc: 'Elos de aço. +4 DEF', battle: false, slot: 'armor', bonus: { def: 4 } },
+  armor3:    { name: 'Manto do Guardião', price: 700, desc: 'Tecido abençoado. +3 DEF, +20 HP máx', battle: false, slot: 'armor', bonus: { def: 3, maxHp: 20 } },
+  charm1:    { name: 'Anel de Mana', price: 150, desc: 'Pedra azul pulsante. +15 MP máx', battle: false, slot: 'charm', bonus: { maxMp: 15 } },
+  charm2:    { name: 'Pena Veloz', price: 250, desc: 'Leve como o vento. +2 VEL', battle: false, slot: 'charm', bonus: { spd: 2 } },
+  charm3:    { name: 'Coração de Rubi', price: 500, desc: 'Pulsa quente. +30 HP máx', battle: false, slot: 'charm', bonus: { maxHp: 30 } },
 };
+
+/** Slots de equipamento. */
+const EQUIP_SLOTS = [
+  { id: 'weapon', label: 'Arma' },
+  { id: 'armor', label: 'Armadura' },
+  { id: 'charm', label: 'Amuleto' },
+];
 
 /** Categorias p/ o menu (ordem de exibição). */
 const ITEM_CATS = [
   { id: 'cura', label: 'Cura', ids: ['potion', 'strongpotion', 'hipotion', 'megapotion'] },
   { id: 'mana', label: 'Mana', ids: ['ether', 'bigether', 'hiether'] },
   { id: 'bat', label: 'Batalha', ids: ['bomb', 'megabomb', 'antidote'] },
-  { id: 'pesca', label: 'Pesca', ids: ['fish', 'lambari', 'royal', 'goldfish'] },
+  { id: 'pesca', label: 'Pesca', ids: ['fish', 'lambari', 'royal', 'goldfish', 'moonfish'] },
   { id: 'esp', label: 'Especiais', ids: ['phoenix', 'goldphoenix', 'elixir', 'tonic'] },
+  { id: 'equip', label: 'Equipamentos', ids: ['sword1', 'sword2', 'sword3', 'armor1', 'armor2', 'armor3', 'charm1', 'charm2', 'charm3'] },
 ];
 
 /** @returns {Record<string, number>} */
-const newInventory = () => ({ potion: 3, strongpotion: 0, hipotion: 0, megapotion: 0, ether: 1, bigether: 0, antidote: 0, phoenix: 0, goldphoenix: 0, lambari: 0, royal: 0, goldfish: 0, bomb: 0, megabomb: 0, hiether: 0, elixir: 0, tonic: 0, fish: 0 });
+const newInventory = () => ({ potion: 3, strongpotion: 0, hipotion: 0, megapotion: 0, ether: 1, bigether: 0, antidote: 0, phoenix: 0, goldphoenix: 0, lambari: 0, royal: 0, goldfish: 0, moonfish: 0, bomb: 0, megabomb: 0, hiether: 0, elixir: 0, tonic: 0, fish: 0, sword1: 1, sword2: 0, sword3: 0, armor1: 0, armor2: 0, armor3: 0, charm1: 0, charm2: 0, charm3: 0 });
 
-const SHOP_STOCK = ['potion', 'strongpotion', 'hipotion', 'megapotion', 'ether', 'bigether', 'antidote', 'phoenix', 'goldphoenix', 'bomb', 'megabomb', 'hiether', 'elixir', 'tonic'];
+const SHOP_STOCK = ['potion', 'strongpotion', 'hipotion', 'megapotion', 'ether', 'bigether', 'antidote', 'phoenix', 'goldphoenix', 'bomb', 'megabomb', 'hiether', 'elixir', 'tonic', 'sword1', 'sword2', 'sword3', 'armor1', 'armor2', 'armor3', 'charm1', 'charm2', 'charm3'];
+
+/** Quem está com o equipamento? @param {any[]} party @param {string} id @returns {any|null} */
+function equippedBy(party, id) {
+  return (party || []).find((h) => h.equip && Object.values(h.equip).includes(id)) || null;
+}
 
 /**
  * Usa um item num alvo.
@@ -4784,6 +4924,7 @@ const SHOP_STOCK = ['potion', 'strongpotion', 'hipotion', 'megapotion', 'ether',
 function useItem(inv, id, target) {
   if ((inv[id] || 0) <= 0) return { ok: false, msg: 'Você não tem esse item!' };
   const it = ITEMS[id];
+  if (it.slot) return { ok: false, msg: `${it.name} é equipamento: equipe no menu (Q > Itens).` };
   if (it.revive) {
     if (target.hp > 0) return { ok: false, msg: `${target.name} ainda está de pé!` };
     inv[id]--;
@@ -5962,6 +6103,130 @@ function p_tonic(g) {
   gloss(g, 20.5, 18.5, 2.4, 6);
 }
 
+function p_sword(g) {
+  drop(g, 24, 39, 11);
+  // espada diagonal: lâmina, guarda e pomo
+  g.fillStyle = vg(g, 8, 36, [[0, '#ffffff'], [1, '#8d9db8']]);
+  g.beginPath();
+  g.moveTo(15, 33); g.lineTo(30, 12); g.lineTo(34, 14); g.lineTo(19, 35);
+  g.closePath(); g.fill(); ln(g, 1.8);
+  g.fillStyle = '#c98d2e';
+  g.fillRect(14, 31, 10, 3.4);
+  ln(g, 1.4); g.strokeRect(14, 31, 10, 3.4);
+  g.fillStyle = '#8c5a10';
+  g.beginPath(); g.arc(15, 37, 3, 0, 7); g.fill(); ln(g, 1.2);
+  g.strokeStyle = 'rgba(255,255,255,.85)'; g.lineWidth = 1.4;
+  g.beginPath(); g.moveTo(19, 30); g.lineTo(30, 15); g.stroke();
+  gloss(g, 24, 33, 2, 2);
+}
+
+function p_armor(g) {
+  drop(g, 24, 39, 11);
+  // peitoral com ombreiras
+  const bg = vg(g, 10, 38, [[0, '#8d9db8'], [1, '#3a4358']]);
+  g.fillStyle = bg;
+  rr(g, 17, 14, 14, 24, 5); g.fill(); ln(g, 2);
+  g.fillStyle = vg(g, 8, 16, [[0, '#c9d4ea'], [1, '#5a6270']]);
+  g.fillRect(11, 10, 9, 6); g.fillRect(28, 10, 9, 6);
+  ln(g, 1.6); g.strokeRect(11, 10, 9, 6); g.strokeRect(28, 10, 9, 6);
+  g.fillStyle = '#ffd75e';
+  g.fillRect(22, 20, 4, 12); g.fillRect(18, 23, 12, 4);
+  ln(g, 1.2);
+  gloss(g, 21, 18, 2.6, 5);
+}
+
+function p_charm(g) {
+  drop(g, 24, 39, 9);
+  // medalhão com corrente
+  g.strokeStyle = '#c98d2e'; g.lineWidth = 2.4;
+  g.beginPath(); g.moveTo(24, 6);
+  g.quadraticCurveTo(14, 12, 16, 20);
+  g.moveTo(24, 6);
+  g.quadraticCurveTo(34, 12, 32, 20);
+  g.stroke();
+  const bg = g.createRadialGradient(21, 24, 2, 24, 27, 13);
+  bg.addColorStop(0, '#fff3c4'); bg.addColorStop(0.5, '#e8a91e'); bg.addColorStop(1, '#8c5a10');
+  g.fillStyle = bg;
+  g.beginPath(); g.arc(24, 27, 11, 0, 7); g.fill(); ln(g, 2);
+  g.fillStyle = '#c22a3a';
+  g.beginPath(); g.arc(24, 27, 4.4, 0, 7); g.fill();
+  g.fillStyle = '#ff9db3';
+  g.beginPath(); g.arc(22.8, 25.8, 1.4, 0, 7); g.fill();
+  gloss(g, 20, 18, 2.6, 3);
+}
+
+function p_quake(g) {
+  drop(g, 24, 39, 11);
+  // chão rachado com poeira subindo
+  g.fillStyle = vg(g, 14, 36, [[0, '#c9a86a'], [1, '#6e4a2f']]);
+  rr(g, 10, 26, 28, 12, 4); g.fill(); ln(g, 2);
+  g.strokeStyle = '#3a2412'; g.lineWidth = 2.2;
+  g.beginPath();
+  g.moveTo(16, 26); g.lineTo(21, 31); g.lineTo(19, 36);
+  g.moveTo(28, 26); g.lineTo(26, 32); g.lineTo(30, 36);
+  g.stroke();
+  g.strokeStyle = '#ff7b2e'; g.lineWidth = 1.6;
+  g.beginPath();
+  g.moveTo(24, 27); g.lineTo(24, 35);
+  g.stroke();
+  // pedras quicando + poeira
+  g.fillStyle = '#8a5a2b';
+  g.fillRect(14, 16, 5, 5); g.fillRect(29, 13, 4, 4); g.fillRect(22, 9, 3, 3);
+  ln(g, 1.2);
+  g.fillStyle = 'rgba(216,190,140,.7)';
+  g.fillRect(11, 21, 3, 2); g.fillRect(34, 19, 3, 2); g.fillRect(25, 15, 2, 2);
+  gloss(g, 17, 28, 3, 2);
+}
+
+function p_haste(g) {
+  drop(g, 24, 39, 10);
+  // bota alada com linhas de velocidade
+  g.strokeStyle = '#7fd4ff'; g.lineWidth = 2.6; g.lineCap = 'round';
+  for (const [y, x0, x1] of [[16, 6, 20], [23, 4, 20], [30, 6, 20]]) {
+    g.beginPath(); g.moveTo(x0, y); g.lineTo(x1, y); g.stroke();
+  }
+  g.fillStyle = vg(g, 18, 36, [[0, '#e8b878'], [1, '#7a4e22']]);
+  g.beginPath();
+  g.moveTo(22, 16); g.lineTo(32, 16); g.lineTo(34, 30); g.lineTo(36, 36);
+  g.lineTo(22, 36); g.lineTo(22, 16);
+  g.closePath(); g.fill(); ln(g, 2);
+  g.fillStyle = '#e8ecff';
+  for (const [wx, wy] of [[28, 12], [31, 17], [26, 22]]) {
+    g.beginPath();
+    g.ellipse(wx, wy, 3.2, 5, -0.5, 0, 7); g.fill();
+  }
+  ln(g, 1.2);
+  g.fillStyle = '#ffd75e';
+  g.fillRect(23, 28, 8, 2.4);
+  gloss(g, 25, 20, 2.2, 3);
+}
+
+function p_moonfish(g) {
+  drop(g, 24, 39, 10);
+  // peixe prateado sob o luar
+  g.fillStyle = 'rgba(190,215,255,.25)';
+  g.beginPath(); g.arc(24, 18, 13, 0, 7); g.fill();
+  g.fillStyle = '#e8ecff';
+  g.beginPath(); g.arc(33, 12, 5, 0, 7); g.fill();
+  g.fillStyle = '#8d9db8';
+  g.beginPath(); g.arc(31.5, 12, 4.4, 0, 7); g.fill();
+  const bg = g.createLinearGradient(12, 0, 36, 0);
+  bg.addColorStop(0, '#8d9db8'); bg.addColorStop(0.5, '#e8f2ff'); bg.addColorStop(1, '#5a6e9c');
+  g.fillStyle = bg;
+  g.beginPath(); g.ellipse(23, 29, 11, 6, 0, 0, 7); g.fill(); ln(g, 1.8);
+  g.fillStyle = '#8d9db8';
+  g.beginPath();
+  g.moveTo(12, 29); g.lineTo(5, 24); g.lineTo(5, 34);
+  g.closePath(); g.fill(); ln(g, 1.4);
+  g.fillStyle = '#fff';
+  g.beginPath(); g.arc(28, 27.5, 2, 0, 7); g.fill();
+  g.fillStyle = '#1c1c2a';
+  g.beginPath(); g.arc(28.6, 27.5, 1, 0, 7); g.fill();
+  g.fillStyle = 'rgba(255,255,255,.8)';
+  g.fillRect(15, 30, 6, 1.2); g.fillRect(20, 32, 4, 1.2);
+  gloss(g, 19, 25, 3, 2);
+}
+
 /* ================= REGISTRO ================= */
 
 const PAINT = {
@@ -5970,7 +6235,11 @@ const PAINT = {
   fish: p_fish, lambari: p_lambari, royal: p_royal, goldfish: p_goldfish, phoenix: p_phoenix,
   goldphoenix: p_goldphoenix,
   bomb: p_bomb, megabomb: p_megabomb, hiether: p_hiether, elixir: p_elixir, tonic: p_tonic,
-  fire: p_fire, ice: p_ice, thunder: p_thunder, cure: p_cure,
+  sword1: p_sword, sword2: p_sword, sword3: p_sword,
+  armor1: p_armor, armor2: p_armor, armor3: p_armor,
+  charm1: p_charm, charm2: p_charm, charm3: p_charm,
+  fire: p_fire, ice: p_ice, thunder: p_thunder, cure: p_cure, quake: p_quake, haste: p_haste,
+  moonfish: p_moonfish,
   attack: p_attack, magic: p_magic, item: p_item, scan: p_scan, flee: p_flee, guard: p_guard,
   gold: p_gold, bed: p_bed, save: p_save, quest: p_quest, status: p_status, config: p_config,
   sound: p_sound, mute: p_mute, slot: p_slot, qdone: p_qdone, qtodo: p_qtodo,
@@ -5990,12 +6259,18 @@ function accentFor(id) {
     case 'thunder': return ['#ffe95e', true];
     case 'fire': return ['#ff8a6b', false];
     case 'cure': return ['#37e08b', false];
+    case 'quake': return ['#c98d4e', false];
+    case 'haste': return ['#7fd4ff', true];
+    case 'moonfish': return ['#b9c8de', true];
     case 'strongpotion': return ['#37e08b', false];
     case 'megapotion': return ['#ffd75e', true];
     case 'bigether': return ['#7fd4ff', false];
     case 'goldphoenix': return ['#ffd75e', true];
     case 'megabomb': return ['#ff6b6b', true];
     case 'tonic': return ['#c9a8ff', false];
+    case 'sword1': case 'sword2': case 'sword3': return ['#c9d4ea', false];
+    case 'armor1': case 'armor2': case 'armor3': return ['#8d9db8', false];
+    case 'charm1': case 'charm2': case 'charm3': return ['#ffd75e', false];
     case 'gold': return ['#ffd75e', true];
     default: return ['#e8ecff', false];
   }
@@ -6040,6 +6315,7 @@ const TABS = [
   { id: 'save', label: `${ic('save', 18)} Salvar` },
   { id: 'quests', label: `${ic('quest', 18)} Quests` },
   { id: 'skills', label: `${ic('spark', 18)} Skills` },
+  { id: 'beast', label: `${ic('scan', 18)} Bestiário` },
 ];
 
 class Menu {
@@ -6162,12 +6438,16 @@ class Menu {
     const tabId = TABS[this.tab].id;
 
     if (this.sub) {
-      const what = this.sub.kind === 'item' ? ITEMS[this.sub.id].name : SPELLS[this.sub.spell].name;
-      const whatIc = this.sub.kind === 'item' ? ic(this.sub.id) : ic(this.sub.spell);
+      const what = this.sub.kind === 'item' ? ITEMS[this.sub.id].name : this.sub.kind === 'equip' ? ITEMS[this.sub.id].name : SPELLS[this.sub.spell].name;
+      const whatIc = this.sub.kind === 'spell' ? ic(this.sub.spell) : ic(this.sub.id);
       this.rows = party.map((_, i) => i);
-      this.listEl.innerHTML = `<div class="list-head">Usar ${whatIc} ${what} em quem?</div>` +
-        party.map((h, i) => `<div class="opt ${i === this.sel ? 'sel' : ''}">${this._heroLine(h)}${h.hp <= 0 ? ' <span class="row-sub">(CAÍDO)</span>' : ''}</div>`).join('');
-      this.detailEl.innerHTML = `<h3>${whatIc} ${what}</h3>Q cancela a escolha.`;
+      const head = this.sub.kind === 'equip' ? `Equipar ${whatIc} ${what} em quem?` : `Usar ${whatIc} ${what} em quem?`;
+      this.listEl.innerHTML = `<div class="list-head">${head}</div>` +
+        party.map((h, i) => {
+          const worn = this.sub.kind === 'equip' && h.equip?.[ITEMS[this.sub.id].slot] === this.sub.id;
+          return `<div class="opt ${i === this.sel ? 'sel' : ''}">${this._heroLine(h)}${h.hp <= 0 ? ' <span class="row-sub">(CAÍDO)</span>' : ''}${worn ? ' <span class="count">vestido</span>' : ''}</div>`;
+        }).join('');
+      this.detailEl.innerHTML = `<h3>${whatIc} ${what}</h3>${this.sub.kind === 'equip' ? 'E equipa (ou remove, se já vestido). Q cancela.' : 'Q cancela a escolha.'}`;
       this._foot(gold, time);
       return;
     }
@@ -6192,9 +6472,10 @@ class Menu {
       this.listEl.innerHTML = html;
       const selId = ids[this.sel];
       const it = ITEMS[selId];
+      const wornBy = it.slot ? equippedBy(party, selId) : null;
       this.detailEl.innerHTML = `<h3>${ic(selId, 44)} ${it.name}</h3>` +
-        `<div class="sk-fx">${this._itemFx(it)} <span class="row-sub">· ${this._itemWhere(it)}</span></div>` +
-        `${it.desc}<br/><span class="row-sub">Preço na loja: ${it.price}G · possui ×${inv[selId] || 0}</span>`;
+        (it.slot ? `<div class="sk-fx">${equipBonusText(it)} <span class="row-sub">· ${it.slot === 'weapon' ? 'Arma' : it.slot === 'armor' ? 'Armadura' : 'Amuleto'}</span></div>` : `<div class="sk-fx">${this._itemFx(it)} <span class="row-sub">· ${this._itemWhere(it)}</span></div>`) +
+        `${it.desc}<br/><span class="row-sub">Preço na loja: ${it.price}G · possui ×${inv[selId] || 0}${wornBy ? ` · vestido em ${wornBy.name}` : ''}</span>`;
     } else if (tabId === 'magic') {
       if (this.spellHero == null) {
         this.rows = party.map((_, i) => i);
@@ -6210,7 +6491,8 @@ class Menu {
           h.spells.map((s, i) =>
             `<div class="opt ${i === this.sel ? 'sel' : ''}${h.mp < SPELLS[s].mp ? ' nomp' : ''}">${ic(s)}${SPELLS[s].name}<span class="row-cost">${SPELLS[s].mp}MP</span></div>`).join('');
         const s = h.spells[this.sel];
-        this.detailEl.innerHTML = s ? `<h3>${ic(s, 44)} ${SPELLS[s].name}</h3>${SPELLS[s].desc}<br/><span class="row-sub">Custo: ${SPELLS[s].mp} MP · Poder ×${SPELLS[s].power} · Alvo: ${SPELLS[s].target === 'ally' ? 'aliado' : 'inimigo'}</span>` : '';
+        const sDesc = s ? (SPELLS[s].buff ? `Custo: ${SPELLS[s].mp} MP · Bônus: +5 VEL · Alvo: aliado` : `Custo: ${SPELLS[s].mp} MP · Poder ×${SPELLS[s].power} · Alvo: ${SPELLS[s].target === 'ally' ? 'aliado' : SPELLS[s].aoe ? 'todos os inimigos' : 'inimigo'}`) : '';
+        this.detailEl.innerHTML = s ? `<h3>${ic(s, 44)} ${SPELLS[s].name}</h3>${SPELLS[s].desc}<br/><span class="row-sub">${sDesc}</span>` : '';
       }
     } else if (tabId === 'status') {
       this.rows = party.map((_, i) => i);
@@ -6223,6 +6505,8 @@ class Menu {
       const xpLeft = Math.max(0, xpForLevel(h.level) - h.xp);
       const pass = listPassives(h);
       const sk = this._skillCount(h);
+      const gear = ['weapon', 'armor', 'charm']
+        .map((s) => h.equip?.[s] && ITEMS[h.equip[s]] ? ITEMS[h.equip[s]].name : '—').join(' · ');
       this.detailEl.innerHTML = `<h3>${face}${h.name} <span class="row-sub">${h.cls} · Nv ${h.level}</span></h3>
         <div class="stat-grid">
           <b>HP</b><span>${Math.ceil(h.hp)} / ${h.maxHp}</span>
@@ -6232,6 +6516,7 @@ class Menu {
           <b>XP</b><span><span class="xpbar"><span style="width:${xpPct}%"></span></span> ${h.xp}/${xpForLevel(h.level)}</span>
           <b>Próx. Nv</b><span>faltam ${xpLeft} XP</span>
           <b>Skill ✦</b><span>${h.sp || 0} ponto(s) · nós ${sk.got}/${sk.max} — aba Skills</span>
+          <b>Equipe</b><span>${gear}</span>
           <b>Magias</b><span>${h.spells.map((s) => SPELLS[s].name).join(', ') || '—'}</span>
           ${pass.length ? `<b>Passivas</b><span>${pass.map((p) => `${p.name} ${p.rank}`).join(' · ')}</span>` : ''}
         </div>`;
@@ -6279,8 +6564,35 @@ class Menu {
       const h = party[this.sel];
       this.detailEl.innerHTML = `<h3>${ic('spark', 44)} Árvore de Skills</h3>` +
         (h ? `E abre a árvore de <b>${h.name}</b> (${h.sp || 0} ✦ ponto(s)).<br/><span class="row-sub">Nós ligados se desbloqueiam em cadeia.</span>` : '');
+    } else if (tabId === 'beast') {
+      const best = this.ctx?.flags?.bestiary || {};
+      const ids = Object.keys(BESTIARY);
+      const seen = ids.filter((id) => (best[id] || 0) > 0);
+      this.rows = ids;
+      this.listEl.innerHTML = `<div class="list-head">Bestiário — ${seen.length}/${ids.length} espécies</div>` +
+        ids.map((id, i) => {
+          const n = best[id] || 0;
+          const icon = n > 0 ? `<img class="menu-face" src="${this._beastIcon(id)}" alt="" />` : ic('scan');
+          return `<div class="opt ${i === this.sel ? 'sel' : ''}">${icon}${n > 0 ? BESTIARY[id].name : '???'}<span class="count">×${n}</span></div>`;
+        }).join('');
+      const id = ids[this.sel];
+      const n = (best[id] || 0);
+      const b = BESTIARY[id];
+      this.detailEl.innerHTML = n > 0
+        ? `<h3><img class="menu-face big" src="${this._beastIcon(id)}" alt="" /> ${b.name}</h3>${BEAST_FLAVOR[id] || ''}<br/><span class="row-sub">Derrotados: ×${n} · HP ${b.hp} · ATK ${b.atk} · DEF ${b.def} · VEL ${b.spd}<br/>Recompensa: ${b.xp} XP · ${b.gold}G</span>`
+        : `<h3>${ic('scan', 44)} ???</h3><span class="row-sub">Ainda não enfrentado. Explore Valoria!</span>`;
     }
     this._foot(gold, time);
+  }
+
+  /** Ícone do monstro (sprite real, memoizado). */
+  _beastIcon(id) {
+    this._beastCache = this._beastCache || {};
+    if (!this._beastCache[id]) {
+      try { this._beastCache[id] = foeImage(BESTIARY[id].sprite).toDataURL(); }
+      catch { this._beastCache[id] = ''; }
+    }
+    return this._beastCache[id];
   }
 
   /** Diário: deriva o estado das quests a partir das flags do save. */
@@ -6306,6 +6618,10 @@ class Menu {
     if (f.pearlRewarded) qs.push({ t: 'Peixe Real do Tumba', d: 'O velho marinheiro sorri para o mar.', done: true });
     else if (!f.pearlQuest) qs.push({ t: '???', d: 'Um velho na Praia do Sol conta histórias de pesca...', done: false });
     else qs.push({ t: 'Peixe Real do Tumba', d: 'Pesque um PEIXE REAL encarando a água (E). Na praia é mais fácil!', done: false });
+    if (f.forgeRewarded) qs.push({ t: 'Eco da Forja', d: 'Rurik forjou com o metal do Eco. Lâmina pronta!', done: true });
+    else if (!f.forgeQuest) qs.push({ t: '???', d: 'A aprendiz da ferraria, na Vila Lumen, cochicha sobre um sonho do mestre...', done: false });
+    else if (f.caveCleared) qs.push({ t: 'Eco da Forja', d: 'Eco derrotado! Volte à Sana, na ferraria.', done: false });
+    else qs.push({ t: 'Eco da Forja', d: 'Derrote o ECO ANTIGO na Caverna Ecoante, a oeste das Ruínas.', done: false });
     const opened = CHESTS.filter((c) => f[`chest_${c.id}`]).length;
     qs.push(opened >= CHESTS.length
       ? { t: `Baús do tesouro`, d: 'Todos abertos! Olho de águia.', done: true }
@@ -6352,7 +6668,9 @@ class Menu {
 
     if (this.sub) {
       const h = party[this.sel];
-      if (this.sub.kind === 'item') {
+      if (this.sub.kind === 'equip') {
+        actions.equip(this.sub.id, this.sel);
+      } else if (this.sub.kind === 'item') {
         const it = ITEMS[this.sub.id];
         if (it.revive && h.hp > 0) { this.notify(`${h.name} ainda está de pé!`); this.audio.sfx('flee-fail'); return; }
         if (it.heal && h.hp <= 0) { this.notify(`${h.name} está caído! Use uma Pena de Fênix.`); this.audio.sfx('flee-fail'); return; }
@@ -6369,8 +6687,9 @@ class Menu {
     if (tabId === 'items') {
       const id = this.rows[this.sel];
       if ((inv[id] || 0) <= 0) { this.notify(`Você não tem ${ITEMS[id].name}!`); this.audio.sfx('flee-fail'); return; }
-      if (ITEMS[id].flee || ITEMS[id].dmg) { this.notify(`${ITEMS[id].name} só funciona em batalha!`); this.audio.sfx('flee-fail'); return; }
-      this.sub = { kind: 'item', id }; this.sel = 0;
+      if (ITEMS[id].slot) { this.sub = { kind: 'equip', id }; this.sel = 0; }
+      else if (ITEMS[id].flee || ITEMS[id].dmg) { this.notify(`${ITEMS[id].name} só funciona em batalha!`); this.audio.sfx('flee-fail'); return; }
+      else { this.sub = { kind: 'item', id }; this.sel = 0; }
     } else if (tabId === 'magic') {
       if (this.spellHero == null) {
         if (!party[this.sel]) return;
@@ -6393,6 +6712,10 @@ class Menu {
     } else if (tabId === 'skills') {
       if (party[this.sel]) actions.openSkills?.(this.sel);
       else { this.notify('Sem herói.'); this.audio.sfx('flee-fail'); }
+    } else if (tabId === 'beast') {
+      const id = this.rows[this.sel];
+      const n = this.ctx?.flags?.bestiary?.[id] || 0;
+      this.notify(n > 0 ? `${BESTIARY[id].name}: ${BEAST_FLAVOR[id] || ''}` : 'Espécie ainda não registrada.');
     } else if (tabId === 'save') {
       const slot = this.rows[this.sel];
       if (SaveSystem.info(slot) && this._armSave !== slot) {
@@ -6625,8 +6948,9 @@ class HUD {
    * @param {string} region
    * @param {Record<string,string>} [faces] dataURLs dos retratos por sprite
    * @param {boolean} [muted]
+   * @param {string} [clock] ícone/hora do dia (ex. "☀️ manhã")
    */
-  render(party, gold, region, faces = {}, muted = false) {
+  render(party, gold, region, faces = {}, muted = false, clock = '') {
     this.partyEl.innerHTML = party.map((h) => {
       const hpPct = Math.max(0, (100 * h.hp / h.maxHp)).toFixed(0);
       const mpPct = Math.max(0, (100 * h.mp / h.maxMp)).toFixed(0);
@@ -6641,19 +6965,20 @@ class HUD {
         </div>
       </div>`;
     }).join('');
-    this.locEl.textContent = LOCATIONS[region] || region;
+    this.locEl.textContent = `${LOCATIONS[region] || region}${clock ? ` ${clock}` : ''}`;
     this.goldEl.innerHTML = `${ic(muted ? 'mute' : 'gold', 20)}<span>${gold} G</span>`;
   }
 
   /**
-   * Minimapa: base pré-renderizada + viewport + jogador + altar (+ patrulheiros).
+   * Minimapa: base pré-renderizada + viewport + jogador + altar (+ patrulheiros e portas).
    * @param {HTMLCanvasElement} base (2px por tile)
    * @param {number} ox @param {number} oy offsets da câmera
    * @param {number} ptx @param {number} pty tile do jogador
    * @param {{x:number,y:number}|null} altar
    * @param {Array<{x:number,y:number}>} [foes] patrulheiros (tiles) em vermelho
+   * @param {Array<{x:number,y:number}>} [doors] portas visitáveis (tiles) em dourado
    */
-  renderMinimap(base, ox, oy, ptx, pty, altar, foes = []) {
+  renderMinimap(base, ox, oy, ptx, pty, altar, foes = [], doors = []) {
     if (!this.mm || !base) return;
     const g = this.mm.getContext('2d');
     g.imageSmoothingEnabled = false;
@@ -6666,6 +6991,10 @@ class HUD {
       g.fillRect(altar.x * 2 - 2, altar.y * 2 - 2, 5, 5);
       g.fillStyle = '#fff';
       g.fillRect(altar.x * 2 - 1, altar.y * 2 - 1, 3, 3);
+    }
+    for (const d of doors) {
+      g.fillStyle = '#ffd75e';
+      g.fillRect(d.x * 2 - 1, d.y * 2 - 1, 3, 3);
     }
     for (const f of foes) {
       g.fillStyle = '#ff3b3b';
@@ -7485,6 +7814,28 @@ class BattleSystem {
       const sp = SPELLS[act.spell];
       h.mp -= sp.mp;
       if (sp.target === 'enemy') {
+        if (sp.aoe) {
+          // Terremoto: atinge todos os inimigos vivos
+          this.audio.sfx(spellSfx(act.spell));
+          this.anim = { who: 'hero', idx: hi, t: 0.4, dur: 0.4 };
+          this._shake(7, 0.35);
+          const names = [];
+          this.enemies.forEach((e, i) => {
+            if (e.hp <= 0) return;
+            const dmg = magDmg(h.mag, sp.power, e.def);
+            e.hp -= dmg;
+            e.hitT = 0.4;
+            const to = this.enemyPos(i);
+            this._burstFx(to, '#c98d4e', 16);
+            this._ringFx(to, '#c98d4e');
+            this._floatDmg(to, dmg, '#e8b878', false);
+            names.push(`${e.name} (${dmg})`);
+            if (e.hp <= 0) { this.audio.sfx('die'); this._soulFx(to); }
+          });
+          this._log(`${h.name} conjura ${sp.name}! O chão treme: ${names.join(' · ') || 'sem alvo'}!`);
+          this._renderAll();
+          return;
+        }
         const ti = this._resolveEnemyTarget(act.target ?? 0);
         if (ti < 0) return;
         const e = this.enemies[ti];
@@ -7534,6 +7885,18 @@ class BattleSystem {
           ti = alt;
         }
         const a = this.party[ti];
+        if (sp.buff === 'spd') {
+          // Pressa: +5 VEL até o fim da batalha (acumula)
+          a.spd += 5;
+          this.audio.sfx('heal');
+          this.anim = { who: 'hero', idx: hi, t: 0.35, dur: 0.35 };
+          this._healFx(this.heroPos(ti), '#ffe95e');
+          this._ringFx(this.heroPos(ti), '#ffe95e');
+          this._floatDmg(this.heroPos(ti), '+VEL', '#ffe95e', false);
+          this._log(`${h.name} conjura ${sp.name} em ${a.name}! Velocidade aumentada!`);
+          this._renderAll();
+          return;
+        }
         if (a.hp >= a.maxHp) { this._log(`${a.name} já está com HP cheio!`); this.audio.sfx('flee-fail'); return; }
         const v = Math.min(Math.round(h.mag * sp.power * 3), a.maxHp - Math.max(0, a.hp));
         a.hp = Math.min(a.maxHp, Math.max(0, a.hp) + v);
@@ -8473,8 +8836,8 @@ class BattleSystem {
   }
 }
 
-const spellColor = (s) => (s === 'fire' ? '#ff9b3c' : s === 'thunder' ? '#ffe94f' : s === 'ice' ? '#7fd4ff' : '#7dff9a');
-const spellSfx = (s) => (s === 'cure' ? 'heal' : 'fire');
+const spellColor = (s) => (s === 'fire' ? '#ff9b3c' : s === 'thunder' ? '#ffe94f' : s === 'ice' ? '#7fd4ff' : s === 'quake' ? '#e8b878' : s === 'haste' ? '#ffe95e' : '#7dff9a');
+const spellSfx = (s) => (s === 'cure' || s === 'haste' ? 'heal' : 'fire');
 
 /* ===== js\core\Engine.js ===== */
 /**
@@ -8535,6 +8898,9 @@ const FISH_DEX = [
   { id: 'goldfish', name: 'Dourado Lendário', icon: '✨', item: 'goldfish', color: '#e8a91e', belly: '#ffe9a8',
     size: 'G', stars: 5, speed: 1.22, zone: 0.135, perfect: 0.050, bite: 0.80, w: 5, wBeach: 10,
     toast: 'DOUDRADO LENDÁRIO! A lenda da praia!' },
+  { id: 'moonfish', name: 'Peixe-Lua', icon: '🌙', item: 'moonfish', color: '#b9c8de', belly: '#eef2fa',
+    size: 'M', stars: 4, speed: 1.05, zone: 0.16, perfect: 0.055, bite: 0.90, w: 0, wBeach: 0, nightOnly: true,
+    toast: 'PEIXE-LUA pescado! Brilha no escuro!' },
 ];
 
 
@@ -8570,6 +8936,7 @@ class Engine {
     this.heroArt = this.heroArts.hero;
     this.dragonArt = makeDragon();
     this.ancientArt = makeAncient();
+    this.echoArt = makeWisp('#c9a8ff');
     this.crystalArt = makeCrystal();
     // retratos (diálogo + HUD) pré-renderizados
     const faceURL = (cv) => cv.toDataURL();
@@ -8605,6 +8972,7 @@ class Engine {
       'Sana (Aprendiz)': humanoidFace(this.npcArt.hunter),
       'GOLEM ANCIÃO': makePortrait(this.ancientArt, 8, 0, 72, 62),
       'DRAGÃO DO CAOS': dragonFace(this.dragonArt),
+      'Eco Antigo': humanoidFace(this.npcArt.hermit),
     };
     this.dialog.portraitProvider = (name) => this.faceCanvas[name] || null;
     // trio de heróis na tela de título
@@ -8694,10 +9062,22 @@ class Engine {
   _mapPx() { return [this.map.w * TILE, this.map.h * TILE]; }
   /** Está dentro de alguma casa? */
   _isInterior() { return !!this.place && this.place.kind === 'interior'; }
+  /** Geometria do interior atual (porta/saída/spawn; padrão = casas da vila). */
+  _placeGeo() { return (this.place && INTERIOR_GEO[this.place.id]) || { door: INTERIOR_DOOR, spawn: INTERIOR_SPAWN }; }
+  /** Porta de saída do interior atual (tile). */
+  _placeDoor() { return this._placeGeo().door; }
+  /** Spawn ao entrar no interior atual (tile). */
+  _placeSpawn() { return this._placeGeo().spawn; }
   /** Região atual (id do interior ou regionAt do mundo). */
   _curRegion() {
     if (this._isInterior()) return this.place.id;
     return regionAt(this.player.tileX, this.player.tileY);
+  }
+
+  /** Relógio p/ o HUD ("☀️ manhã"). */
+  _clockStr() {
+    const d = dayInfo(this.time);
+    return `${d.icon} ${d.label}`;
   }
 
   /** Fração de tela (0..1) de um ponto do mundo (p/ centrar a íris). */
@@ -8727,8 +9107,9 @@ class Engine {
       this.place = { kind: 'interior', id };
       this.map = this.interiorMaps[id];
       this.npcs = this.interiorNpcs[id];
-      this.player.x = INTERIOR_SPAWN.x * TILE + 4;
-      this.player.y = INTERIOR_SPAWN.y * TILE;
+      const _sp = this._placeSpawn();
+      this.player.x = _sp.x * TILE + 4;
+      this.player.y = _sp.y * TILE;
       this.player.dir = 'up';
       this.player.slideX = 0; this.player.slideY = 0;
       this._path = null; this._tapAct = null; this._tapMark = null;
@@ -8754,7 +9135,8 @@ class Engine {
     this._busy = true;
     try {
       this.audio.sfx('door');
-      const at = this._screenFrac(INTERIOR_DOOR.x * TILE + 16, INTERIOR_DOOR.y * TILE + 16);
+      const _ed = this._placeDoor();
+      const at = this._screenFrac(_ed.x * TILE + 16, _ed.y * TILE + 16);
       await Transition.irisOut(420, at.x, at.y);
       this.place = { kind: 'world' };
       this.map = this.worldMap;
@@ -8803,8 +9185,9 @@ class Engine {
   _tryHouseExit() {
     if (!this._isInterior()) return false;
     const ft = this.player.facingTile();
-    const onDoor = this.player.tileX === INTERIOR_DOOR.x && this.player.tileY === INTERIOR_DOOR.y;
-    const faceDoor = ft.x === INTERIOR_DOOR.x && ft.y === INTERIOR_DOOR.y;
+    const _ed = this._placeDoor();
+    const onDoor = this.player.tileX === _ed.x && this.player.tileY === _ed.y;
+    const faceDoor = ft.x === _ed.x && ft.y === _ed.y;
     if (!onDoor && !faceDoor) return false;
     this._exitHouse();
     return true;
@@ -8826,8 +9209,8 @@ class Engine {
   _showBanner(region) {
     const el = document.getElementById('region-banner');
     if (!el) return;
-    const names = { town: 'Vila Lumen', elder: 'Casa do Ancião', shop: 'Loja da Mira', inn: 'Estalagem do Bram', smith: 'Ferraria do Rurik', field: 'Planície Verdejante', forest: 'Bosque Sombrio', dungeon: 'Ruínas do Cristal', altar: 'Altar do Caos', beach: 'Praia do Sol', snow: 'Pico Nevado', desert: 'Deserto Dourado', swamp: 'Pântano Sombrio' };
-    const subs = { town: 'povoado pacato', elder: 'o ancião o aguarda', shop: 'ouro na mão, poção na sacola', inn: 'cama quente por 20G', smith: 'martelo quente, lâmina fria', field: 'cuidado com a grama alta', forest: 'feras entre as árvores', dungeon: 'o cristal o aguarda', altar: 'NÃO HÁ VOLTA', beach: 'águas calmas — bom p/ pescar', snow: 'o frio morde — feras fortes', desert: 'o oásis esconde um baú', swamp: 'não beba a água' };
+    const names = { town: 'Vila Lumen', elder: 'Casa do Ancião', shop: 'Loja da Mira', inn: 'Estalagem do Bram', smith: 'Ferraria do Rurik', cave: 'Caverna Ecoante', field: 'Planície Verdejante', forest: 'Bosque Sombrio', dungeon: 'Ruínas do Cristal', altar: 'Altar do Caos', beach: 'Praia do Sol', snow: 'Pico Nevado', desert: 'Deserto Dourado', swamp: 'Pântano Sombrio' };
+    const subs = { town: 'povoado pacato', elder: 'o ancião o aguarda', shop: 'ouro na mão, poção na sacola', inn: 'cama quente por 20G', smith: 'martelo quente, lâmina fria', cave: 'não faça barulho', field: 'cuidado com a grama alta', forest: 'feras entre as árvores', dungeon: 'o cristal o aguarda', altar: 'NÃO HÁ VOLTA', beach: 'águas calmas — bom p/ pescar', snow: 'o frio morde — feras fortes', desert: 'o oásis esconde um baú', swamp: 'não beba a água' };
     el.innerHTML = `${names[region] || region}<small>${subs[region] || ''}</small>`;
     el.classList.remove('hidden');
     void el.offsetWidth;
@@ -9080,12 +9463,13 @@ class Engine {
     const region = this._curRegion();
     if (!this._lastRegion) this._lastRegion = region;
     else if (this._lastRegion !== region) { this._lastRegion = region; this._showBanner(region); }
-    const want = this._isInterior() || region === 'town' || region === 'beach' ? 'town' : region === 'dungeon' || region === 'altar' || region === 'swamp' ? 'dungeon' : 'field';
+    const indoorCalm = this._isInterior() && region !== 'cave';
+    const want = indoorCalm || region === 'town' || region === 'beach' ? 'town' : region === 'dungeon' || region === 'altar' || region === 'swamp' || region === 'cave' ? 'dungeon' : 'field';
     if (this.audio.ctx && this.audio.currentTrack !== want) this.audio.playMusic(want);
     if (this.hud.mm) this.hud.mm.style.display = this._isInterior() ? 'none' : '';
-    if (!this._isInterior()) this.hud.renderMinimap(this.mmBase, this.camera.ox, this.camera.oy, this.player.tileX, this.player.tileY, this.flags.bossDefeated ? null : BOSS_ALTAR, this.walkers.map((w) => ({ x: Math.floor(w.cx / TILE), y: Math.floor(w.cy / TILE) })));
-    const sig = `${region}|${this.gold}|${this.audio.muted}|${this.party.map((h) => `${Math.ceil(h.hp)}/${Math.ceil(h.mp)}/${h.level}`).join(',')}`;
-    if (sig !== this._hudSig) { this._hudSig = sig; this.hud.render(this.party, this.gold, region, this.faces, this.audio.muted); }
+    if (!this._isInterior()) this.hud.renderMinimap(this.mmBase, this.camera.ox, this.camera.oy, this.player.tileX, this.player.tileY, this.flags.bossDefeated ? null : BOSS_ALTAR, this.walkers.map((w) => ({ x: Math.floor(w.cx / TILE), y: Math.floor(w.cy / TILE) })), region === 'town' ? HOUSES.filter((h) => h.id !== 'cave').map((h) => h.door) : region === 'field' ? [{ x: 46, y: 14 }] : []);
+    const sig = `${region}|${this.gold}|${this.audio.muted}|${this._clockStr()}|${this.party.map((h) => `${Math.ceil(h.hp)}/${Math.ceil(h.mp)}/${h.level}`).join(',')}`;
+    if (sig !== this._hudSig) { this._hudSig = sig; this.hud.render(this.party, this.gold, region, this.faces, this.audio.muted, this._clockStr()); }
   }
 
   /** Ações do menu de pausa (reusadas por teclado e mouse). */
@@ -9095,6 +9479,31 @@ class Engine {
         const r = useItem(this.inv, id, this.party[idx]);
         toast(r.msg);
         this.audio.sfx(r.ok ? 'item' : 'flee-fail');
+        this.menu._render();
+      },
+      equip: (id, idx) => {
+        const h = this.party[idx], it = ITEMS[id];
+        if (!h || !it?.slot) return;
+        h.equip = h.equip || { weapon: null, armor: null, charm: null };
+        // tira de quem vestia
+        for (const o of this.party) {
+          if (o !== h && o.equip?.[it.slot] === id) {
+            applyEquipBonus(o, it, -1);
+            o.equip[it.slot] = null;
+          }
+        }
+        if (h.equip[it.slot] === id) {
+          applyEquipBonus(h, it, -1);
+          h.equip[it.slot] = null;
+          toast(`${it.name} removido de ${h.name}.`);
+        } else {
+          const cur = h.equip[it.slot];
+          if (cur && ITEMS[cur]) applyEquipBonus(h, ITEMS[cur], -1);
+          applyEquipBonus(h, it, 1);
+          h.equip[it.slot] = id;
+          toast(`${h.name} equipou ${it.name}!`);
+        }
+        this.audio.sfx('item');
         this.menu._render();
       },
       useSpell: (hi, spell, ti) => {
@@ -9214,7 +9623,8 @@ class Engine {
       Math.floor(w.cx / TILE) === tx && Math.floor(w.cy / TILE) === ty);
     if (foe) return { kind: 'foe', foe };
     if (this._isInterior()) {
-      if (tx === INTERIOR_DOOR.x && ty === INTERIOR_DOOR.y) return { kind: 'house-exit' };
+      const _xd = this._placeDoor();
+      if (tx === _xd.x && ty === _xd.y) return { kind: 'house-exit' };
       return null;
     }
     const house = this._houseAt(tx, ty);
@@ -9300,10 +9710,12 @@ class Engine {
     this.audio.sfx('talk');
     if (npc.shop) return this._openShop(npc);
     if (npc.inn) return this._openInn(npc);
+    if (npc.id === 'echo') return this._talkEcho(npc);
     if (npc.id === 'kid') return this._talkPip(npc);
     if (npc.id === 'guard') return this._talkGuard(npc);
     if (npc.id === 'herbalist') return this._talkHerbalist(npc);
     if (npc.id === 'sailor') return this._talkSailor(npc);
+    if (npc.id === 'appr') return this._talkSana(npc);
     const lines = [{ name: npc.name, text: npc.nextLine() }];
     if (npc.gift && !npc.giftGiven) {
       npc.giftGiven = true;
@@ -9317,6 +9729,41 @@ class Engine {
       lines.push({ name: 'Ancião Theo', text: 'Leve 2 POÇÕES da vila. E lembre-se: a estalagem do Bram cura suas feridas por 20G.' });
     }
     this.dialog.say(lines);
+  }
+
+  /** Guardião da Caverna Ecoante: conversa ou luta. */
+  _talkEcho(npc) {
+    if (this.flags.caveCleared) {
+      this.dialog.say([
+        { name: npc.name, text: 'Obrigado... por me libertar. A caverna enfim silencia... descanse, herói.' },
+      ]);
+      return;
+    }
+    this.audio.sfx('encounter');
+    this.dialog.say(
+      [{ name: 'ECO ANTIGO', text: 'EU FUI HERÓI... COMO VOCÊ. Prove que sua chama arde mais que a minha! LUTE... OU SAIA!', options: [{ label: `${ic('attack')} LUTAR!`, value: 'fight' }, { label: `${ic('flee')} Recuar`, value: null }] }],
+      null,
+      (v) => { if (v === 'fight') this._startCaveBattle(); }
+    );
+  }
+
+  async _startCaveBattle() {
+    if (this._busy) return;
+    this._path = null; this._tapAct = null; this._tapMark = null;
+    this._busy = true;
+    try {
+      this.audio.sfx('encounter');
+      this.audio.playMusic('boss');
+      await Transition.swirl(700);
+      this.state = 'BATTLE';
+      this.hud.hide();
+      this.battle.start(this.party, this.inv, [makeEcho()], {
+        region: 'dungeon',
+        onEnd: (r) => this._afterBattle({ ...r, cave: true }, 'dungeon'),
+      });
+    } finally {
+      this._busy = false;
+    }
   }
 
   /** Quest secundária: o boneco perdido do Pip. */
@@ -9473,6 +9920,42 @@ class Engine {
     this.dialog.say(lines);
   }
 
+  /** Quest da forja: Sana quer a prova do Eco Antigo p/ o mestre Rurik. */
+  _talkSana(npc) {
+    const f = this.flags;
+    if (f.forgeRewarded) {
+      this.dialog.say([
+        { name: npc.name, text: 'Com o metal do Eco, o mestre forjou a melhor lâmina da vila! Obrigada!' },
+      ]);
+      return;
+    }
+    if (!f.forgeQuest) {
+      f.forgeQuest = true;
+      this.audio.sfx('confirm');
+      this.dialog.say([
+        { name: npc.name, text: 'Psiu! O mestre Rurik sonha em forjar com o metal do ECO ANTIGO...' },
+        { name: 'Sana (Aprendiz)', text: 'Dizem que ele assombra a CAVERNA ECOANTE, a oeste das Ruínas. Derrote-o e volte aqui: o mestre paga 150G e 2 BOMBARDAS!' },
+      ]);
+      toast('Nova quest: o metal do Eco Antigo!');
+      return;
+    }
+    if (f.caveCleared) {
+      f.forgeRewarded = true;
+      this.gold += 150;
+      this.inv.megabomb = (this.inv.megabomb || 0) + 2;
+      this.audio.sfx('levelup');
+      this.dialog.say([
+        { name: npc.name, text: 'Você... DERROTOU o Eco?! O mestre não vai acreditar!' },
+        { name: 'Sana (Aprendiz)', text: 'Aqui estão 150G e 2 BOMBARDAS da forja. Que o metal dele proteja você!' },
+      ]);
+      toast('+150G · +2 Bombardas!');
+      return;
+    }
+    this.dialog.say([
+      { name: npc.name, text: 'O Eco Antigo aguarda na caverna a oeste das Ruínas. Cuidado: ele repete seu último grito!' },
+    ]);
+  }
+
   /** Baú ao alcance do jogador (para o E e para a dica visual). */
   _nearChest() {
     return CHESTS.find((k) =>
@@ -9515,10 +9998,20 @@ class Engine {
     if (r < 0.20) return { kind: 'algae' };
     const pearlCh = beach ? 0.30 : 0.26;
     if (r < pearlCh) return { kind: 'pearl', beach };
+    // Peixe-Lua: só morde à noite (fração própria, fora da tabela diurna)
+    const night = dayInfo(this.time).night > 0.5;
+    if (night && Math.random() < 0.22) {
+      const moon = FISH_DEX.find((s) => s.id === 'moonfish');
+      if (moon) return { kind: 'fish', spec: moon };
+    }
     let total = 0;
-    for (const s of FISH_DEX) total += beach ? s.wBeach : s.w;
+    for (const s of FISH_DEX) {
+      if (s.nightOnly) continue;
+      total += beach ? s.wBeach : s.w;
+    }
     let roll = Math.random() * total;
     for (const s of FISH_DEX) {
+      if (s.nightOnly) continue;
       roll -= beach ? s.wBeach : s.w;
       if (roll <= 0) return { kind: 'fish', spec: s };
     }
@@ -9830,10 +10323,17 @@ class Engine {
         }
         this.gold -= 20;
         fullHeal(this.party);
+        this._restUntilMorning();
         this.audio.sfx('heal');
-        this.dialog.say([{ name: npc.name, text: 'Dormiram como pedras! HP e MP restaurados. Boa jornada!' }]);
+        this.dialog.say([{ name: npc.name, text: 'Dormiram como pedras! HP e MP restaurados. Amanheceu em Valoria!' }]);
       }
     );
+  }
+
+  /** Avança o relógio até o amanhecer (pouso na estalagem). */
+  _restUntilMorning() {
+    const t = dayInfo(this.time).t;
+    this.time += (((0.03 - t) % 1) + 1) % 1 * DAY_LEN;
   }
 
   _tryBossInteract() {
@@ -9851,12 +10351,15 @@ class Engine {
   }
 
   // ---------- monstros visíveis patrulhando o mapa ----------
-  /** Regiões onde monstros andam à vista (encosto = batalha). */
+  /** Regiões onde monstros andam à vista (encosto = batalha; caverna inclusa). */
   _walkerRegion() {
-    if (this._isInterior()) return null;
+    if (this._isInterior()) return this.place.id === 'cave' ? 'cave' : null;
     const r = regionAt(this.player.tileX, this.player.tileY);
     return ['field', 'forest', 'dungeon', 'altar', 'snow', 'beach', 'desert', 'swamp'].includes(r) ? r : null;
   }
+
+  /** Tabela de patrulha da região (caverna usa a masmorra). */
+  _walkerTable(region) { return region === 'cave' ? 'dungeon' : region; }
 
   /** Sprite em cache de um patrulheiro. */
   _walkerImg(id) {
@@ -9867,18 +10370,19 @@ class Engine {
   /** Tenta gerar um patrulheiro num anel de 6–11 tiles do jogador. */
   _spawnWalker(region) {
     const px = this.player.tileX, py = this.player.tileY;
+    const table = this._walkerTable(region);
     for (let tries = 0; tries < 24; tries++) {
       const a = Math.random() * Math.PI * 2;
       const d = 6 + Math.random() * 5;
       const tx = Math.round(px + Math.cos(a) * d), ty = Math.round(py + Math.sin(a) * d);
       if (tx < 2 || ty < 2 || tx >= this.map.w - 2 || ty >= this.map.h - 2) continue;
-      if (regionAt(tx, ty) !== region) continue;
+      if (region !== 'cave' && regionAt(tx, ty) !== region) continue;
       if (this.map.solid(tx, ty)) continue;
       if (this.map.tile(tx, ty) === T.WATER) continue;
       if (tx === BOSS_ALTAR.x && ty === BOSS_ALTAR.y) continue;
       if (CHESTS.some((c) => c.x === tx && c.y === ty)) continue;
       if (this.npcs.some((n) => Math.floor((n.x + 12) / TILE) === tx && Math.floor((n.y + 12) / TILE) === ty)) continue;
-      const id = pickWalkerEnemy(region);
+      const id = pickWalkerEnemy(table);
       const img = this._walkerImg(id);
       if (!img) continue;
       this.walkers.push({
@@ -9903,7 +10407,7 @@ class Engine {
       const tx = px + dx, ty = py + dy;
       if (tx < 1 || ty < 1 || tx >= this.map.w - 1 || ty >= this.map.h - 1) continue;
       if (this.map.solid(tx, ty) || this.map.tile(tx, ty) === T.WATER) continue;
-      const id = pickWalkerEnemy(region);
+      const id = pickWalkerEnemy(this._walkerTable(region));
       const img = this._walkerImg(id);
       if (!img) return null;
       const w = {
@@ -9982,9 +10486,10 @@ class Engine {
     if (i >= 0) this.walkers.splice(i, 1);
     this._touchGrace = 2.0;
     this.audio.sfx('encounter');
+    const table = this._walkerTable(region);
     const ids = [w.id];
-    if (Math.random() < 0.3) ids.push(pickWalkerEnemy(region));
-    this._startWildBattle(region, ids);
+    if (Math.random() < 0.3) ids.push(pickWalkerEnemy(table));
+    this._startWildBattle(table, ids);
   }
 
   // ---------- batalhas ----------
@@ -10073,7 +10578,7 @@ class Engine {
       // estado primeiro (sincronia), fade como véu visual por cima do campo
       this.state = 'FIELD';
       this.hud.show();
-      this.hud.render(this.party, this.gold, region, this.faces, this.audio.muted);
+      this.hud.render(this.party, this.gold, region, this.faces, this.audio.muted, this._clockStr());
       await Transition.fadeOut(180);
       await Transition.fadeIn(280);
       return;
@@ -10081,6 +10586,19 @@ class Engine {
     if (result.victory) {
       this.gold += result.gold;
       toast(`+${result.xp} XP · +${result.gold} G`);
+      // bestiário: conta as espécies derrotadas (avisa na 1ª vez)
+      if (result.kills?.length) {
+        this.flags.bestiary = this.flags.bestiary || {};
+        const fresh = [];
+        for (const id of result.kills) {
+          if (!this.flags.bestiary[id]) fresh.push(id);
+          this.flags.bestiary[id] = (this.flags.bestiary[id] || 0) + 1;
+        }
+        if (fresh.length) {
+          this.audio.sfx('item');
+          toast(`📖 Novo registro: ${fresh.length > 1 ? `${fresh.length} feras` : 'fera'} no Bestiário (Q > Bestiário)!`);
+        }
+      }
       // quest de caça: conta slimes da família derrotados
       if (this.flags.huntQuest && !this.flags.huntRewarded && result.kills) {
         const n = result.kills.filter((id) => id === 'slime' || id === 'king').length;
@@ -10120,6 +10638,17 @@ class Engine {
         ]);
         toast('+1 Elixir! O deserto respira aliviado.');
       }
+      // guardião da caverna: marca a vitória e entrega a Lâmina Rúnica
+      if (result.cave && !this.flags.caveCleared) {
+        this.flags.caveCleared = true;
+        this.inv.sword2 = (this.inv.sword2 || 0) + 1;
+        this.audio.sfx('levelup');
+        this.dialog.say([
+          { name: '', text: '(O Eco Antigo se desfaz numa espiral de luz violeta. No chão, uma espada gravada com runas...)' },
+          { name: 'Eco Antigo', text: '...OBRIGADO... LIBERDADE... ...zzz...' },
+        ]);
+        toast('+1 Lâmina Rúnica! A caverna silencia.');
+      }
       if (result.boss) {
         this.flags.bossDefeated = true;
         this.state = 'FIELD';
@@ -10130,7 +10659,7 @@ class Engine {
       }
       this.state = 'FIELD';
       this.hud.show();
-      this.hud.render(this.party, this.gold, region, this.faces, this.audio.muted);
+      this.hud.render(this.party, this.gold, region, this.faces, this.audio.muted, this._clockStr());
       await Transition.fadeOut(180);
       await Transition.fadeIn(300);
       return;
@@ -10270,11 +10799,24 @@ class Engine {
     // baús do tesouro (fechado brilha; aberto mostra a tampa erguida)
     for (const c of CHESTS) this._drawChest(g, ox, oy, c);
     } else {
-      // dentro de casa: tapete de saída + brilho na porta
-      const ex = INTERIOR_DOOR.x * TILE + ox + 16, ey = INTERIOR_DOOR.y * TILE + oy;
+      // dentro de casa: tapete de saída + brilho na porta (+ Eco Antigo na caverna)
+      const _gd = this._placeDoor();
+      const ex = _gd.x * TILE + ox + 16, ey = _gd.y * TILE + oy;
       const tw = 0.5 + 0.4 * Math.sin(this.time * 4);
       g.fillStyle = `rgba(255,215,94,${(0.25 + tw * 0.25).toFixed(2)})`;
       g.beginPath(); g.ellipse(ex, ey + 10, 16, 6, 0, 0, 7); g.fill();
+      if (this.place.id === 'cave' && !this.flags.caveCleared) {
+        const eg = this.npcs.find((n) => n.id === 'echo');
+        if (eg) {
+          const eex = eg.x + ox + 12, eey = eg.y + oy - 6 + Math.sin(this.time * 1.8) * 5;
+          const pulse = 0.5 + 0.3 * Math.sin(this.time * 2.6);
+          g.strokeStyle = `rgba(201,168,255,${pulse.toFixed(2)})`; g.lineWidth = 3;
+          g.beginPath(); g.ellipse(eex, eey + 24, 24 + pulse * 5, 10 + pulse * 2, 0, 0, 7); g.stroke();
+          g.fillStyle = `rgba(201,168,255,${(0.10 + pulse * 0.12).toFixed(2)})`;
+          g.beginPath(); g.ellipse(eex, eey + 24, 24 + pulse * 5, 10 + pulse * 2, 0, 0, 7); g.fill();
+          g.drawImage(this.echoArt, eex - 45, eey - 42, 90, 84);
+        }
+      }
     }
 
     // sombras suaves sob os atores (profundidade barata estilo 16-bit)
@@ -10324,8 +10866,9 @@ class Engine {
     if (this.state === 'FIELD' && !this.dialog.active && !this.menu.active) {
       if (this._isInterior()) {
         const ft0 = this.player.facingTile();
-        if ((ft0.x === INTERIOR_DOOR.x && ft0.y === INTERIOR_DOOR.y) ||
-            (this.player.tileX === INTERIOR_DOOR.x && this.player.tileY === INTERIOR_DOOR.y)) exitPrompt = true;
+        const _pd = this._placeDoor();
+        if ((ft0.x === _pd.x && ft0.y === _pd.y) ||
+            (this.player.tileX === _pd.x && this.player.tileY === _pd.y)) exitPrompt = true;
       } else if (!npc) {
         const ft0 = this.player.facingTile();
         housePrompt = this._houseAt(ft0.x, ft0.y) || this._houseAt(this.player.tileX, this.player.tileY);
@@ -10335,7 +10878,8 @@ class Engine {
       g.fillStyle = '#ffd75e';
       g.font = 'bold 20px monospace';
       g.strokeStyle = '#000'; g.lineWidth = 4;
-      const ex = INTERIOR_DOOR.x * TILE + ox + 16, ey = INTERIOR_DOOR.y * TILE + oy - 26 + Math.sin(this.time * 5) * 2;
+      const _ed2 = this._placeDoor();
+      const ex = _ed2.x * TILE + ox + 16, ey = _ed2.y * TILE + oy - 26 + Math.sin(this.time * 5) * 2;
       g.textAlign = 'center';
       g.strokeText('🚪 E Sair', ex, ey);
       g.fillText('🚪 E Sair', ex, ey);
@@ -11101,12 +11645,12 @@ class Engine {
     this.g.drawImage(img, x + (32 - w) / 2 + (leanX + swayX) * s, y + (40 - h) + (bob + leanY) * s, w, h);
   }
 
-  /** Shader de iluminação do campo: tinte do bioma + luz de topo + halo + vinheta. */
+  /** Shader de iluminação do campo: tinte do bioma + ciclo dia/noite + halo + vinheta. */
   _drawLighting(g, p, ox, oy) {
     // 1) tinte do bioma (sombreamento por região)
     const region = this._curRegion();
     const tints = {
-      dungeon: 'rgba(10,10,38,.30)', altar: 'rgba(10,10,38,.30)',
+      dungeon: 'rgba(10,10,38,.30)', altar: 'rgba(10,10,38,.30)', cave: 'rgba(8,8,28,.32)',
       swamp: 'rgba(8,28,18,.24)', forest: 'rgba(4,20,10,.20)',
       snow: 'rgba(190,215,255,.10)', desert: 'rgba(255,175,80,.09)',
       beach: 'rgba(255,240,200,.07)',
@@ -11115,9 +11659,15 @@ class Engine {
     };
     const tint = tints[region];
     if (tint) { g.fillStyle = tint; g.fillRect(0, 0, VIEW_W, VIEW_H); }
+    // 1b) noite do ciclo dia/noite (fora de interiores escuros, que já têm tinte)
+    const dn = dayInfo(this.time).night;
+    if (dn > 0.02 && !this._isInterior()) {
+      g.fillStyle = `rgba(6,8,30,${(0.34 * dn).toFixed(3)})`;
+      g.fillRect(0, 0, VIEW_W, VIEW_H);
+    }
     // 2) luz de topo (sol): brisa clara descendo do alto da tela
     const top = g.createLinearGradient(0, 0, 0, VIEW_H * 0.45);
-    const night = region === 'dungeon' || region === 'altar' || region === 'swamp';
+    const night = region === 'dungeon' || region === 'altar' || region === 'swamp' || dn > 0.5;
     top.addColorStop(0, night ? 'rgba(120,150,255,.07)' : 'rgba(255,250,230,.08)');
     top.addColorStop(1, 'rgba(255,250,230,0)');
     g.fillStyle = top;

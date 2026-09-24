@@ -6,7 +6,8 @@ import { makeSlime, makeBat, makeGolem, makeDragon, makeKing, makeWisp, makeCrab
 
 /** @typedef {{id:string,name:string,hp:number,maxHp:number,atk:number,def:number,spd:number,xp:number,gold:number,sprite:string,boss?:boolean}} Enemy */
 
-const BESTIARY = {
+/** Exportado p/ o Bestiário do menu. */
+export const BESTIARY = {
   slime:  { name: 'Slime',        hp: 22, atk: 7,  def: 3, spd: 4,  xp: 9,  gold: 8,  sprite: 'slime' },
   bat:    { name: 'Morcego Sombrio', hp: 18, atk: 9,  def: 2, spd: 12, xp: 12, gold: 10, sprite: 'bat' },
   golem:  { name: 'Golem Jr.',    hp: 40, atk: 12, def: 8, spd: 3,  xp: 22, gold: 18, sprite: 'golem' },
@@ -21,6 +22,26 @@ const BESTIARY = {
   king:   { name: 'SLIME REI',    hp: 70, atk: 15, def: 9, spd: 6,  xp: 70, gold: 80, sprite: 'king' },
   ancient: { name: 'GOLEM ANCIÃO', hp: 130, atk: 18, def: 11, spd: 4, xp: 150, gold: 300, sprite: 'ancient', boss: true },
   dragon: { name: 'DRAGÃO DO CAOS', hp: 220, atk: 22, def: 12, spd: 9, xp: 250, gold: 500, sprite: 'dragon', boss: true },
+  echo:   { name: 'ECO ANTIGO',   hp: 95, atk: 16, def: 8, spd: 9,  xp: 120, gold: 250, sprite: 'echo', boss: true },
+};
+
+/** Sabor de cada fera p/ o Bestiário. */
+export const BEAST_FLAVOR = {
+  slime: 'Gosma dócil até ser chutada. O primeiro troféu de todo herói.',
+  bat: 'Caça de olhos vendados: mira nos mais frágeis do grupo.',
+  golem: 'Pedra teimosa. Magia de fogo e trovão racham sua couraça.',
+  wisp: 'Fagulha perdida do cristal. Rápida, quente e vingativa.',
+  crab: 'Pinça esmagadora da Praia do Sol. Não subestime o tamanho.',
+  scorpion: 'Ferrão fura-defesa do Deserto Dourado. Desvie ou cure.',
+  shroom: 'Cura os próprios esporos. Queime antes que se regenere.',
+  skeleton: 'Ossos velhos das Ruínas com ódio novo. Gelo os torna lentos.',
+  orc: 'Bebe da água do oásis e volta maior. Bombas ajudam.',
+  toad: 'Língua comprida do pântano. Bata primeiro, pergunte depois.',
+  wolf: 'Caça em matilha no Pico Nevado. Derrube o mais rápido.',
+  king: 'Raro e majestoso. Dizem que coroa de gosma traz sorte.',
+  ancient: 'Sentinela do deserto. Pedra não perdoa... mas agradece.',
+  dragon: 'O pesadelo do Altar do Caos. Queime-o antes que queime você.',
+  echo: 'Voz presa na Caverna Ecoante. Repete seu último grito.',
 };
 
 /** Tabela de encontros por região: [id, peso]. @param {string} region */
@@ -68,6 +89,9 @@ export const makeBoss = () => makeEnemy('dragon', 1.15);
 /** Mini-chefe opcional do deserto: o Golem Ancião da clareira. */
 export const makeElite = () => makeEnemy('ancient', 1.0);
 
+/** Guardião da Caverna Ecoante. */
+export const makeEcho = () => makeEnemy('echo', 1.0);
+
 /** Canvas do sprite de um inimigo (p/ monstros visíveis no mapa). @param {string} id @returns {HTMLCanvasElement} */
 export function foeImage(id) {
   switch (id) {
@@ -85,6 +109,7 @@ export function foeImage(id) {
     case 'ancient': return makeAncient();
     case 'king': return makeKing();
     case 'dragon': return makeDragon();
+    case 'echo': return makeWisp('#c9a8ff');
     default: return makeSlime();
   }
 }

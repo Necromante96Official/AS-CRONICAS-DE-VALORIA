@@ -6,12 +6,12 @@
  * @module test/AutoTest
  */
 import { SaveSystem } from '../systems/SaveSystem.js';
-import { makeEncounter, makeEnemy, encounterTable } from '../entities/Enemies.js';
-import { newParty, grantXp, restoreParty, serializeParty } from '../entities/Party.js';
+import { makeEncounter, makeEnemy, makeEcho, encounterTable } from '../entities/Enemies.js';
+import { newParty, grantXp, restoreParty, serializeParty, applyEquipBonus, equipBonusText } from '../entities/Party.js';
 import { treeFor, nodeById, getRank, canInvest, invest, skillRank, listPassives, goldMult } from '../systems/SkillTree.js';
 import { useItem, ITEMS, SHOP_STOCK, ITEM_CATS, newInventory } from '../systems/Inventory.js';
-import { TILE, xpForLevel } from '../core/Config.js';
-import { regionAt, CHESTS } from '../world/MapData.js';
+import { TILE, xpForLevel, DAY_LEN, dayInfo } from '../core/Config.js';
+import { regionAt, CHESTS, HOUSES, buildInterior } from '../world/MapData.js';
 import { T } from '../world/Tiles.js';
 
 /** @param {import('../core/Engine.js').Engine} game */
@@ -297,6 +297,44 @@ export async function runAutoTest(game) {
         } catch { return false; }
       });
       log(okIcons, 'item-icones');
+      // equipamentos: bônus, troca, remoção, migração e bloqueio de uso
+      {
+        const p = newParty();
+        const k = p[0];
+        log(k.equip.weapon === null && k.equip.armor === null && k.equip.charm === null, 'equip-vazio');
+        applyEquipBonus(k, ITEMS.sword2, 1);
+        log(k.atk === 11 + 4, 'equip-bonus');
+        applyEquipBonus(k, ITEMS.sword2, -1);
+        log(k.atk === 11, 'equip-remove');
+        log(equipBonusText(ITEMS.armor3) === '+3 DEF · +20 HP máx', 'equip-texto');
+        log(!useItem({ sword1: 1 }, 'sword1', k).ok, 'equip-uso-bloqueado');
+        const atk0 = game.party[0].atk, latk0 = game.party[1].atk;
+        const sw0 = game.inv.sword2 || 0;
+        game._menuActions().equip('sword2', 0);
+        log(game.party[0].atk === atk0 + 4 && game.party[0].equip.weapon === 'sword2', 'equip-fluxo');
+        game._menuActions().equip('sword3', 0);
+        log(game.party[0].atk === atk0 + 7 && game.party[0].equip.weapon === 'sword3', 'equip-troca');
+        game._menuActions().equip('sword3', 1);
+        log(game.party[0].atk === atk0 && game.party[1].atk === latk0 + 7 && game.party[1].equip.weapon === 'sword3', 'equip-move');
+        game._menuActions().equip('sword3', 1);
+        log(game.party[1].atk === latk0 && game.party[1].equip.weapon === null, 'equip-desequipa');
+        log((game.inv.sword2 || 0) === sw0, 'equip-inv-intacto');
+        const old = [{ name: 'X', cls: 'Maga', level: 1, xp: 0, hp: 1, maxHp: 1, mp: 1, maxMp: 1, atk: 1, def: 1, spd: 1, mag: 1, spells: [], sprite: 'mage' }];
+        const mig = restoreParty(old);
+        log(mig[0].equip.weapon === null && mig[0].equip.armor === null && mig[0].equip.charm === null, 'equip-migracao');
+      }
+      // magias novas na árvore: Terremoto (Lyra) e Pressa (Milo)
+      {
+        const p = newParty();
+        const lyra = p[1]; lyra.level = 5; lyra.sp = 9;
+        invest(lyra, nodeById('l_mag1')); invest(lyra, nodeById('l_focus')); invest(lyra, nodeById('l_focus'));
+        invest(lyra, nodeById('l_arch'));
+        log(invest(lyra, nodeById('l_quake')).ok && lyra.spells.includes('quake'), 'skill-quake');
+        const milo = p[2]; milo.level = 5; milo.sp = 9;
+        invest(milo, nodeById('m_mag1')); invest(milo, nodeById('m_thunder')); invest(milo, nodeById('m_ice'));
+        invest(milo, nodeById('m_focus')); invest(milo, nodeById('m_focus'));
+        log(invest(milo, nodeById('m_haste')).ok && milo.spells.includes('haste'), 'skill-haste');
+      }
       game.menu.show({ party: game.party, inv: game.inv, gold: game.gold, time: '00:00', flags: game.flags, faces: game.faces }, () => {}, game._menuActions());
       await frames(3);
       const listTxt = () => document.getElementById('menu-list').textContent;
@@ -318,6 +356,9 @@ export async function runAutoTest(game) {
       game.menu.tab = 5; game.menu.sel = 0; game.menu._render();
       await frames(2);
       log(listTxt().includes('Diário'), 'menu-quests-rico');
+      game.menu.tab = 7; game.menu.sel = 0; game.menu._render();
+      await frames(2);
+      log(listTxt().includes('Bestiário'), 'menu-besta-aba');
       log(await closeMenu(), 'menu-rico-fecha');
     }
 
@@ -412,8 +453,8 @@ export async function runAutoTest(game) {
       kael.sp = 5;
       invest(kael, nodeById('k_crit')); invest(kael, nodeById('k_crit'));
       log(skillRank(kael, 'crit') === 2 && listPassives(kael).some((x) => x.name === 'Crítico' && x.rank === 2), 'skill-passive');
-      // árvores por classe têm nós e links válidos (12/13/12)
-      const okTrees = [['Guerreiro', 12], ['Maga', 13], ['Clérigo', 12]].every(([c, n]) => {
+      // árvores por classe têm nós e links válidos (12/14/13)
+      const okTrees = [['Guerreiro', 12], ['Maga', 14], ['Clérigo', 13]].every(([c, n]) => {
         const t = treeFor(c);
         return t.length === n && t.every((x) => x.req.every((r) => t.some((m) => m.id === r)));
       });
@@ -690,6 +731,13 @@ export async function runAutoTest(game) {
       game._talk(guard);
       log(await dismissDialog(), 'caca-entrega');
       log(game.flags.huntRewarded === true && game.gold === g0 + 200 && (game.inv.ether || 0) === e0 + 1, 'caca-recompensa');
+      log((game.flags.bestiary?.slime || 0) >= 6, 'bestiario-conta');
+      game.menu.show({ party: game.party, inv: game.inv, gold: game.gold, time: '00:00', flags: game.flags, faces: game.faces }, () => {}, game._menuActions());
+      await frames(2);
+      game.menu.tab = 7; game.menu.sel = 0; game.menu._render();
+      await frames(2);
+      log(document.getElementById('menu-list').textContent.includes('Slime') && document.getElementById('menu-detail').textContent.includes('Derrotados'), 'bestiario-visto');
+      log(await closeMenu(), 'bestiario-fecha');
     }
 
     // ---- 13. mobile/colisão: atravessa NPC, tap-to-move e poço realocado ----
@@ -801,6 +849,124 @@ export async function runAutoTest(game) {
       log(await dismissDialog(), 'bau-deserto-fecha');
       log(game.flags.chest_desert === true && game.gold === g0 + 120, 'bau-deserto-loot');
     }
+    // ---- 14b. Caverna Ecoante: boca, guardião, recompensa e bestiário ----
+    log(HOUSES.some((h) => h.id === 'cave' && h.door.x === 46 && h.door.y === 14), 'caverna-porta');
+    log(makeEcho().id === 'echo' && makeEcho().hp > 0, 'caverna-eco-inimigo');
+    {
+      const ci = buildInterior('cave');
+      log(ci.w === 26 && ci.h === 18 && ci.tiles[17 * 26 + 13] === T.DOOR, 'caverna-mapa');
+    }
+    log(await enterHouse('cave', 46, 15), 'caverna-entra');
+    {
+      const echo = game.npcs.find((n) => n.id === 'echo');
+      log(!!echo, 'caverna-eco');
+      game._talk(echo);
+      log(await waitFor(() => game.dialog.active, 5000), 'caverna-fala');
+      game.dialog.charsShown = game.dialog.fullText.length;
+      game.dialog._render();
+      await frames(2);
+      log(document.getElementById('dialog-text').textContent.includes('LUTAR'), 'caverna-opcoes');
+      game.dialog.optSel = 1;
+      log(await dismissDialog(), 'caverna-recua');
+      log(!game.flags.caveCleared && game.state === 'FIELD', 'caverna-sem-luta');
+    }
+    await game._exitHouse();
+    log(await waitFor(() => game.place?.kind === 'world', 8000), 'caverna-sai');
+    {
+      const sw0 = game.inv.sword2 || 0;
+      await game._afterBattle({ victory: true, fled: false, xp: 0, gold: 0, cave: true, kills: ['echo'] }, 'dungeon');
+      await dismissDialog();
+      log(game.flags.caveCleared === true && (game.inv.sword2 || 0) === sw0 + 1, 'caverna-recompensa');
+      log((game.flags.bestiary?.echo || 0) >= 1, 'bestiario-eco');
+    }
+    // ciclo dia/noite + pouso na estalagem + portas no minimapa
+    {
+      const { dayInfo: di, DAY_LEN: dl } = await import('../core/Config.js');
+      const d0 = di(0);
+      log(d0.t === 0 && d0.night === 0 && d0.icon === '☀️' && d0.label === 'madrugada', 'dia-amanhecer');
+      const d1 = di(dl * 0.85);
+      log(d1.night > 0.5 && d1.icon === '🌙' && d1.label === 'noite', 'dia-noite');
+      const d2 = di(dl * 0.25);
+      log(d2.night === 0 && d2.label === 'manhã', 'dia-manha');
+      game.time = 200;
+      game._restUntilMorning();
+      log(Math.abs(di(game.time).t - 0.03) < 0.005, 'dia-pouso');
+      teleport(15, 38, 'down');
+      await frames(3);
+      game.hud.renderMinimap(game.mmBase, game.camera.ox, game.camera.oy, game.player.tileX, game.player.tileY, null, [], [{ x: 10, y: 34 }]);
+      const px = game.hud.mm.getContext('2d').getImageData(20, 68, 1, 1).data;
+      log(px[0] > 200 && px[1] > 150 && px[2] < 150, 'minimap-portas');
+    }
+    // quest Eco da Forja (Sana, na ferraria)
+    log(await enterHouse('smith', 21, 46), 'forja-entra');
+    {
+      game.flags.forgeQuest = false;
+      game.flags.forgeRewarded = false;
+      const cc0 = !!game.flags.caveCleared;
+      const sana = game.npcs.find((n) => n.id === 'appr');
+      sana.x = sana.homeX; sana.y = sana.homeY;
+      teleport(15, 11, 'up');
+      await frames(3);
+      await key('KeyE');
+      log(await waitFor(() => game.dialog.active, 5000), 'forja-fala');
+      log(await dismissDialog(), 'forja-fecha');
+      log(game.flags.forgeQuest === true, 'forja-inicia');
+      game.flags.caveCleared = false;
+      game._talk(sana);
+      log(await waitFor(() => game.dialog.active, 5000), 'forja-dica-abre');
+      game.dialog.charsShown = game.dialog.fullText.length;
+      game.dialog._render();
+      await frames(2);
+      log(document.getElementById('dialog-text').textContent.includes('oeste das Ruínas'), 'forja-dica');
+      log(await dismissDialog(), 'forja-dica-fecha');
+      game.flags.caveCleared = true;
+      const g0 = game.gold, mb0 = game.inv.megabomb || 0;
+      game._talk(sana);
+      log(await waitFor(() => game.dialog.active, 5000), 'forja-entrega-abre');
+      log(await dismissDialog(), 'forja-entrega-fecha');
+      log(game.flags.forgeRewarded === true && game.gold === g0 + 150 && (game.inv.megabomb || 0) === mb0 + 2, 'forja-recompensa');
+      game._talk(sana);
+      log(await waitFor(() => game.dialog.active, 5000), 'forja-fim-abre');
+      log(await dismissDialog(), 'forja-fim-fecha');
+      void cc0;
+    }
+    await game._exitHouse();
+    log(await waitFor(() => game.place?.kind === 'world', 8000), 'forja-sai');
+    // patrulha dentro da caverna + Peixe-Lua noturno
+    log(await enterHouse('cave', 46, 15), 'caverna-reentra');
+    game.walkersEnabled = true;
+    game._touchGrace = 999;
+    game._walkerLockUntil = 0;
+    game._walkerT = 0; // o teste da patrulha congela o timer; libera aqui
+    log(await waitFor(() => game.walkers.length > 0, 12000), 'caverna-patrulha');
+    game.walkers.length = 0;
+    game.walkersEnabled = false;
+    game._touchGrace = 0;
+    await game._exitHouse();
+    await waitFor(() => game.place?.kind === 'world', 8000);
+    {
+      const { iconURL } = await import('../ui/ItemIcons.js');
+      const u = iconURL('moonfish');
+      log(typeof u === 'string' && u.startsWith('data:image/png;base64,') && u.length > 500, 'peixelua-icone');
+      const inv = { moonfish: 1 };
+      const r = useItem(inv, 'moonfish', { hp: 10, maxHp: 200, mp: 0, maxMp: 10, name: 'T' });
+      log(r.ok && r.msg.includes('90'), 'peixelua-efeito');
+      game.time = 20; // manhã: Peixe-Lua nunca morde
+      let dayHit = false;
+      for (let i = 0; i < 50; i++) {
+        const c = game._pickCatch();
+        if (c.kind === 'fish' && c.spec?.id === 'moonfish') { dayHit = true; break; }
+      }
+      log(!dayHit, 'peixelua-dia-nunca');
+      game.time = 255; // noite funda
+      let seenNight = false;
+      for (let i = 0; i < 300 && !seenNight; i++) {
+        const c = game._pickCatch();
+        if (c.kind === 'fish' && c.spec?.id === 'moonfish') seenNight = true;
+      }
+      log(seenNight, 'peixelua-noite');
+      game.time = 20; // de volta à manhã
+    }
     // pescador presente e presenteia
     {
       const fisher = game.npcs.find((n) => n.id === 'fisher');
@@ -843,6 +1009,20 @@ export async function runAutoTest(game) {
       log(!!b && b.who === 'enemy', 'inimigo-avanca');
       game.battle.stop();
       for (const hh of game.party) { hh.hp = hh.maxHp; hh.mp = hh.maxMp; }
+    }
+    // Terremoto atinge todos os inimigos; Pressa acelera o aliado
+    {
+      const p = newParty();
+      p[1].spells.push('quake'); p[1].mp = p[1].maxMp;
+      p[2].spells.push('haste'); p[2].mp = p[2].maxMp;
+      game.battle.start(p, game.inv, [makeEnemy('slime', 1), makeEnemy('slime', 1)], { region: 'field', onEnd: () => {} });
+      const e0 = game.battle.enemies[0].hp, e1 = game.battle.enemies[1].hp;
+      game.battle._heroAct(p[1], 1, { type: 'magic', spell: 'quake' });
+      log(game.battle.enemies[0].hp < e0 && game.battle.enemies[1].hp < e1, 'magia-quake');
+      const s0 = p[0].spd;
+      game.battle._heroAct(p[2], 2, { type: 'magic', spell: 'haste', target: 0 });
+      log(p[0].spd === s0 + 5, 'magia-haste');
+      game.battle.stop();
     }
     // passivas novas: nível mínimo, carisma no XP e efeitos em batalha
     {

@@ -2,17 +2,17 @@
  * Engine — orquestra o jogo: título, exploração, diálogo, loja, batalha, saves.
  * @module core/Engine
  */
-import { TILE, VIEW_W, VIEW_H, ENCOUNTER_RATE, ACTOR_HD } from './Config.js';
+import { TILE, VIEW_W, VIEW_H, ENCOUNTER_RATE, ACTOR_HD, DAY_LEN, dayInfo } from './Config.js';
 import { Input } from './Input.js';
 import { AudioMan } from './Audio.js';
 import { Camera } from './Camera.js';
 import { TileMap } from '../world/TileMap.js';
-import { buildMap, regionAt, SPAWN, NPC_DEFS, BOSS_ALTAR, TOY_SPOT, HEAL_CRYSTAL, CHESTS, HUNT_GOAL, HERB_GOAL, ELITE, HOUSES, INTERIOR_SPAWN, INTERIOR_DOOR, buildInterior, INTERIOR_NPCS, placeName } from '../world/MapData.js';
+import { buildMap, regionAt, SPAWN, NPC_DEFS, BOSS_ALTAR, TOY_SPOT, HEAL_CRYSTAL, CHESTS, HUNT_GOAL, HERB_GOAL, ELITE, HOUSES, INTERIOR_SPAWN, INTERIOR_DOOR, INTERIOR_GEO, CAVE_GUARDIAN, buildInterior, INTERIOR_NPCS, placeName } from '../world/MapData.js';
 import { isEncounterTile, tileColor, T } from '../world/Tiles.js';
 import { NPC } from '../world/NPCs.js';
 import { Player } from '../entities/Player.js';
-import { newParty, aliveHeroes, restoreParty, serializeParty, fullHeal } from '../entities/Party.js';
-import { makeEncounter, makeBoss, makeElite, makeEnemy, pickWalkerEnemy, foeImage } from '../entities/Enemies.js';
+import { newParty, aliveHeroes, restoreParty, serializeParty, fullHeal, applyEquipBonus } from '../entities/Party.js';
+import { makeEncounter, makeBoss, makeElite, makeEcho, makeEnemy, pickWalkerEnemy, foeImage } from '../entities/Enemies.js';
 import { newInventory, useItem, ITEMS, SHOP_STOCK } from '../systems/Inventory.js';
 import { SaveSystem } from '../systems/SaveSystem.js';
 import { loadSettings, saveSettings, SPEED_ORDER } from '../systems/Settings.js';
@@ -23,7 +23,7 @@ import { HUD } from '../ui/HUD.js';
 import { TitleScreen } from '../ui/TitleScreen.js';
 import { Transition, toast } from '../ui/Transition.js';
 import { BattleSystem } from '../battle/BattleSystem.js';
-import { makeHumanoid, makeDragon, makeCrystal, makeAncient, makePortrait, humanoidFace, dragonFace } from './SpriteFactory.js';
+import { makeHumanoid, makeDragon, makeCrystal, makeAncient, makeWisp, makePortrait, humanoidFace, dragonFace } from './SpriteFactory.js';
 import { ic, preloadIcons } from '../ui/ItemIcons.js';
 import { SPELLS } from '../entities/Party.js';
 
@@ -80,6 +80,9 @@ const FISH_DEX = [
   { id: 'goldfish', name: 'Dourado Lendário', icon: '✨', item: 'goldfish', color: '#e8a91e', belly: '#ffe9a8',
     size: 'G', stars: 5, speed: 1.22, zone: 0.135, perfect: 0.050, bite: 0.80, w: 5, wBeach: 10,
     toast: 'DOUDRADO LENDÁRIO! A lenda da praia!' },
+  { id: 'moonfish', name: 'Peixe-Lua', icon: '🌙', item: 'moonfish', color: '#b9c8de', belly: '#eef2fa',
+    size: 'M', stars: 4, speed: 1.05, zone: 0.16, perfect: 0.055, bite: 0.90, w: 0, wBeach: 0, nightOnly: true,
+    toast: 'PEIXE-LUA pescado! Brilha no escuro!' },
 ];
 
 
@@ -115,6 +118,7 @@ export class Engine {
     this.heroArt = this.heroArts.hero;
     this.dragonArt = makeDragon();
     this.ancientArt = makeAncient();
+    this.echoArt = makeWisp('#c9a8ff');
     this.crystalArt = makeCrystal();
     // retratos (diálogo + HUD) pré-renderizados
     const faceURL = (cv) => cv.toDataURL();
@@ -150,6 +154,7 @@ export class Engine {
       'Sana (Aprendiz)': humanoidFace(this.npcArt.hunter),
       'GOLEM ANCIÃO': makePortrait(this.ancientArt, 8, 0, 72, 62),
       'DRAGÃO DO CAOS': dragonFace(this.dragonArt),
+      'Eco Antigo': humanoidFace(this.npcArt.hermit),
     };
     this.dialog.portraitProvider = (name) => this.faceCanvas[name] || null;
     // trio de heróis na tela de título
@@ -239,10 +244,22 @@ export class Engine {
   _mapPx() { return [this.map.w * TILE, this.map.h * TILE]; }
   /** Está dentro de alguma casa? */
   _isInterior() { return !!this.place && this.place.kind === 'interior'; }
+  /** Geometria do interior atual (porta/saída/spawn; padrão = casas da vila). */
+  _placeGeo() { return (this.place && INTERIOR_GEO[this.place.id]) || { door: INTERIOR_DOOR, spawn: INTERIOR_SPAWN }; }
+  /** Porta de saída do interior atual (tile). */
+  _placeDoor() { return this._placeGeo().door; }
+  /** Spawn ao entrar no interior atual (tile). */
+  _placeSpawn() { return this._placeGeo().spawn; }
   /** Região atual (id do interior ou regionAt do mundo). */
   _curRegion() {
     if (this._isInterior()) return this.place.id;
     return regionAt(this.player.tileX, this.player.tileY);
+  }
+
+  /** Relógio p/ o HUD ("☀️ manhã"). */
+  _clockStr() {
+    const d = dayInfo(this.time);
+    return `${d.icon} ${d.label}`;
   }
 
   /** Fração de tela (0..1) de um ponto do mundo (p/ centrar a íris). */
@@ -272,8 +289,9 @@ export class Engine {
       this.place = { kind: 'interior', id };
       this.map = this.interiorMaps[id];
       this.npcs = this.interiorNpcs[id];
-      this.player.x = INTERIOR_SPAWN.x * TILE + 4;
-      this.player.y = INTERIOR_SPAWN.y * TILE;
+      const _sp = this._placeSpawn();
+      this.player.x = _sp.x * TILE + 4;
+      this.player.y = _sp.y * TILE;
       this.player.dir = 'up';
       this.player.slideX = 0; this.player.slideY = 0;
       this._path = null; this._tapAct = null; this._tapMark = null;
@@ -299,7 +317,8 @@ export class Engine {
     this._busy = true;
     try {
       this.audio.sfx('door');
-      const at = this._screenFrac(INTERIOR_DOOR.x * TILE + 16, INTERIOR_DOOR.y * TILE + 16);
+      const _ed = this._placeDoor();
+      const at = this._screenFrac(_ed.x * TILE + 16, _ed.y * TILE + 16);
       await Transition.irisOut(420, at.x, at.y);
       this.place = { kind: 'world' };
       this.map = this.worldMap;
@@ -348,8 +367,9 @@ export class Engine {
   _tryHouseExit() {
     if (!this._isInterior()) return false;
     const ft = this.player.facingTile();
-    const onDoor = this.player.tileX === INTERIOR_DOOR.x && this.player.tileY === INTERIOR_DOOR.y;
-    const faceDoor = ft.x === INTERIOR_DOOR.x && ft.y === INTERIOR_DOOR.y;
+    const _ed = this._placeDoor();
+    const onDoor = this.player.tileX === _ed.x && this.player.tileY === _ed.y;
+    const faceDoor = ft.x === _ed.x && ft.y === _ed.y;
     if (!onDoor && !faceDoor) return false;
     this._exitHouse();
     return true;
@@ -371,8 +391,8 @@ export class Engine {
   _showBanner(region) {
     const el = document.getElementById('region-banner');
     if (!el) return;
-    const names = { town: 'Vila Lumen', elder: 'Casa do Ancião', shop: 'Loja da Mira', inn: 'Estalagem do Bram', smith: 'Ferraria do Rurik', field: 'Planície Verdejante', forest: 'Bosque Sombrio', dungeon: 'Ruínas do Cristal', altar: 'Altar do Caos', beach: 'Praia do Sol', snow: 'Pico Nevado', desert: 'Deserto Dourado', swamp: 'Pântano Sombrio' };
-    const subs = { town: 'povoado pacato', elder: 'o ancião o aguarda', shop: 'ouro na mão, poção na sacola', inn: 'cama quente por 20G', smith: 'martelo quente, lâmina fria', field: 'cuidado com a grama alta', forest: 'feras entre as árvores', dungeon: 'o cristal o aguarda', altar: 'NÃO HÁ VOLTA', beach: 'águas calmas — bom p/ pescar', snow: 'o frio morde — feras fortes', desert: 'o oásis esconde um baú', swamp: 'não beba a água' };
+    const names = { town: 'Vila Lumen', elder: 'Casa do Ancião', shop: 'Loja da Mira', inn: 'Estalagem do Bram', smith: 'Ferraria do Rurik', cave: 'Caverna Ecoante', field: 'Planície Verdejante', forest: 'Bosque Sombrio', dungeon: 'Ruínas do Cristal', altar: 'Altar do Caos', beach: 'Praia do Sol', snow: 'Pico Nevado', desert: 'Deserto Dourado', swamp: 'Pântano Sombrio' };
+    const subs = { town: 'povoado pacato', elder: 'o ancião o aguarda', shop: 'ouro na mão, poção na sacola', inn: 'cama quente por 20G', smith: 'martelo quente, lâmina fria', cave: 'não faça barulho', field: 'cuidado com a grama alta', forest: 'feras entre as árvores', dungeon: 'o cristal o aguarda', altar: 'NÃO HÁ VOLTA', beach: 'águas calmas — bom p/ pescar', snow: 'o frio morde — feras fortes', desert: 'o oásis esconde um baú', swamp: 'não beba a água' };
     el.innerHTML = `${names[region] || region}<small>${subs[region] || ''}</small>`;
     el.classList.remove('hidden');
     void el.offsetWidth;
@@ -625,12 +645,13 @@ export class Engine {
     const region = this._curRegion();
     if (!this._lastRegion) this._lastRegion = region;
     else if (this._lastRegion !== region) { this._lastRegion = region; this._showBanner(region); }
-    const want = this._isInterior() || region === 'town' || region === 'beach' ? 'town' : region === 'dungeon' || region === 'altar' || region === 'swamp' ? 'dungeon' : 'field';
+    const indoorCalm = this._isInterior() && region !== 'cave';
+    const want = indoorCalm || region === 'town' || region === 'beach' ? 'town' : region === 'dungeon' || region === 'altar' || region === 'swamp' || region === 'cave' ? 'dungeon' : 'field';
     if (this.audio.ctx && this.audio.currentTrack !== want) this.audio.playMusic(want);
     if (this.hud.mm) this.hud.mm.style.display = this._isInterior() ? 'none' : '';
-    if (!this._isInterior()) this.hud.renderMinimap(this.mmBase, this.camera.ox, this.camera.oy, this.player.tileX, this.player.tileY, this.flags.bossDefeated ? null : BOSS_ALTAR, this.walkers.map((w) => ({ x: Math.floor(w.cx / TILE), y: Math.floor(w.cy / TILE) })));
-    const sig = `${region}|${this.gold}|${this.audio.muted}|${this.party.map((h) => `${Math.ceil(h.hp)}/${Math.ceil(h.mp)}/${h.level}`).join(',')}`;
-    if (sig !== this._hudSig) { this._hudSig = sig; this.hud.render(this.party, this.gold, region, this.faces, this.audio.muted); }
+    if (!this._isInterior()) this.hud.renderMinimap(this.mmBase, this.camera.ox, this.camera.oy, this.player.tileX, this.player.tileY, this.flags.bossDefeated ? null : BOSS_ALTAR, this.walkers.map((w) => ({ x: Math.floor(w.cx / TILE), y: Math.floor(w.cy / TILE) })), region === 'town' ? HOUSES.filter((h) => h.id !== 'cave').map((h) => h.door) : region === 'field' ? [{ x: 46, y: 14 }] : []);
+    const sig = `${region}|${this.gold}|${this.audio.muted}|${this._clockStr()}|${this.party.map((h) => `${Math.ceil(h.hp)}/${Math.ceil(h.mp)}/${h.level}`).join(',')}`;
+    if (sig !== this._hudSig) { this._hudSig = sig; this.hud.render(this.party, this.gold, region, this.faces, this.audio.muted, this._clockStr()); }
   }
 
   /** Ações do menu de pausa (reusadas por teclado e mouse). */
@@ -640,6 +661,31 @@ export class Engine {
         const r = useItem(this.inv, id, this.party[idx]);
         toast(r.msg);
         this.audio.sfx(r.ok ? 'item' : 'flee-fail');
+        this.menu._render();
+      },
+      equip: (id, idx) => {
+        const h = this.party[idx], it = ITEMS[id];
+        if (!h || !it?.slot) return;
+        h.equip = h.equip || { weapon: null, armor: null, charm: null };
+        // tira de quem vestia
+        for (const o of this.party) {
+          if (o !== h && o.equip?.[it.slot] === id) {
+            applyEquipBonus(o, it, -1);
+            o.equip[it.slot] = null;
+          }
+        }
+        if (h.equip[it.slot] === id) {
+          applyEquipBonus(h, it, -1);
+          h.equip[it.slot] = null;
+          toast(`${it.name} removido de ${h.name}.`);
+        } else {
+          const cur = h.equip[it.slot];
+          if (cur && ITEMS[cur]) applyEquipBonus(h, ITEMS[cur], -1);
+          applyEquipBonus(h, it, 1);
+          h.equip[it.slot] = id;
+          toast(`${h.name} equipou ${it.name}!`);
+        }
+        this.audio.sfx('item');
         this.menu._render();
       },
       useSpell: (hi, spell, ti) => {
@@ -759,7 +805,8 @@ export class Engine {
       Math.floor(w.cx / TILE) === tx && Math.floor(w.cy / TILE) === ty);
     if (foe) return { kind: 'foe', foe };
     if (this._isInterior()) {
-      if (tx === INTERIOR_DOOR.x && ty === INTERIOR_DOOR.y) return { kind: 'house-exit' };
+      const _xd = this._placeDoor();
+      if (tx === _xd.x && ty === _xd.y) return { kind: 'house-exit' };
       return null;
     }
     const house = this._houseAt(tx, ty);
@@ -845,10 +892,12 @@ export class Engine {
     this.audio.sfx('talk');
     if (npc.shop) return this._openShop(npc);
     if (npc.inn) return this._openInn(npc);
+    if (npc.id === 'echo') return this._talkEcho(npc);
     if (npc.id === 'kid') return this._talkPip(npc);
     if (npc.id === 'guard') return this._talkGuard(npc);
     if (npc.id === 'herbalist') return this._talkHerbalist(npc);
     if (npc.id === 'sailor') return this._talkSailor(npc);
+    if (npc.id === 'appr') return this._talkSana(npc);
     const lines = [{ name: npc.name, text: npc.nextLine() }];
     if (npc.gift && !npc.giftGiven) {
       npc.giftGiven = true;
@@ -862,6 +911,41 @@ export class Engine {
       lines.push({ name: 'Ancião Theo', text: 'Leve 2 POÇÕES da vila. E lembre-se: a estalagem do Bram cura suas feridas por 20G.' });
     }
     this.dialog.say(lines);
+  }
+
+  /** Guardião da Caverna Ecoante: conversa ou luta. */
+  _talkEcho(npc) {
+    if (this.flags.caveCleared) {
+      this.dialog.say([
+        { name: npc.name, text: 'Obrigado... por me libertar. A caverna enfim silencia... descanse, herói.' },
+      ]);
+      return;
+    }
+    this.audio.sfx('encounter');
+    this.dialog.say(
+      [{ name: 'ECO ANTIGO', text: 'EU FUI HERÓI... COMO VOCÊ. Prove que sua chama arde mais que a minha! LUTE... OU SAIA!', options: [{ label: `${ic('attack')} LUTAR!`, value: 'fight' }, { label: `${ic('flee')} Recuar`, value: null }] }],
+      null,
+      (v) => { if (v === 'fight') this._startCaveBattle(); }
+    );
+  }
+
+  async _startCaveBattle() {
+    if (this._busy) return;
+    this._path = null; this._tapAct = null; this._tapMark = null;
+    this._busy = true;
+    try {
+      this.audio.sfx('encounter');
+      this.audio.playMusic('boss');
+      await Transition.swirl(700);
+      this.state = 'BATTLE';
+      this.hud.hide();
+      this.battle.start(this.party, this.inv, [makeEcho()], {
+        region: 'dungeon',
+        onEnd: (r) => this._afterBattle({ ...r, cave: true }, 'dungeon'),
+      });
+    } finally {
+      this._busy = false;
+    }
   }
 
   /** Quest secundária: o boneco perdido do Pip. */
@@ -1018,6 +1102,42 @@ export class Engine {
     this.dialog.say(lines);
   }
 
+  /** Quest da forja: Sana quer a prova do Eco Antigo p/ o mestre Rurik. */
+  _talkSana(npc) {
+    const f = this.flags;
+    if (f.forgeRewarded) {
+      this.dialog.say([
+        { name: npc.name, text: 'Com o metal do Eco, o mestre forjou a melhor lâmina da vila! Obrigada!' },
+      ]);
+      return;
+    }
+    if (!f.forgeQuest) {
+      f.forgeQuest = true;
+      this.audio.sfx('confirm');
+      this.dialog.say([
+        { name: npc.name, text: 'Psiu! O mestre Rurik sonha em forjar com o metal do ECO ANTIGO...' },
+        { name: 'Sana (Aprendiz)', text: 'Dizem que ele assombra a CAVERNA ECOANTE, a oeste das Ruínas. Derrote-o e volte aqui: o mestre paga 150G e 2 BOMBARDAS!' },
+      ]);
+      toast('Nova quest: o metal do Eco Antigo!');
+      return;
+    }
+    if (f.caveCleared) {
+      f.forgeRewarded = true;
+      this.gold += 150;
+      this.inv.megabomb = (this.inv.megabomb || 0) + 2;
+      this.audio.sfx('levelup');
+      this.dialog.say([
+        { name: npc.name, text: 'Você... DERROTOU o Eco?! O mestre não vai acreditar!' },
+        { name: 'Sana (Aprendiz)', text: 'Aqui estão 150G e 2 BOMBARDAS da forja. Que o metal dele proteja você!' },
+      ]);
+      toast('+150G · +2 Bombardas!');
+      return;
+    }
+    this.dialog.say([
+      { name: npc.name, text: 'O Eco Antigo aguarda na caverna a oeste das Ruínas. Cuidado: ele repete seu último grito!' },
+    ]);
+  }
+
   /** Baú ao alcance do jogador (para o E e para a dica visual). */
   _nearChest() {
     return CHESTS.find((k) =>
@@ -1060,10 +1180,20 @@ export class Engine {
     if (r < 0.20) return { kind: 'algae' };
     const pearlCh = beach ? 0.30 : 0.26;
     if (r < pearlCh) return { kind: 'pearl', beach };
+    // Peixe-Lua: só morde à noite (fração própria, fora da tabela diurna)
+    const night = dayInfo(this.time).night > 0.5;
+    if (night && Math.random() < 0.22) {
+      const moon = FISH_DEX.find((s) => s.id === 'moonfish');
+      if (moon) return { kind: 'fish', spec: moon };
+    }
     let total = 0;
-    for (const s of FISH_DEX) total += beach ? s.wBeach : s.w;
+    for (const s of FISH_DEX) {
+      if (s.nightOnly) continue;
+      total += beach ? s.wBeach : s.w;
+    }
     let roll = Math.random() * total;
     for (const s of FISH_DEX) {
+      if (s.nightOnly) continue;
       roll -= beach ? s.wBeach : s.w;
       if (roll <= 0) return { kind: 'fish', spec: s };
     }
@@ -1375,10 +1505,17 @@ export class Engine {
         }
         this.gold -= 20;
         fullHeal(this.party);
+        this._restUntilMorning();
         this.audio.sfx('heal');
-        this.dialog.say([{ name: npc.name, text: 'Dormiram como pedras! HP e MP restaurados. Boa jornada!' }]);
+        this.dialog.say([{ name: npc.name, text: 'Dormiram como pedras! HP e MP restaurados. Amanheceu em Valoria!' }]);
       }
     );
+  }
+
+  /** Avança o relógio até o amanhecer (pouso na estalagem). */
+  _restUntilMorning() {
+    const t = dayInfo(this.time).t;
+    this.time += (((0.03 - t) % 1) + 1) % 1 * DAY_LEN;
   }
 
   _tryBossInteract() {
@@ -1396,12 +1533,15 @@ export class Engine {
   }
 
   // ---------- monstros visíveis patrulhando o mapa ----------
-  /** Regiões onde monstros andam à vista (encosto = batalha). */
+  /** Regiões onde monstros andam à vista (encosto = batalha; caverna inclusa). */
   _walkerRegion() {
-    if (this._isInterior()) return null;
+    if (this._isInterior()) return this.place.id === 'cave' ? 'cave' : null;
     const r = regionAt(this.player.tileX, this.player.tileY);
     return ['field', 'forest', 'dungeon', 'altar', 'snow', 'beach', 'desert', 'swamp'].includes(r) ? r : null;
   }
+
+  /** Tabela de patrulha da região (caverna usa a masmorra). */
+  _walkerTable(region) { return region === 'cave' ? 'dungeon' : region; }
 
   /** Sprite em cache de um patrulheiro. */
   _walkerImg(id) {
@@ -1412,18 +1552,19 @@ export class Engine {
   /** Tenta gerar um patrulheiro num anel de 6–11 tiles do jogador. */
   _spawnWalker(region) {
     const px = this.player.tileX, py = this.player.tileY;
+    const table = this._walkerTable(region);
     for (let tries = 0; tries < 24; tries++) {
       const a = Math.random() * Math.PI * 2;
       const d = 6 + Math.random() * 5;
       const tx = Math.round(px + Math.cos(a) * d), ty = Math.round(py + Math.sin(a) * d);
       if (tx < 2 || ty < 2 || tx >= this.map.w - 2 || ty >= this.map.h - 2) continue;
-      if (regionAt(tx, ty) !== region) continue;
+      if (region !== 'cave' && regionAt(tx, ty) !== region) continue;
       if (this.map.solid(tx, ty)) continue;
       if (this.map.tile(tx, ty) === T.WATER) continue;
       if (tx === BOSS_ALTAR.x && ty === BOSS_ALTAR.y) continue;
       if (CHESTS.some((c) => c.x === tx && c.y === ty)) continue;
       if (this.npcs.some((n) => Math.floor((n.x + 12) / TILE) === tx && Math.floor((n.y + 12) / TILE) === ty)) continue;
-      const id = pickWalkerEnemy(region);
+      const id = pickWalkerEnemy(table);
       const img = this._walkerImg(id);
       if (!img) continue;
       this.walkers.push({
@@ -1448,7 +1589,7 @@ export class Engine {
       const tx = px + dx, ty = py + dy;
       if (tx < 1 || ty < 1 || tx >= this.map.w - 1 || ty >= this.map.h - 1) continue;
       if (this.map.solid(tx, ty) || this.map.tile(tx, ty) === T.WATER) continue;
-      const id = pickWalkerEnemy(region);
+      const id = pickWalkerEnemy(this._walkerTable(region));
       const img = this._walkerImg(id);
       if (!img) return null;
       const w = {
@@ -1527,9 +1668,10 @@ export class Engine {
     if (i >= 0) this.walkers.splice(i, 1);
     this._touchGrace = 2.0;
     this.audio.sfx('encounter');
+    const table = this._walkerTable(region);
     const ids = [w.id];
-    if (Math.random() < 0.3) ids.push(pickWalkerEnemy(region));
-    this._startWildBattle(region, ids);
+    if (Math.random() < 0.3) ids.push(pickWalkerEnemy(table));
+    this._startWildBattle(table, ids);
   }
 
   // ---------- batalhas ----------
@@ -1618,7 +1760,7 @@ export class Engine {
       // estado primeiro (sincronia), fade como véu visual por cima do campo
       this.state = 'FIELD';
       this.hud.show();
-      this.hud.render(this.party, this.gold, region, this.faces, this.audio.muted);
+      this.hud.render(this.party, this.gold, region, this.faces, this.audio.muted, this._clockStr());
       await Transition.fadeOut(180);
       await Transition.fadeIn(280);
       return;
@@ -1626,6 +1768,19 @@ export class Engine {
     if (result.victory) {
       this.gold += result.gold;
       toast(`+${result.xp} XP · +${result.gold} G`);
+      // bestiário: conta as espécies derrotadas (avisa na 1ª vez)
+      if (result.kills?.length) {
+        this.flags.bestiary = this.flags.bestiary || {};
+        const fresh = [];
+        for (const id of result.kills) {
+          if (!this.flags.bestiary[id]) fresh.push(id);
+          this.flags.bestiary[id] = (this.flags.bestiary[id] || 0) + 1;
+        }
+        if (fresh.length) {
+          this.audio.sfx('item');
+          toast(`📖 Novo registro: ${fresh.length > 1 ? `${fresh.length} feras` : 'fera'} no Bestiário (Q > Bestiário)!`);
+        }
+      }
       // quest de caça: conta slimes da família derrotados
       if (this.flags.huntQuest && !this.flags.huntRewarded && result.kills) {
         const n = result.kills.filter((id) => id === 'slime' || id === 'king').length;
@@ -1665,6 +1820,17 @@ export class Engine {
         ]);
         toast('+1 Elixir! O deserto respira aliviado.');
       }
+      // guardião da caverna: marca a vitória e entrega a Lâmina Rúnica
+      if (result.cave && !this.flags.caveCleared) {
+        this.flags.caveCleared = true;
+        this.inv.sword2 = (this.inv.sword2 || 0) + 1;
+        this.audio.sfx('levelup');
+        this.dialog.say([
+          { name: '', text: '(O Eco Antigo se desfaz numa espiral de luz violeta. No chão, uma espada gravada com runas...)' },
+          { name: 'Eco Antigo', text: '...OBRIGADO... LIBERDADE... ...zzz...' },
+        ]);
+        toast('+1 Lâmina Rúnica! A caverna silencia.');
+      }
       if (result.boss) {
         this.flags.bossDefeated = true;
         this.state = 'FIELD';
@@ -1675,7 +1841,7 @@ export class Engine {
       }
       this.state = 'FIELD';
       this.hud.show();
-      this.hud.render(this.party, this.gold, region, this.faces, this.audio.muted);
+      this.hud.render(this.party, this.gold, region, this.faces, this.audio.muted, this._clockStr());
       await Transition.fadeOut(180);
       await Transition.fadeIn(300);
       return;
@@ -1815,11 +1981,24 @@ export class Engine {
     // baús do tesouro (fechado brilha; aberto mostra a tampa erguida)
     for (const c of CHESTS) this._drawChest(g, ox, oy, c);
     } else {
-      // dentro de casa: tapete de saída + brilho na porta
-      const ex = INTERIOR_DOOR.x * TILE + ox + 16, ey = INTERIOR_DOOR.y * TILE + oy;
+      // dentro de casa: tapete de saída + brilho na porta (+ Eco Antigo na caverna)
+      const _gd = this._placeDoor();
+      const ex = _gd.x * TILE + ox + 16, ey = _gd.y * TILE + oy;
       const tw = 0.5 + 0.4 * Math.sin(this.time * 4);
       g.fillStyle = `rgba(255,215,94,${(0.25 + tw * 0.25).toFixed(2)})`;
       g.beginPath(); g.ellipse(ex, ey + 10, 16, 6, 0, 0, 7); g.fill();
+      if (this.place.id === 'cave' && !this.flags.caveCleared) {
+        const eg = this.npcs.find((n) => n.id === 'echo');
+        if (eg) {
+          const eex = eg.x + ox + 12, eey = eg.y + oy - 6 + Math.sin(this.time * 1.8) * 5;
+          const pulse = 0.5 + 0.3 * Math.sin(this.time * 2.6);
+          g.strokeStyle = `rgba(201,168,255,${pulse.toFixed(2)})`; g.lineWidth = 3;
+          g.beginPath(); g.ellipse(eex, eey + 24, 24 + pulse * 5, 10 + pulse * 2, 0, 0, 7); g.stroke();
+          g.fillStyle = `rgba(201,168,255,${(0.10 + pulse * 0.12).toFixed(2)})`;
+          g.beginPath(); g.ellipse(eex, eey + 24, 24 + pulse * 5, 10 + pulse * 2, 0, 0, 7); g.fill();
+          g.drawImage(this.echoArt, eex - 45, eey - 42, 90, 84);
+        }
+      }
     }
 
     // sombras suaves sob os atores (profundidade barata estilo 16-bit)
@@ -1869,8 +2048,9 @@ export class Engine {
     if (this.state === 'FIELD' && !this.dialog.active && !this.menu.active) {
       if (this._isInterior()) {
         const ft0 = this.player.facingTile();
-        if ((ft0.x === INTERIOR_DOOR.x && ft0.y === INTERIOR_DOOR.y) ||
-            (this.player.tileX === INTERIOR_DOOR.x && this.player.tileY === INTERIOR_DOOR.y)) exitPrompt = true;
+        const _pd = this._placeDoor();
+        if ((ft0.x === _pd.x && ft0.y === _pd.y) ||
+            (this.player.tileX === _pd.x && this.player.tileY === _pd.y)) exitPrompt = true;
       } else if (!npc) {
         const ft0 = this.player.facingTile();
         housePrompt = this._houseAt(ft0.x, ft0.y) || this._houseAt(this.player.tileX, this.player.tileY);
@@ -1880,7 +2060,8 @@ export class Engine {
       g.fillStyle = '#ffd75e';
       g.font = 'bold 20px monospace';
       g.strokeStyle = '#000'; g.lineWidth = 4;
-      const ex = INTERIOR_DOOR.x * TILE + ox + 16, ey = INTERIOR_DOOR.y * TILE + oy - 26 + Math.sin(this.time * 5) * 2;
+      const _ed2 = this._placeDoor();
+      const ex = _ed2.x * TILE + ox + 16, ey = _ed2.y * TILE + oy - 26 + Math.sin(this.time * 5) * 2;
       g.textAlign = 'center';
       g.strokeText('🚪 E Sair', ex, ey);
       g.fillText('🚪 E Sair', ex, ey);
@@ -2646,12 +2827,12 @@ export class Engine {
     this.g.drawImage(img, x + (32 - w) / 2 + (leanX + swayX) * s, y + (40 - h) + (bob + leanY) * s, w, h);
   }
 
-  /** Shader de iluminação do campo: tinte do bioma + luz de topo + halo + vinheta. */
+  /** Shader de iluminação do campo: tinte do bioma + ciclo dia/noite + halo + vinheta. */
   _drawLighting(g, p, ox, oy) {
     // 1) tinte do bioma (sombreamento por região)
     const region = this._curRegion();
     const tints = {
-      dungeon: 'rgba(10,10,38,.30)', altar: 'rgba(10,10,38,.30)',
+      dungeon: 'rgba(10,10,38,.30)', altar: 'rgba(10,10,38,.30)', cave: 'rgba(8,8,28,.32)',
       swamp: 'rgba(8,28,18,.24)', forest: 'rgba(4,20,10,.20)',
       snow: 'rgba(190,215,255,.10)', desert: 'rgba(255,175,80,.09)',
       beach: 'rgba(255,240,200,.07)',
@@ -2660,9 +2841,15 @@ export class Engine {
     };
     const tint = tints[region];
     if (tint) { g.fillStyle = tint; g.fillRect(0, 0, VIEW_W, VIEW_H); }
+    // 1b) noite do ciclo dia/noite (fora de interiores escuros, que já têm tinte)
+    const dn = dayInfo(this.time).night;
+    if (dn > 0.02 && !this._isInterior()) {
+      g.fillStyle = `rgba(6,8,30,${(0.34 * dn).toFixed(3)})`;
+      g.fillRect(0, 0, VIEW_W, VIEW_H);
+    }
     // 2) luz de topo (sol): brisa clara descendo do alto da tela
     const top = g.createLinearGradient(0, 0, 0, VIEW_H * 0.45);
-    const night = region === 'dungeon' || region === 'altar' || region === 'swamp';
+    const night = region === 'dungeon' || region === 'altar' || region === 'swamp' || dn > 0.5;
     top.addColorStop(0, night ? 'rgba(120,150,255,.07)' : 'rgba(255,250,230,.08)');
     top.addColorStop(1, 'rgba(255,250,230,0)');
     g.fillStyle = top;

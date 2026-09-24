@@ -151,6 +151,15 @@ export function buildMap() {
   // pilares simétricos na entrada das ruínas
   set(52, 12, T.RUIN); set(56, 12, T.RUIN);
   set(52, 16, T.RUIN); set(56, 16, T.RUIN);
+  // fenda da Caverna Ecoante (oeste das Ruínas): boca + placa + chão firme
+  for (let y = 13; y <= 15; y++) for (let x = 45; x <= 47; x++) {
+    if (x === 46 && y === 14) continue;
+    if (get(x, y) !== T.WATER) set(x, y, T.DARK_GRASS);
+  }
+  set(46, 14, T.DOOR);
+  set(46, 15, T.PATH);
+  set(45, 14, T.SIGN);
+  set(45, 13, T.STONE); set(47, 13, T.STONE);
   // arvoredo ao redor da vila (mantém respiro: só fora do terreno 6..25 / 30..47)
   for (let x = 5; x <= 26; x++) {
     if (hash2(x, 11) > 0.35 && get(x, 29) === T.GRASS) set(x, 29, T.TREE);
@@ -376,13 +385,14 @@ export const NPC_DEFS = [
   },
 ];
 
-/** Casas visitáveis da Vila Lumen: porta externa (mundo) → interior.
+/** Casas visitáveis da Vila Lumen (+ Caverna Ecoante): porta externa (mundo) → interior.
  * door = tile da porta; front = tile em frente à porta (retorno ao sair). */
 export const HOUSES = [
   { id: 'elder', name: 'Casa do Ancião', door: { x: 10, y: 34 }, front: { x: 10, y: 35 } },
   { id: 'shop', name: 'Loja da Mira', door: { x: 21, y: 34 }, front: { x: 21, y: 35 } },
   { id: 'inn', name: 'Estalagem do Bram', door: { x: 10, y: 45 }, front: { x: 10, y: 46 } },
   { id: 'smith', name: 'Ferraria do Rurik', door: { x: 21, y: 45 }, front: { x: 21, y: 46 } },
+  { id: 'cave', name: 'Caverna Ecoante', door: { x: 46, y: 14 }, front: { x: 46, y: 15 } },
 ];
 
 /** Dimensões dos interiores (tiles). */
@@ -391,18 +401,30 @@ export const INTERIOR_H = 15;
 /** Porta de saída dentro do interior (parede sul) + spawn ao entrar. */
 export const INTERIOR_DOOR = { x: 11, y: 14 };
 export const INTERIOR_SPAWN = { x: 11, y: 12 };
+/** Geometria por interior (padrão = constantes acima). */
+export const INTERIOR_GEO = {
+  elder: { w: 22, h: 15, door: { x: 11, y: 14 }, spawn: { x: 11, y: 12 } },
+  shop: { w: 22, h: 15, door: { x: 11, y: 14 }, spawn: { x: 11, y: 12 } },
+  inn: { w: 22, h: 15, door: { x: 11, y: 14 }, spawn: { x: 11, y: 12 } },
+  smith: { w: 22, h: 15, door: { x: 11, y: 14 }, spawn: { x: 11, y: 12 } },
+  cave: { w: 26, h: 18, door: { x: 13, y: 17 }, spawn: { x: 13, y: 15 } },
+};
+/** Guardião da caverna (tile do NPC Eco). */
+export const CAVE_GUARDIAN = { x: 13, y: 6 };
 
 /** @returns {{tiles: Uint8Array, w: number, h: number}} interior da casa `id`. */
 export function buildInterior(id) {
-  const w = INTERIOR_W, h = INTERIOR_H;
+  const geo = INTERIOR_GEO[id] || { w: INTERIOR_W, h: INTERIOR_H, door: INTERIOR_DOOR, spawn: INTERIOR_SPAWN };
+  const w = geo.w, h = geo.h;
   const tiles = new Uint8Array(w * h);
   const set = (x, y, t) => { if (x >= 0 && y >= 0 && x < w && y < h) tiles[y * w + x] = t; };
   const rect = (x0, y0, x1, y1, t) => { for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) set(x, y, t); };
-  rect(0, 0, w - 1, h - 1, T.FLOOR);
-  // paredes externas (telhado não aparece por dentro)
-  for (let x = 0; x < w; x++) { set(x, 0, T.WALL); set(x, h - 1, T.WALL); }
-  for (let y = 0; y < h; y++) { set(0, y, T.WALL); set(w - 1, y, T.WALL); }
-  set(INTERIOR_DOOR.x, INTERIOR_DOOR.y, T.DOOR);
+  const isCave = id === 'cave';
+  rect(0, 0, w - 1, h - 1, isCave ? T.SOIL : T.FLOOR);
+  // paredes externas (telhado não aparece por dentro; caverna usa rocha)
+  for (let x = 0; x < w; x++) { set(x, 0, isCave ? T.RUIN : T.WALL); set(x, h - 1, isCave ? T.RUIN : T.WALL); }
+  for (let y = 0; y < h; y++) { set(0, y, isCave ? T.RUIN : T.WALL); set(w - 1, y, isCave ? T.RUIN : T.WALL); }
+  set(geo.door.x, geo.door.y, T.DOOR);
   // tapete central
   rect(8, 6, 13, 10, T.PLAZA);
   set(10, 8, T.PLAZA); set(11, 8, T.PLAZA);
@@ -440,6 +462,26 @@ export function buildInterior(id) {
     set(18, 2, T.CRATE); set(19, 2, T.CRATE); set(19, 3, T.CRATE);
     set(18, 11, T.STONE); set(3, 11, T.STONE);
     set(10, 5, T.FLOWER);
+  } else if (id === 'cave') {
+    // Caverna Ecoante: estalactites (ruína), braseiros (lâmpada) e círculo ritual
+    for (let y = 3; y <= 13; y += 5) {
+      for (let x = 3; x <= 22; x += 6) {
+        if ((x === 13 && y >= 4 && y <= 8) || (x === 12 && y === 8)) continue; // corredor do ritual
+        set(x, y, T.RUIN);
+        if (hash2(x, y) > 0.5) set(x + 1, y + 1, T.RUIN);
+      }
+    }
+    // círculo ritual de pedra ao norte (o Eco aguarda no centro)
+    for (let y = 4; y <= 8; y++) for (let x = 11; x <= 15; x++) {
+      if (Math.hypot(x - 13, y - 6) < 2.6) set(x, y, T.PLAZA);
+    }
+    // braseiros acesos
+    set(2, 2, T.LAMP); set(23, 2, T.LAMP);
+    set(2, 15, T.LAMP); set(23, 15, T.LAMP);
+    set(10, 6, T.LAMP); set(16, 6, T.LAMP);
+    // poça d'água subterrânea
+    set(20, 12, T.WATER); set(21, 12, T.WATER); set(20, 13, T.WATER);
+    set(5, 12, T.WATER); set(5, 13, T.WATER); set(6, 13, T.WATER);
   }
   return { tiles, w, h };
 }
@@ -459,6 +501,7 @@ export const INTERIOR_NPCS = {
       id: 'lia', x: 15, y: 9, name: 'Lia (Aprendiz)', kind: 'sage', wander: true,
       lines: [
         'O Ancião me ensina a ler os mapas antigos... as Ruínas ficam a nordeste!',
+        'Dizem que há uma fenda a oeste das Ruínas, e um Eco antigo lá dentro...',
         'Traga ervas do pântano para a Yara — ela faz tônicos que salvam vidas!',
       ],
     },
@@ -499,6 +542,15 @@ export const INTERIOR_NPCS = {
       lines: [
         'O mestre Rurik forjou minha lança! Com BOMBAS, até golem cai!',
         'O Golem Ancião do deserto? Nem o mestre encara... mas você parece forte!',
+      ],
+    },
+  ],
+  cave: [
+    {
+      id: 'echo', x: 13, y: 6, name: 'Eco Antigo', kind: 'hermit', wander: false,
+      lines: [
+        'QUEM... OUSA... ACORDAR... O ECO?',
+        'Fui herói como você, há cem luas. Minha voz ficou presa nestas pedras.',
       ],
     },
   ],

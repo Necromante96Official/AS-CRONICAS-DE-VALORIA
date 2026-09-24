@@ -12,13 +12,19 @@ export const PASSIVES = {
   focus: { name: 'Foco Arcano',   desc: '+2 MP por turno.' },
   tough: { name: 'Couraça',       desc: '-8% de dano recebido por nível.' },
   charm: { name: 'Carisma',       desc: '+15% de XP ganho por nível.' },
+  lifesteal: { name: 'Roubo de Vida', desc: 'Ataques físicos curam 8% do dano por nível.' },
+  endure: { name: 'Milagre',      desc: 'Sobrevive a 1 golpe letal por batalha (por nível).' },
+  counter: { name: 'Revide',      desc: 'Chance de contra-atacar ao sofrer dano.' },
+  dodge: { name: 'Esquiva',       desc: '+6% de chance de desviar por nível.' },
+  gold:  { name: 'Alquimia',      desc: '+10% de ouro das vitórias por nível.' },
+  swift: { name: 'Pressa',        desc: 'Age mais cedo no turno (+3 VEL efetiva por nível).' },
 };
 
 /** Nomes de stats p/ textos. */
 export const STAT_NAMES = { atk: 'ATK', def: 'DEF', mag: 'MAG', spd: 'VEL', maxHp: 'HP máx', maxMp: 'MP máx' };
 
 /**
- * Nó: {id, cls, name, desc, icon, x, y (0..100, 0..64), req:[ids], max, effect}
+ * Nó: {id, cls, name, desc, icon, x, y (0..100, 0..64), req:[ids], reqLevel, max, effect}
  * effect: {kind:'stat', stat, per} | {kind:'spell', spell} | {kind:'passive', passive}
  */
 export const NODES = [
@@ -33,6 +39,8 @@ export const NODES = [
   { id: 'k_def2', cls: 'Guerreiro', name: 'Muralha', desc: 'Vira uma fortaleza ambulante.', icon: 'guard', x: 88, y: 42, req: ['k_def1'], max: 2, effect: { kind: 'stat', stat: 'def', per: 4 } },
   { id: 'k_cure', cls: 'Guerreiro', name: 'Bênção da Capela', desc: 'Aprende a magia Cura.', icon: 'cure', x: 38, y: 58, req: ['k_regen'], max: 1, effect: { kind: 'spell', spell: 'cure' } },
   { id: 'k_hp2', cls: 'Guerreiro', name: 'Coração Valente', desc: 'Coração que nunca desiste.', icon: 'potion', x: 62, y: 58, req: ['k_regen'], max: 1, effect: { kind: 'stat', stat: 'maxHp', per: 24 } },
+  { id: 'k_leech', cls: 'Guerreiro', name: 'Sede de Batalha', desc: 'Cada golpe rouba vida do inimigo.', icon: 'potion', x: 12, y: 58, req: ['k_crit'], reqLevel: 3, max: 2, effect: { kind: 'passive', passive: 'lifesteal' } },
+  { id: 'k_counter', cls: 'Guerreiro', name: 'Revide', desc: 'Devolve parte do dano sofrido.', icon: 'attack', x: 82, y: 58, req: ['k_tough'], reqLevel: 4, max: 2, effect: { kind: 'passive', passive: 'counter' } },
   // ---------- LYRA · Maga ----------
   { id: 'l_mag1', cls: 'Maga', name: 'Mente Brilhante', desc: 'Poder arcano em expansão.', icon: 'magic', x: 50, y: 8, req: [], max: 3, effect: { kind: 'stat', stat: 'mag', per: 3 } },
   { id: 'l_mp1', cls: 'Maga', name: 'Reserva de Mana', desc: 'Mais mana para conjurar.', icon: 'ether', x: 20, y: 24, req: [], max: 3, effect: { kind: 'stat', stat: 'maxMp', per: 6 } },
@@ -44,6 +52,9 @@ export const NODES = [
   { id: 'l_arch', cls: 'Maga', name: 'Arquimaga', desc: 'Poder de outro patamar.', icon: 'magic', x: 64, y: 44, req: ['l_focus'], max: 1, effect: { kind: 'stat', stat: 'mag', per: 5 } },
   { id: 'l_frost', cls: 'Maga', name: 'Pele Gélida', desc: 'Fria como o inverno: sofre menos dano.', icon: 'tough', x: 88, y: 44, req: ['l_ice'], max: 2, effect: { kind: 'passive', passive: 'tough' } },
   { id: 'l_hp1', cls: 'Maga', name: 'Corpo São', desc: 'Um corpo mais resistente.', icon: 'potion', x: 50, y: 58, req: ['l_focus'], max: 2, effect: { kind: 'stat', stat: 'maxHp', per: 10 } },
+  { id: 'l_dodge', cls: 'Maga', name: 'Corpo Etéreo', desc: 'Quase intangível por instantes.', icon: 'flee', x: 14, y: 56, req: ['l_crit'], reqLevel: 3, max: 2, effect: { kind: 'passive', passive: 'dodge' } },
+  { id: 'l_swift', cls: 'Maga', name: 'Pressa Arcana', desc: 'Magia acelera os reflexos.', icon: 'spark', x: 30, y: 58, req: ['l_cure'], reqLevel: 3, max: 2, effect: { kind: 'passive', passive: 'swift' } },
+  { id: 'l_gold', cls: 'Maga', name: 'Alquimia', desc: 'Transmuta restos em ouro.', icon: 'gold', x: 70, y: 58, req: ['l_arch'], reqLevel: 4, max: 2, effect: { kind: 'passive', passive: 'gold' } },
   // ---------- MILO · Clérigo ----------
   { id: 'm_mag1', cls: 'Clérigo', name: 'Fé Radiante', desc: 'A luz fortalece a mente.', icon: 'magic', x: 50, y: 8, req: [], max: 3, effect: { kind: 'stat', stat: 'mag', per: 2 } },
   { id: 'm_hp1', cls: 'Clérigo', name: 'Voto de Vigor', desc: 'Guardião do grupo.', icon: 'potion', x: 20, y: 24, req: [], max: 3, effect: { kind: 'stat', stat: 'maxHp', per: 10 } },
@@ -55,6 +66,8 @@ export const NODES = [
   { id: 'm_def1', cls: 'Clérigo', name: 'Manto Protetor', desc: 'Proteção abençoada.', icon: 'guard', x: 64, y: 44, req: ['m_focus'], max: 3, effect: { kind: 'stat', stat: 'def', per: 2 } },
   { id: 'm_ice', cls: 'Clérigo', name: 'Luz Gélida', desc: 'Aprende a magia Gelo.', icon: 'ice', x: 88, y: 44, req: ['m_thunder'], max: 1, effect: { kind: 'spell', spell: 'ice' } },
   { id: 'm_tough', cls: 'Clérigo', name: 'Rocha da Fé', desc: 'Inabalável como a fé.', icon: 'tough', x: 70, y: 58, req: ['m_def1'], max: 2, effect: { kind: 'passive', passive: 'tough' } },
+  { id: 'm_endure', cls: 'Clérigo', name: 'Milagre', desc: 'A luz não deixa você cair.', icon: 'guard', x: 12, y: 58, req: ['m_crit'], reqLevel: 4, max: 2, effect: { kind: 'passive', passive: 'endure' } },
+  { id: 'm_charm', cls: 'Clérigo', name: 'Presença Santa', desc: 'Vitórias rendem mais XP.', icon: 'elixir', x: 46, y: 58, req: ['m_regen'], reqLevel: 2, max: 2, effect: { kind: 'passive', passive: 'charm' } },
 ];
 
 /** @param {string} cls */
@@ -94,9 +107,17 @@ export const reqMet = (h, node) => node.req.every((r) => getRank(h, r) > 0);
 export function canInvest(h, node) {
   if (!node || node.cls !== h.cls) return { ok: false, reason: 'no-node' };
   if (getRank(h, node.id) >= node.max) return { ok: false, reason: 'maxed' };
+  if ((h.level || 1) < (node.reqLevel || 1)) return { ok: false, reason: 'level' };
   if (!reqMet(h, node)) return { ok: false, reason: 'locked' };
   if ((h.sp || 0) < (node.cost || 1)) return { ok: false, reason: 'no-sp' };
   return { ok: true, reason: '' };
+}
+
+/** Multiplicador de ouro do grupo (maior Alquimia). @param {any[]} party */
+export function goldMult(party) {
+  let m = 0;
+  for (const h of party || []) m = Math.max(m, skillRank(h, 'gold'));
+  return 1 + 0.1 * m;
 }
 
 /** Texto do efeito p/ UI. @param {any} node */

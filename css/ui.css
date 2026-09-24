@@ -283,8 +283,9 @@
 #skills-links { position: absolute; inset: 0; width: 100%; height: 100%; }
 #skills-links line { stroke-width: .9; }
 #skills-links line.taken { stroke: #ffd75e; filter: drop-shadow(0 0 2px #ffd75e); }
-#skills-links line.avail { stroke: #4fc3ff88; stroke-dasharray: 2 1.2; }
+#skills-links line.avail { stroke: #4fc3ff88; stroke-dasharray: 2 1.2; animation: dashflow 1.1s linear infinite; }
 #skills-links line.locked { stroke: #ffffff22; }
+@keyframes dashflow { to { stroke-dashoffset: -3.2; } }
 #skills-nodes { position: absolute; inset: 0; }
 .sk-node {
   position: absolute; transform: translate(-50%, -50%);

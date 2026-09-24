@@ -124,7 +124,7 @@ export class Skills {
       this.notify(`${h.name}: ${node.name} ${rank}/${node.max}!`);
     } else {
       this.audio.sfx('flee-fail');
-      this.notify(REASONS[r.reason] || 'Não foi possível investir.');
+      this.notify(r.reason === 'level' ? `Requer Nv ${node.reqLevel}+ para desbloquear.` : (REASONS[r.reason] || 'Não foi possível investir.'));
     }
     this._render();
   }
@@ -180,7 +180,7 @@ export class Skills {
         `<h3>${ic(n.icon, 40)} ${n.name} <span class="row-sub">${rank}/${n.max}</span></h3>` +
         `<div>${n.desc}</div>` +
         `<div class="sk-fx">${effectText(n)}</div>` +
-        `<div class="row-sub">Requer: ${reqNames}</div>` +
+        `<div class="row-sub">Requer: ${reqNames}${(n.reqLevel || 1) > 1 ? ` · <span class="${(h.level || 1) >= n.reqLevel ? 'req-ok' : 'req-no'}">Nv ${n.reqLevel}+</span>` : ''}</div>` +
         `<div class="sk-hint">${hint}</div>`;
     } else {
       this.detailEl.innerHTML = '';

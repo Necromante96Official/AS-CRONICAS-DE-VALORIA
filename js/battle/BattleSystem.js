@@ -3,7 +3,7 @@
  * @module battle/BattleSystem
  */
 import { SPELLS, grantXp, aliveHeroes, partyWiped } from '../entities/Party.js';
-import { skillRank } from '../systems/SkillTree.js';
+import { skillRank, goldMult } from '../systems/SkillTree.js';
 import { ITEMS } from '../systems/Inventory.js';
 import { foeImage } from '../entities/Enemies.js';
 import { ic } from '../ui/ItemIcons.js';
@@ -111,6 +111,7 @@ export class BattleSystem {
     this.isBoss = !!opts.boss;
     this.region = opts.region || 'field';
     this.onEnd = opts.onEnd;
+    this._endureUsed = {};
     this.phase = 'intro';
     this.phaseT = 0;
     this.heroIdx = 0;
@@ -384,7 +385,7 @@ export class BattleSystem {
     this.queue = [];
     this.party.forEach((h, i) => {
       const a = this.actions[i];
-      if (h.hp > 0 && a && a.type !== 'skip' && a.type !== 'guard') this.queue.push({ side: 'hero', idx: i, spd: h.spd + Math.random() * 3, act: a });
+      if (h.hp > 0 && a && a.type !== 'skip' && a.type !== 'guard') this.queue.push({ side: 'hero', idx: i, spd: h.spd + 3 * skillRank(h, 'swift') + Math.random() * 3, act: a });
     });
     this.enemies.forEach((e, i) => {
       if (e.hp > 0) this.queue.push({ side: 'enemy', idx: i, spd: e.spd + Math.random() * 3 });
@@ -574,6 +575,16 @@ export class BattleSystem {
       this._slashFx(pos, crit);
       this._strikeFx(pos, '#fff');
       this._floatDmg(pos, dmg, crit ? '#ffd75e' : '#fff', crit);
+      // Roubo de Vida: ataques físicos curam parte do dano
+      const ls = skillRank(h, 'lifesteal');
+      if (ls > 0 && dmg > 0 && h.hp > 0 && h.hp < h.maxHp) {
+        const hv = Math.min(Math.round(dmg * 0.08 * ls), h.maxHp - h.hp);
+        if (hv > 0) {
+          h.hp += hv;
+          this._healFx(this.heroPos(hi), '#ff9b9b');
+          this._floatDmg(this.heroPos(hi), `+${hv}`, '#ff9b9b', false);
+        }
+      }
       if (crit) { this.hitStop = 0.12; this._shake(5, 0.25); }
       this._log(`${h.name} ataca ${e.name}! ${crit ? 'CRÍTICO! ' : ''}${dmg} de dano!${e.hp <= 0 ? ` ${e.name} foi derrotado!` : ''}`);
       if (e.hp <= 0) { this.audio.sfx('die'); this._soulFx(pos); }
@@ -733,12 +744,32 @@ export class BattleSystem {
   /** @param {{x:number,y:number}|null} [lungeTo] alvo do avanço (nulo = golpe à distância) */
   _hurtHero(t, rawDmg, e, ei, label, lungeTo = null) {
     const ti = this.party.indexOf(t);
+    // Esquiva: chance de negar o golpe por inteiro
+    const dg = skillRank(t, 'dodge');
+    if (dg > 0 && Math.random() < 0.06 * dg) {
+      this.audio.sfx('cursor');
+      this._floatDmg(this.heroPos(ti), 'DESVIOU!', '#7fd4ff', false);
+      this._log(`${t.name} se esquivou de ${e.name}!`);
+      this._renderAll();
+      return;
+    }
     let dmg = rawDmg;
     let blocked = false;
     // Couraça: reduz o dano antes da guarda
     const tough = skillRank(t, 'tough');
     if (tough > 0) dmg = Math.max(1, Math.round(dmg * (1 - 0.08 * tough)));
     if (t.guard) { dmg = Math.max(1, Math.ceil(dmg / 2)); blocked = true; }
+    // Milagre: sobrevive ao golpe letal (1 carga por nível, por batalha)
+    let endured = false;
+    const en = skillRank(t, 'endure');
+    if (en > 0 && t.hp > 0 && t.hp - dmg <= 0) {
+      const used = this._endureUsed?.[ti] || 0;
+      if (used < en) {
+        this._endureUsed = { ...(this._endureUsed || {}), [ti]: used + 1 };
+        dmg = t.hp - 1;
+        endured = true;
+      }
+    }
     t.hp -= dmg;
     t.hitT = 0.35;
     if (lungeTo) {
@@ -750,7 +781,17 @@ export class BattleSystem {
     this._strikeFx(this.heroPos(ti), '#ff6b6b');
     this._floatDmg(this.heroPos(ti), blocked ? `🛡${dmg}` : dmg, blocked ? '#6bb8ff' : '#ff6b6b', false);
     if (dmg >= 20) this._shake(4, 0.2);
-    this._log(`${e.name} ${label} ${t.name}! ${dmg} de dano!${blocked ? ' (bloqueado 🛡)' : ''}${t.hp <= 0 ? ` ${t.name} caiu!` : ''}`);
+    this._log(`${e.name} ${label} ${t.name}! ${dmg} de dano!${blocked ? ' (bloqueado 🛡)' : ''}${endured ? ' (MILAGRE! Resistiu com 1 HP!)' : ''}${t.hp <= 0 ? ` ${t.name} caiu!` : ''}`);
+    // Revide: chance de devolver parte do dano
+    const ct = skillRank(t, 'counter');
+    if (ct > 0 && t.hp > 0 && e.hp > 0 && Math.random() < 0.08 + 0.07 * ct) {
+      const back = Math.max(1, Math.round(t.atk * 1.2 - e.def));
+      e.hp -= back;
+      this._slashFx(this.enemyPos(ei), false);
+      this._floatDmg(this.enemyPos(ei), back, '#ffe95e', false);
+      this._log(`${t.name} revida em ${e.name}! ${back} de dano!${e.hp <= 0 ? ` ${e.name} foi derrotado!` : ''}`);
+      if (e.hp <= 0) { this.audio.sfx('die'); this._soulFx(this.enemyPos(ei)); }
+    }
     this._renderAll();
   }
 
@@ -969,7 +1010,7 @@ export class BattleSystem {
     this.phaseT = victory ? 2.2 : 1.6;
     if (victory) {
       const xp = this.enemies.reduce((s, e) => s + e.xp, 0);
-      const gold = this.enemies.reduce((s, e) => s + e.gold, 0);
+      const gold = Math.round(this.enemies.reduce((s, e) => s + e.gold, 0) * goldMult(this.party));
       const lvMsgs = grantXp(this.party, xp);
       this.audio.sfx(this.isBoss ? 'victory' : 'victory');
       if (lvMsgs.length) setTimeout(() => this.audio.sfx('levelup'), 500);

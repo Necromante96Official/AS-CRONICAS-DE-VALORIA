@@ -8,7 +8,7 @@
 import { SaveSystem } from '../systems/SaveSystem.js';
 import { makeEncounter, makeEnemy, encounterTable } from '../entities/Enemies.js';
 import { newParty, grantXp, restoreParty, serializeParty } from '../entities/Party.js';
-import { treeFor, nodeById, getRank, canInvest, invest, skillRank, listPassives } from '../systems/SkillTree.js';
+import { treeFor, nodeById, getRank, canInvest, invest, skillRank, listPassives, goldMult } from '../systems/SkillTree.js';
 import { useItem, ITEMS, SHOP_STOCK, ITEM_CATS, newInventory } from '../systems/Inventory.js';
 import { TILE, xpForLevel } from '../core/Config.js';
 import { regionAt, CHESTS } from '../world/MapData.js';
@@ -412,10 +412,10 @@ export async function runAutoTest(game) {
       kael.sp = 5;
       invest(kael, nodeById('k_crit')); invest(kael, nodeById('k_crit'));
       log(skillRank(kael, 'crit') === 2 && listPassives(kael).some((x) => x.name === 'Crítico' && x.rank === 2), 'skill-passive');
-      // árvores por classe têm ~10 nós cada e links válidos
-      const okTrees = ['Guerreiro', 'Maga', 'Clérigo'].every((c) => {
+      // árvores por classe têm nós e links válidos (12/13/12)
+      const okTrees = [['Guerreiro', 12], ['Maga', 13], ['Clérigo', 12]].every(([c, n]) => {
         const t = treeFor(c);
-        return t.length >= 9 && t.every((n) => n.req.every((r) => t.some((m) => m.id === r)));
+        return t.length === n && t.every((x) => x.req.every((r) => t.some((m) => m.id === r)));
       });
       log(okTrees, 'skill-trees');
       // save/load preserva sp + nós
@@ -843,6 +843,83 @@ export async function runAutoTest(game) {
       log(!!b && b.who === 'enemy', 'inimigo-avanca');
       game.battle.stop();
       for (const hh of game.party) { hh.hp = hh.maxHp; hh.mp = hh.maxMp; }
+    }
+    // passivas novas: nível mínimo, carisma no XP e efeitos em batalha
+    {
+      const p = newParty();
+      const lyra = p[1]; lyra.sp = 9;
+      invest(lyra, nodeById('l_mag1')); invest(lyra, nodeById('l_mp1')); invest(lyra, nodeById('l_crit'));
+      const d0 = invest(lyra, nodeById('l_dodge'));
+      log(!d0.ok && d0.reason === 'level' && lyra.sp === 6, 'pass-reqlevel');
+      lyra.level = 3;
+      log(invest(lyra, nodeById('l_dodge')).ok && skillRank(lyra, 'dodge') === 1, 'pass-reqlevel-ok');
+      const milo = p[2];
+      milo.skills = { m_charm: 2 };
+      const q = newParty(); q[2].skills = { m_charm: 2 };
+      grantXp(q, 10);
+      log(q[2].xp === 13 && q[0].xp === 10, 'pass-charm-xp');
+      log(goldMult(q) === 1, 'pass-gold-neutro');
+      const gg = newParty(); gg[1].level = 5; gg[1].sp = 9;
+      invest(gg[1], nodeById('l_mag1')); invest(gg[1], nodeById('l_focus')); invest(gg[1], nodeById('l_focus'));
+      invest(gg[1], nodeById('l_arch')); invest(gg[1], nodeById('l_gold')); invest(gg[1], nodeById('l_gold'));
+      log(skillRank(gg[1], 'gold') === 2 && Math.abs(goldMult(gg) - 1.2) < 1e-9, 'pass-gold');
+    }
+    // Milagre: sobrevive ao letal 2x (cargas) e cai no 3º
+    {
+      const p = newParty();
+      const t = p[2]; t.maxHp = 200; t.hp = 200; t.skills = { m_endure: 2 };
+      game.battle.start(p, game.inv, [makeEnemy('slime', 1)], { region: 'field', onEnd: () => {} });
+      const e = game.battle.enemies[0];
+      game.battle._hurtHero(t, 9999, e, 0, 'esmaga');
+      const s1 = t.hp === 1;
+      game.battle._hurtHero(t, 9999, e, 0, 'esmaga');
+      const s2 = t.hp === 1;
+      game.battle._hurtHero(t, 9999, e, 0, 'esmaga');
+      log(s1 && s2 && t.hp <= 0, 'pass-endure');
+      game.battle.stop();
+    }
+    // Revide + esquiva (RNG travado) e roubo de vida
+    {
+      const rnd = Math.random;
+      Math.random = () => 0;
+      const p = newParty();
+      const t = p[0]; t.maxHp = 200; t.hp = 200; t.atk = 30; t.skills = { k_counter: 2 };
+      game.battle.start(p, game.inv, [makeEnemy('slime', 1)], { region: 'field', onEnd: () => {} });
+      const e = game.battle.enemies[0];
+      const ehp = e.hp;
+      game.battle._hurtHero(t, 10, e, 0, 'cutuca');
+      const counterOk = e.hp < ehp && t.hp === 190;
+      game.battle.stop();
+      const q = newParty();
+      const d = q[1]; d.maxHp = 200; d.hp = 200; d.skills = { l_dodge: 2 };
+      game.battle.start(q, game.inv, [makeEnemy('slime', 1)], { region: 'field', onEnd: () => {} });
+      const e2 = game.battle.enemies[0];
+      game.battle._hurtHero(d, 50, e2, 0, 'morde');
+      const dodgeOk = d.hp === 200 && game.battle.msgEl.innerHTML.includes('esquivou');
+      game.battle.stop();
+      Math.random = rnd;
+      log(counterOk, 'pass-counter');
+      log(dodgeOk, 'pass-dodge');
+      const r = newParty();
+      const k = r[0]; k.atk = 40; k.maxHp = 200; k.hp = 100; k.skills = { k_leech: 2 };
+      game.battle.start(r, game.inv, [makeEnemy('slime', 1)], { region: 'field', onEnd: () => {} });
+      game.battle._heroAct(k, 0, { type: 'attack', target: 0 });
+      log(k.hp > 100, 'pass-lifesteal', `hp=${k.hp}`);
+      game.battle.stop();
+    }
+    // Pressa: herói com swift entra antes na fila do turno
+    {
+      const p = newParty();
+      p[1].skills = { l_swift: 2 };
+      const e = makeEnemy('slime', 1); e.spd = 0;
+      game.battle.start(p, game.inv, [e], { region: 'field', onEnd: () => {} });
+      game.battle.actions = [{ type: 'attack', target: 0 }, { type: 'attack', target: 0 }, { type: 'attack', target: 0 }];
+      game.battle._beginExec();
+      const q = game.battle.queue;
+      const qLyra = q.find((t) => t.side === 'hero' && t.idx === 1);
+      const qKael = q.find((t) => t.side === 'hero' && t.idx === 0);
+      log(!!qLyra && (qLyra.spd - p[1].spd) >= 6 && !!qKael && (qKael.spd - p[0].spd) < 6, 'pass-swift');
+      game.battle.stop();
     }
   } catch (e) {
     console.log(`[AUTOTEST] FAIL excecao ${e && e.stack ? e.stack : e}`);

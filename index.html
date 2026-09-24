@@ -488,8 +488,9 @@ html, body {
 #skills-links { position: absolute; inset: 0; width: 100%; height: 100%; }
 #skills-links line { stroke-width: .9; }
 #skills-links line.taken { stroke: #ffd75e; filter: drop-shadow(0 0 2px #ffd75e); }
-#skills-links line.avail { stroke: #4fc3ff88; stroke-dasharray: 2 1.2; }
+#skills-links line.avail { stroke: #4fc3ff88; stroke-dasharray: 2 1.2; animation: dashflow 1.1s linear infinite; }
 #skills-links line.locked { stroke: #ffffff22; }
+@keyframes dashflow { to { stroke-dashoffset: -3.2; } }
 #skills-nodes { position: absolute; inset: 0; }
 .sk-node {
   position: absolute; transform: translate(-50%, -50%);
@@ -3148,13 +3149,19 @@ const PASSIVES = {
   focus: { name: 'Foco Arcano',   desc: '+2 MP por turno.' },
   tough: { name: 'Couraça',       desc: '-8% de dano recebido por nível.' },
   charm: { name: 'Carisma',       desc: '+15% de XP ganho por nível.' },
+  lifesteal: { name: 'Roubo de Vida', desc: 'Ataques físicos curam 8% do dano por nível.' },
+  endure: { name: 'Milagre',      desc: 'Sobrevive a 1 golpe letal por batalha (por nível).' },
+  counter: { name: 'Revide',      desc: 'Chance de contra-atacar ao sofrer dano.' },
+  dodge: { name: 'Esquiva',       desc: '+6% de chance de desviar por nível.' },
+  gold:  { name: 'Alquimia',      desc: '+10% de ouro das vitórias por nível.' },
+  swift: { name: 'Pressa',        desc: 'Age mais cedo no turno (+3 VEL efetiva por nível).' },
 };
 
 /** Nomes de stats p/ textos. */
 const STAT_NAMES = { atk: 'ATK', def: 'DEF', mag: 'MAG', spd: 'VEL', maxHp: 'HP máx', maxMp: 'MP máx' };
 
 /**
- * Nó: {id, cls, name, desc, icon, x, y (0..100, 0..64), req:[ids], max, effect}
+ * Nó: {id, cls, name, desc, icon, x, y (0..100, 0..64), req:[ids], reqLevel, max, effect}
  * effect: {kind:'stat', stat, per} | {kind:'spell', spell} | {kind:'passive', passive}
  */
 const NODES = [
@@ -3169,6 +3176,8 @@ const NODES = [
   { id: 'k_def2', cls: 'Guerreiro', name: 'Muralha', desc: 'Vira uma fortaleza ambulante.', icon: 'guard', x: 88, y: 42, req: ['k_def1'], max: 2, effect: { kind: 'stat', stat: 'def', per: 4 } },
   { id: 'k_cure', cls: 'Guerreiro', name: 'Bênção da Capela', desc: 'Aprende a magia Cura.', icon: 'cure', x: 38, y: 58, req: ['k_regen'], max: 1, effect: { kind: 'spell', spell: 'cure' } },
   { id: 'k_hp2', cls: 'Guerreiro', name: 'Coração Valente', desc: 'Coração que nunca desiste.', icon: 'potion', x: 62, y: 58, req: ['k_regen'], max: 1, effect: { kind: 'stat', stat: 'maxHp', per: 24 } },
+  { id: 'k_leech', cls: 'Guerreiro', name: 'Sede de Batalha', desc: 'Cada golpe rouba vida do inimigo.', icon: 'potion', x: 12, y: 58, req: ['k_crit'], reqLevel: 3, max: 2, effect: { kind: 'passive', passive: 'lifesteal' } },
+  { id: 'k_counter', cls: 'Guerreiro', name: 'Revide', desc: 'Devolve parte do dano sofrido.', icon: 'attack', x: 82, y: 58, req: ['k_tough'], reqLevel: 4, max: 2, effect: { kind: 'passive', passive: 'counter' } },
   // ---------- LYRA · Maga ----------
   { id: 'l_mag1', cls: 'Maga', name: 'Mente Brilhante', desc: 'Poder arcano em expansão.', icon: 'magic', x: 50, y: 8, req: [], max: 3, effect: { kind: 'stat', stat: 'mag', per: 3 } },
   { id: 'l_mp1', cls: 'Maga', name: 'Reserva de Mana', desc: 'Mais mana para conjurar.', icon: 'ether', x: 20, y: 24, req: [], max: 3, effect: { kind: 'stat', stat: 'maxMp', per: 6 } },
@@ -3180,6 +3189,9 @@ const NODES = [
   { id: 'l_arch', cls: 'Maga', name: 'Arquimaga', desc: 'Poder de outro patamar.', icon: 'magic', x: 64, y: 44, req: ['l_focus'], max: 1, effect: { kind: 'stat', stat: 'mag', per: 5 } },
   { id: 'l_frost', cls: 'Maga', name: 'Pele Gélida', desc: 'Fria como o inverno: sofre menos dano.', icon: 'tough', x: 88, y: 44, req: ['l_ice'], max: 2, effect: { kind: 'passive', passive: 'tough' } },
   { id: 'l_hp1', cls: 'Maga', name: 'Corpo São', desc: 'Um corpo mais resistente.', icon: 'potion', x: 50, y: 58, req: ['l_focus'], max: 2, effect: { kind: 'stat', stat: 'maxHp', per: 10 } },
+  { id: 'l_dodge', cls: 'Maga', name: 'Corpo Etéreo', desc: 'Quase intangível por instantes.', icon: 'flee', x: 14, y: 56, req: ['l_crit'], reqLevel: 3, max: 2, effect: { kind: 'passive', passive: 'dodge' } },
+  { id: 'l_swift', cls: 'Maga', name: 'Pressa Arcana', desc: 'Magia acelera os reflexos.', icon: 'spark', x: 30, y: 58, req: ['l_cure'], reqLevel: 3, max: 2, effect: { kind: 'passive', passive: 'swift' } },
+  { id: 'l_gold', cls: 'Maga', name: 'Alquimia', desc: 'Transmuta restos em ouro.', icon: 'gold', x: 70, y: 58, req: ['l_arch'], reqLevel: 4, max: 2, effect: { kind: 'passive', passive: 'gold' } },
   // ---------- MILO · Clérigo ----------
   { id: 'm_mag1', cls: 'Clérigo', name: 'Fé Radiante', desc: 'A luz fortalece a mente.', icon: 'magic', x: 50, y: 8, req: [], max: 3, effect: { kind: 'stat', stat: 'mag', per: 2 } },
   { id: 'm_hp1', cls: 'Clérigo', name: 'Voto de Vigor', desc: 'Guardião do grupo.', icon: 'potion', x: 20, y: 24, req: [], max: 3, effect: { kind: 'stat', stat: 'maxHp', per: 10 } },
@@ -3191,6 +3203,8 @@ const NODES = [
   { id: 'm_def1', cls: 'Clérigo', name: 'Manto Protetor', desc: 'Proteção abençoada.', icon: 'guard', x: 64, y: 44, req: ['m_focus'], max: 3, effect: { kind: 'stat', stat: 'def', per: 2 } },
   { id: 'm_ice', cls: 'Clérigo', name: 'Luz Gélida', desc: 'Aprende a magia Gelo.', icon: 'ice', x: 88, y: 44, req: ['m_thunder'], max: 1, effect: { kind: 'spell', spell: 'ice' } },
   { id: 'm_tough', cls: 'Clérigo', name: 'Rocha da Fé', desc: 'Inabalável como a fé.', icon: 'tough', x: 70, y: 58, req: ['m_def1'], max: 2, effect: { kind: 'passive', passive: 'tough' } },
+  { id: 'm_endure', cls: 'Clérigo', name: 'Milagre', desc: 'A luz não deixa você cair.', icon: 'guard', x: 12, y: 58, req: ['m_crit'], reqLevel: 4, max: 2, effect: { kind: 'passive', passive: 'endure' } },
+  { id: 'm_charm', cls: 'Clérigo', name: 'Presença Santa', desc: 'Vitórias rendem mais XP.', icon: 'elixir', x: 46, y: 58, req: ['m_regen'], reqLevel: 2, max: 2, effect: { kind: 'passive', passive: 'charm' } },
 ];
 
 /** @param {string} cls */
@@ -3230,9 +3244,17 @@ const reqMet = (h, node) => node.req.every((r) => getRank(h, r) > 0);
 function canInvest(h, node) {
   if (!node || node.cls !== h.cls) return { ok: false, reason: 'no-node' };
   if (getRank(h, node.id) >= node.max) return { ok: false, reason: 'maxed' };
+  if ((h.level || 1) < (node.reqLevel || 1)) return { ok: false, reason: 'level' };
   if (!reqMet(h, node)) return { ok: false, reason: 'locked' };
   if ((h.sp || 0) < (node.cost || 1)) return { ok: false, reason: 'no-sp' };
   return { ok: true, reason: '' };
+}
+
+/** Multiplicador de ouro do grupo (maior Alquimia). @param {any[]} party */
+function goldMult(party) {
+  let m = 0;
+  for (const h of party || []) m = Math.max(m, skillRank(h, 'gold'));
+  return 1 + 0.1 * m;
 }
 
 /** Texto do efeito p/ UI. @param {any} node */
@@ -6514,7 +6536,7 @@ class Skills {
       this.notify(`${h.name}: ${node.name} ${rank}/${node.max}!`);
     } else {
       this.audio.sfx('flee-fail');
-      this.notify(REASONS[r.reason] || 'Não foi possível investir.');
+      this.notify(r.reason === 'level' ? `Requer Nv ${node.reqLevel}+ para desbloquear.` : (REASONS[r.reason] || 'Não foi possível investir.'));
     }
     this._render();
   }
@@ -6570,7 +6592,7 @@ class Skills {
         `<h3>${ic(n.icon, 40)} ${n.name} <span class="row-sub">${rank}/${n.max}</span></h3>` +
         `<div>${n.desc}</div>` +
         `<div class="sk-fx">${effectText(n)}</div>` +
-        `<div class="row-sub">Requer: ${reqNames}</div>` +
+        `<div class="row-sub">Requer: ${reqNames}${(n.reqLevel || 1) > 1 ? ` · <span class="${(h.level || 1) >= n.reqLevel ? 'req-ok' : 'req-no'}">Nv ${n.reqLevel}+</span>` : ''}</div>` +
         `<div class="sk-hint">${hint}</div>`;
     } else {
       this.detailEl.innerHTML = '';
@@ -6982,6 +7004,7 @@ class BattleSystem {
     this.isBoss = !!opts.boss;
     this.region = opts.region || 'field';
     this.onEnd = opts.onEnd;
+    this._endureUsed = {};
     this.phase = 'intro';
     this.phaseT = 0;
     this.heroIdx = 0;
@@ -7255,7 +7278,7 @@ class BattleSystem {
     this.queue = [];
     this.party.forEach((h, i) => {
       const a = this.actions[i];
-      if (h.hp > 0 && a && a.type !== 'skip' && a.type !== 'guard') this.queue.push({ side: 'hero', idx: i, spd: h.spd + Math.random() * 3, act: a });
+      if (h.hp > 0 && a && a.type !== 'skip' && a.type !== 'guard') this.queue.push({ side: 'hero', idx: i, spd: h.spd + 3 * skillRank(h, 'swift') + Math.random() * 3, act: a });
     });
     this.enemies.forEach((e, i) => {
       if (e.hp > 0) this.queue.push({ side: 'enemy', idx: i, spd: e.spd + Math.random() * 3 });
@@ -7445,6 +7468,16 @@ class BattleSystem {
       this._slashFx(pos, crit);
       this._strikeFx(pos, '#fff');
       this._floatDmg(pos, dmg, crit ? '#ffd75e' : '#fff', crit);
+      // Roubo de Vida: ataques físicos curam parte do dano
+      const ls = skillRank(h, 'lifesteal');
+      if (ls > 0 && dmg > 0 && h.hp > 0 && h.hp < h.maxHp) {
+        const hv = Math.min(Math.round(dmg * 0.08 * ls), h.maxHp - h.hp);
+        if (hv > 0) {
+          h.hp += hv;
+          this._healFx(this.heroPos(hi), '#ff9b9b');
+          this._floatDmg(this.heroPos(hi), `+${hv}`, '#ff9b9b', false);
+        }
+      }
       if (crit) { this.hitStop = 0.12; this._shake(5, 0.25); }
       this._log(`${h.name} ataca ${e.name}! ${crit ? 'CRÍTICO! ' : ''}${dmg} de dano!${e.hp <= 0 ? ` ${e.name} foi derrotado!` : ''}`);
       if (e.hp <= 0) { this.audio.sfx('die'); this._soulFx(pos); }
@@ -7604,12 +7637,32 @@ class BattleSystem {
   /** @param {{x:number,y:number}|null} [lungeTo] alvo do avanço (nulo = golpe à distância) */
   _hurtHero(t, rawDmg, e, ei, label, lungeTo = null) {
     const ti = this.party.indexOf(t);
+    // Esquiva: chance de negar o golpe por inteiro
+    const dg = skillRank(t, 'dodge');
+    if (dg > 0 && Math.random() < 0.06 * dg) {
+      this.audio.sfx('cursor');
+      this._floatDmg(this.heroPos(ti), 'DESVIOU!', '#7fd4ff', false);
+      this._log(`${t.name} se esquivou de ${e.name}!`);
+      this._renderAll();
+      return;
+    }
     let dmg = rawDmg;
     let blocked = false;
     // Couraça: reduz o dano antes da guarda
     const tough = skillRank(t, 'tough');
     if (tough > 0) dmg = Math.max(1, Math.round(dmg * (1 - 0.08 * tough)));
     if (t.guard) { dmg = Math.max(1, Math.ceil(dmg / 2)); blocked = true; }
+    // Milagre: sobrevive ao golpe letal (1 carga por nível, por batalha)
+    let endured = false;
+    const en = skillRank(t, 'endure');
+    if (en > 0 && t.hp > 0 && t.hp - dmg <= 0) {
+      const used = this._endureUsed?.[ti] || 0;
+      if (used < en) {
+        this._endureUsed = { ...(this._endureUsed || {}), [ti]: used + 1 };
+        dmg = t.hp - 1;
+        endured = true;
+      }
+    }
     t.hp -= dmg;
     t.hitT = 0.35;
     if (lungeTo) {
@@ -7621,7 +7674,17 @@ class BattleSystem {
     this._strikeFx(this.heroPos(ti), '#ff6b6b');
     this._floatDmg(this.heroPos(ti), blocked ? `🛡${dmg}` : dmg, blocked ? '#6bb8ff' : '#ff6b6b', false);
     if (dmg >= 20) this._shake(4, 0.2);
-    this._log(`${e.name} ${label} ${t.name}! ${dmg} de dano!${blocked ? ' (bloqueado 🛡)' : ''}${t.hp <= 0 ? ` ${t.name} caiu!` : ''}`);
+    this._log(`${e.name} ${label} ${t.name}! ${dmg} de dano!${blocked ? ' (bloqueado 🛡)' : ''}${endured ? ' (MILAGRE! Resistiu com 1 HP!)' : ''}${t.hp <= 0 ? ` ${t.name} caiu!` : ''}`);
+    // Revide: chance de devolver parte do dano
+    const ct = skillRank(t, 'counter');
+    if (ct > 0 && t.hp > 0 && e.hp > 0 && Math.random() < 0.08 + 0.07 * ct) {
+      const back = Math.max(1, Math.round(t.atk * 1.2 - e.def));
+      e.hp -= back;
+      this._slashFx(this.enemyPos(ei), false);
+      this._floatDmg(this.enemyPos(ei), back, '#ffe95e', false);
+      this._log(`${t.name} revida em ${e.name}! ${back} de dano!${e.hp <= 0 ? ` ${e.name} foi derrotado!` : ''}`);
+      if (e.hp <= 0) { this.audio.sfx('die'); this._soulFx(this.enemyPos(ei)); }
+    }
     this._renderAll();
   }
 
@@ -7840,7 +7903,7 @@ class BattleSystem {
     this.phaseT = victory ? 2.2 : 1.6;
     if (victory) {
       const xp = this.enemies.reduce((s, e) => s + e.xp, 0);
-      const gold = this.enemies.reduce((s, e) => s + e.gold, 0);
+      const gold = Math.round(this.enemies.reduce((s, e) => s + e.gold, 0) * goldMult(this.party));
       const lvMsgs = grantXp(this.party, xp);
       this.audio.sfx(this.isBoss ? 'victory' : 'victory');
       if (lvMsgs.length) setTimeout(() => this.audio.sfx('levelup'), 500);

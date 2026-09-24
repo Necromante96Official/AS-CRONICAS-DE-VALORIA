@@ -33,7 +33,7 @@ export class HUD {
       <div class="hud-card">
         ${faces[h.sprite] ? `<img class="hud-face" src="${faces[h.sprite]}" alt="" />` : ''}
         <div class="hud-info">
-          <span class="nm">${h.hp <= 0 ? '✝ ' : ''}${h.name}</span><span class="lv">Nv${h.level} ${h.cls}</span>
+          <span class="nm">${h.hp <= 0 ? '✝ ' : ''}${h.name}</span><span class="lv">Nv${h.level} ${h.cls}${(h.sp || 0) > 0 ? ` <span class="sp" title="Pontos de skill (Q > Skills)">✦${h.sp}</span>` : ''}</span>
           <div class="bar hp ${low ? 'low' : ''}"><div style="width:${hpPct}%"></div><span>${Math.max(0, Math.ceil(h.hp))}/${h.maxHp}</span></div>
           <div class="bar mp"><div style="width:${mpPct}%"></div><span>${Math.max(0, Math.ceil(h.mp))}/${h.maxMp}</span></div>
         </div>

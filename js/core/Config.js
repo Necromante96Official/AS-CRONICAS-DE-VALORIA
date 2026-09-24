@@ -19,8 +19,8 @@ export const PLAYER_SPEED = 150;
 /** Chance de encontro por passo na grama alta (menor: há patrulheiros visíveis). */
 export const ENCOUNTER_RATE = 0.05;
 
-/** Taxa de XP por nível (curva). */
-export const xpForLevel = (level) => Math.floor(20 * Math.pow(level, 1.6));
+/** XP necessário para sair do nível `level` (curva JRPG: início fiel, fim íngreme). */
+export const xpForLevel = (level) => Math.floor(14 * Math.pow(level, 1.8) + 6 * level);
 
 /** Paleta / nomes de locais. */
 export const LOCATIONS = {

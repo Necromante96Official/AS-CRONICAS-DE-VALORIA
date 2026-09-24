@@ -5,6 +5,7 @@
  */
 import { ITEMS } from '../systems/Inventory.js';
 import { SPELLS, aliveHeroes } from '../entities/Party.js';
+import { listPassives } from '../systems/SkillTree.js';
 import { xpForLevel } from '../core/Config.js';
 import { SPEED_ORDER } from '../systems/Settings.js';
 import { SaveSystem } from '../systems/SaveSystem.js';
@@ -18,6 +19,7 @@ const TABS = [
   { id: 'config', label: `${ic('config', 18)} Config` },
   { id: 'save', label: `${ic('save', 18)} Salvar` },
   { id: 'quests', label: `${ic('quest', 18)} Quests` },
+  { id: 'skills', label: `${ic('spark', 18)} Skills` },
 ];
 
 export class Menu {
@@ -158,14 +160,18 @@ export class Menu {
       const h = party[this.sel];
       const face = this.ctx?.faces?.[h.sprite]
         ? `<img class="menu-face big" src="${this.ctx.faces[h.sprite]}" alt="" />` : '';
+      const xpPct = Math.max(0, Math.min(100, (100 * h.xp / xpForLevel(h.level)))).toFixed(0);
+      const pass = listPassives(h);
       this.detailEl.innerHTML = `<h3>${face}${h.name} <span class="row-sub">${h.cls} · Nv ${h.level}</span></h3>
         <div class="stat-grid">
           <b>HP</b><span>${Math.ceil(h.hp)} / ${h.maxHp}</span>
           <b>MP</b><span>${Math.ceil(h.mp)} / ${h.maxMp}</span>
           <b>ATK</b><span>${h.atk}</span><b>DEF</b><span>${h.def}</span>
           <b>MAG</b><span>${h.mag}</span><b>VEL</b><span>${h.spd}</span>
-          <b>XP</b><span>${h.xp} / ${xpForLevel(h.level)}</span>
+          <b>XP</b><span><span class="xpbar"><span style="width:${xpPct}%"></span></span> ${h.xp}/${xpForLevel(h.level)}</span>
+          <b>Skill ✦</b><span>${h.sp || 0} ponto(s) — aba Skills</span>
           <b>Magias</b><span>${h.spells.map((s) => SPELLS[s].name).join(', ') || '—'}</span>
+          ${pass.length ? `<b>Passivas</b><span>${pass.map((p) => `${p.name} ${p.rank}`).join(' · ')}</span>` : ''}
         </div>`;
     } else if (tabId === 'config') {
       const cfg = this._actions?.getConfig() || { sound: 'Ligado', speed: 'normal' };
@@ -191,6 +197,14 @@ export class Menu {
         `<div class="opt ${i === this.sel ? 'sel' : ''}">${ic(q.done ? 'qdone' : 'qtodo')}${q.t}</div>`).join('');
       const q = qs[this.sel];
       this.detailEl.innerHTML = q ? `<h3>${ic(q.done ? 'qdone' : 'qtodo', 40)} ${q.t}</h3>${q.d}` : '<span class="row-sub">Nenhuma quest.</span>';
+    } else if (tabId === 'skills') {
+      this.rows = party.map((_, i) => i);
+      this.listEl.innerHTML = `<div class="list-head">Árvore de skills — quem vai treinar?</div>` +
+        party.map((h, i) =>
+          `<div class="opt ${i === this.sel ? 'sel' : ''}">${this._heroLine(h)}${(h.sp || 0) > 0 ? ` <span class="count">✦${h.sp}</span>` : ''}</div>`).join('');
+      const h = party[this.sel];
+      this.detailEl.innerHTML = `<h3>${ic('spark', 44)} Árvore de Skills</h3>` +
+        (h ? `E abre a árvore de <b>${h.name}</b> (${h.sp || 0} ✦ ponto(s)).<br/><span class="row-sub">Nós ligados se desbloqueiam em cadeia.</span>` : '');
     }
     this._foot(gold, time);
   }
@@ -302,6 +316,9 @@ export class Menu {
     } else if (tabId === 'quests') {
       const q = this._quests?.[this.sel];
       this.notify(q ? `${q.t} — ${q.d}` : 'Sem quests.');
+    } else if (tabId === 'skills') {
+      if (party[this.sel]) actions.openSkills?.(this.sel);
+      else { this.notify('Sem herói.'); this.audio.sfx('flee-fail'); }
     } else if (tabId === 'save') {
       const slot = this.rows[this.sel];
       if (SaveSystem.info(slot) && this._armSave !== slot) {

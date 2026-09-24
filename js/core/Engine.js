@@ -18,6 +18,7 @@ import { SaveSystem } from '../systems/SaveSystem.js';
 import { loadSettings, saveSettings, SPEED_ORDER } from '../systems/Settings.js';
 import { Dialog } from '../ui/Dialog.js';
 import { Menu } from '../ui/Menu.js';
+import { Skills } from '../ui/Skills.js';
 import { HUD } from '../ui/HUD.js';
 import { TitleScreen } from '../ui/TitleScreen.js';
 import { Transition, toast } from '../ui/Transition.js';
@@ -92,6 +93,7 @@ export class Engine {
     this.camera = new Camera();
     this.dialog = new Dialog(this.audio);
     this.menu = new Menu(this.audio);
+    this.skills = new Skills(this.audio);
     this.hud = new HUD();
     this.title = new TitleScreen(this.audio);
     this.battle = new BattleSystem(this.audio);
@@ -513,6 +515,7 @@ export class Engine {
     // diálogos e menus consomem o input primeiro
     if (this.dialog.active) { this.dialog.handle(inp); this.camera.update(dt); return; }
     if (this.menu.active) {
+      if (this.skills.active) { this.skills.handle(inp); return; }
       this.menu.handle(inp, this._menuActions());
       return;
     }
@@ -675,6 +678,12 @@ export class Engine {
         SaveSystem.save(slot, this._snapshot());
         toast(`Jogo salvo no Slot ${slot}!`);
         this.audio.sfx('confirm');
+      },
+      openSkills: (idx) => {
+        const h = this.party[idx];
+        if (!h) return;
+        this.audio.sfx('confirm');
+        this.skills.show(h, (m) => toast(m), () => this.menu._render());
       },
     };
   }

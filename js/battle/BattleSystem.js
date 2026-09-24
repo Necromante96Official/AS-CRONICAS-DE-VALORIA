@@ -3,6 +3,7 @@
  * @module battle/BattleSystem
  */
 import { SPELLS, grantXp, aliveHeroes, partyWiped } from '../entities/Party.js';
+import { skillRank } from '../systems/SkillTree.js';
 import { ITEMS } from '../systems/Inventory.js';
 import { foeImage } from '../entities/Enemies.js';
 import { ic } from '../ui/ItemIcons.js';
@@ -450,8 +451,20 @@ export class BattleSystem {
     if (this._checkEnd()) return;
     const turn = this.queue.shift();
     if (!turn) {
-      // nova rodada: a guarda cai, nova fase de comandos
-      for (const h of this.party) h.guard = false;
+      // nova rodada: a guarda cai, nova fase de comandos + passivas de turno
+      for (const h of this.party) {
+        h.guard = false;
+        if (h.hp > 0) {
+          const rg = skillRank(h, 'regen'), fc = skillRank(h, 'focus');
+          if (rg > 0 && h.hp < h.maxHp) {
+            const v = Math.min(Math.round(h.maxHp * 0.05 * rg), h.maxHp - Math.max(0, h.hp));
+            if (v > 0) { h.hp += v; this._healFx(this.heroPos(this.party.indexOf(h))); this._floatDmg(this.heroPos(this.party.indexOf(h)), `+${v}`, '#7dff9a', false); }
+          }
+          if (fc > 0 && h.mp < h.maxMp) {
+            h.mp = Math.min(h.maxMp, h.mp + 2 * fc);
+          }
+        }
+      }
       this.heroIdx = 0; this.actions = new Array(this.party.length).fill(null);
       this.phase = 'command';
       while (this.heroIdx < this.party.length && this.party[this.heroIdx].hp <= 0) { this.actions[this.heroIdx] = { type: 'skip' }; this.heroIdx++; }
@@ -549,7 +562,7 @@ export class BattleSystem {
       const ti = this._resolveEnemyTarget(act.target ?? 0);
       if (ti < 0) return;
       const e = this.enemies[ti];
-      const crit = Math.random() < 0.12;
+      const crit = Math.random() < 0.12 + 0.05 * skillRank(h, 'crit');
       const dmg = Math.round(physDmg(h.atk, e.def) * (crit ? 1.7 : 1));
       e.hp -= dmg;
       e.hitT = 0.35;
@@ -722,7 +735,10 @@ export class BattleSystem {
     const ti = this.party.indexOf(t);
     let dmg = rawDmg;
     let blocked = false;
-    if (t.guard) { dmg = Math.max(1, Math.ceil(rawDmg / 2)); blocked = true; }
+    // Couraça: reduz o dano antes da guarda
+    const tough = skillRank(t, 'tough');
+    if (tough > 0) dmg = Math.max(1, Math.round(dmg * (1 - 0.08 * tough)));
+    if (t.guard) { dmg = Math.max(1, Math.ceil(dmg / 2)); blocked = true; }
     t.hp -= dmg;
     t.hitT = 0.35;
     if (lungeTo) {

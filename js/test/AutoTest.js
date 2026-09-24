@@ -7,7 +7,9 @@
  */
 import { SaveSystem } from '../systems/SaveSystem.js';
 import { makeEncounter, makeEnemy, encounterTable } from '../entities/Enemies.js';
-import { TILE } from '../core/Config.js';
+import { newParty, grantXp, restoreParty, serializeParty } from '../entities/Party.js';
+import { treeFor, nodeById, getRank, canInvest, invest, skillRank, listPassives } from '../systems/SkillTree.js';
+import { TILE, xpForLevel } from '../core/Config.js';
 import { regionAt } from '../world/MapData.js';
 import { T } from '../world/Tiles.js';
 
@@ -305,6 +307,87 @@ export async function runAutoTest(game) {
     game._applySave(SaveSystem.load(2));
     log(game.gold === 777, 'load-slot2-restaura');
     SaveSystem.erase(2);
+
+    // ---- 6f. XP, níveis, stats e árvore de skills ----
+    log(xpForLevel(1) === 20 && xpForLevel(2) === 60 && xpForLevel(10) > xpForLevel(5), 'xp-curva');
+    {
+      // level-up: +1✦, crescimento por classe, mensagem com Nv
+      const p = newParty();
+      const kael0 = { ...p[0] };
+      const msgs = grantXp(p, xpForLevel(1));
+      log(p[0].level === 2 && p[0].sp === 1 && p[0].xp === 0, 'level-sp', `nv${p[0].level} sp${p[0].sp}`);
+      log(p[0].maxHp >= kael0.maxHp + 6 && p[0].atk === kael0.atk + 2 && p[0].def === kael0.def + 2, 'level-growth-kael');
+      log(msgs.some((m) => m.includes('Nv 2') && m.includes('✦')), 'level-msg');
+      const lyra0 = { ...p[1] };
+      grantXp(p, xpForLevel(2));
+      log(p[1].level === 3 && p[1].mag >= lyra0.mag + 3, 'level-growth-lyra');
+      // atraso (catch-up): Nv1 abaixo da média ganha +25%
+      const a = newParty();
+      const b = newParty(); b[1].level = 5; b[2].level = 5; // média 3.67
+      grantXp(a, 10); grantXp(b, 10);
+      log(a[0].xp === 10 && b[0].xp === 13, 'xp-catchup', `${a[0].xp} vs ${b[0].xp}`);
+    }
+    {
+      // árvore: pré-requisito bloqueia, investir gasta ✦ e aplica efeito
+      const p = newParty();
+      const kael = p[0];
+      kael.sp = 3;
+      const cure = nodeById('k_cure');
+      const r0 = invest(kael, cure);
+      log(!r0.ok && r0.reason === 'locked' && kael.sp === 3 && !kael.spells.includes('cure'), 'skill-locked');
+      const atk1 = nodeById('k_atk1');
+      const atk0 = kael.atk;
+      log(invest(kael, atk1).ok && kael.atk === atk0 + 2 && kael.sp === 2 && getRank(kael, 'k_atk1') === 1, 'skill-stat');
+      const atk2 = nodeById('k_atk2');
+      log(canInvest(kael, atk2).ok && invest(kael, atk2).ok && getRank(kael, 'k_atk2') === 1, 'skill-req-ok');
+      log(invest(kael, atk2).ok && getRank(kael, 'k_atk2') === 2 && kael.sp === 0, 'skill-rank2');
+      log(!invest(kael, atk2).ok && !invest(kael, nodeById('k_hp1')).ok, 'skill-maxed-nosp');
+      kael.sp = 3;
+      log(invest(kael, nodeById('k_hp1')).ok, 'skill-hp');
+      log(invest(kael, nodeById('k_regen')).ok && skillRank(kael, 'regen') === 1, 'skill-regen');
+      log(invest(kael, cure).ok && kael.spells.includes('cure'), 'skill-spell');
+      log(!invest(kael, nodeById('k_hp2')).ok, 'skill-no-sp');
+      // passivas somam por nível
+      kael.sp = 5;
+      invest(kael, nodeById('k_crit')); invest(kael, nodeById('k_crit'));
+      log(skillRank(kael, 'crit') === 2 && listPassives(kael).some((x) => x.name === 'Crítico' && x.rank === 2), 'skill-passive');
+      // árvores por classe têm ~10 nós cada e links válidos
+      const okTrees = ['Guerreiro', 'Maga', 'Clérigo'].every((c) => {
+        const t = treeFor(c);
+        return t.length >= 9 && t.every((n) => n.req.every((r) => t.some((m) => m.id === r)));
+      });
+      log(okTrees, 'skill-trees');
+      // save/load preserva sp + nós
+      const snap = serializeParty(p);
+      const back = restoreParty(JSON.parse(JSON.stringify(snap)));
+      log(back[0].sp === kael.sp && getRank(back[0], 'k_atk1') === 1 && back[0].spells.includes('cure'), 'skill-save');
+      // migração de save antigo (sem sp/skills): compensa ✦ por nível
+      const old = [{ name: 'X', cls: 'Maga', level: 4, xp: 0, hp: 1, maxHp: 1, mp: 1, maxMp: 1, atk: 1, def: 1, spd: 1, mag: 1, spells: [], sprite: 'mage' }];
+      const mig = restoreParty(old);
+      log(mig[0].sp === 3 && typeof mig[0].skills === 'object', 'skill-migracao');
+    }
+    {
+      // UI: aba Skills abre a árvore; investir pelo teclado gasta ✦; HUD mostra ✦
+      game.party[0].sp = (game.party[0].sp || 0) + 2;
+      const sp0 = game.party[0].sp, mh0 = game.party[0].maxHp;
+      game.menu.show({ party: game.party, inv: game.inv, gold: game.gold, time: '00:00', flags: game.flags, faces: game.faces }, () => {}, game._menuActions());
+      await frames(3);
+      game.menu.tab = 6; game.menu.sel = 0; game.menu._render();
+      await frames(2);
+      log(document.getElementById('menu-list').textContent.includes('Árvore'), 'skills-aba');
+      await key('Enter'); // abre a árvore do Kael
+      await frames(3);
+      log(game.skills.active === true && document.querySelectorAll('#skills-nodes .sk-node').length >= 9, 'skills-abre');
+      await key('Enter'); // investe no 1º nó (k_hp1, destravado, +12 HP)
+      await frames(3);
+      log(game.party[0].maxHp === mh0 + 12 && game.party[0].sp === sp0 - 1, 'skills-investe', `sp=${game.party[0].sp}`);
+      await key('Escape'); // fecha a árvore, volta ao menu
+      await frames(3);
+      log(game.skills.active === false && game.menu.active === true, 'skills-fecha');
+      log(await closeMenu(), 'skills-menu-fecha');
+      game.hud.render(game.party, game.gold, 'town', game.faces, false);
+      log(document.getElementById('hud-party').innerHTML.includes('✦'), 'hud-sp');
+    }
 
     // ---- 7b. Slime Rei aparece na planície (raro, Nv 3+) ----
     {

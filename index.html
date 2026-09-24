@@ -238,6 +238,13 @@ html, body {
 .hud-info { flex: 1; min-width: 0; }
 .hud-card .nm { font-weight: bold; font-size: 14px; }
 .hud-card .lv { color: var(--ff-yellow); font-size: 12px; margin-left: 6px; }
+.hud-card .lv .sp { color: #c9a8ff; font-weight: bold; animation: blink 1.2s infinite; }
+/* barra de XP (menu status) */
+.xpbar {
+  display: inline-block; width: 90px; height: 8px; border-radius: 4px;
+  background: #000000a6; overflow: hidden; vertical-align: middle;
+}
+.xpbar > span { display: block; height: 100%; background: linear-gradient(90deg, #c9a8ff, #6a3ec2); }
 .bar { position: relative; height: 10px; border-radius: 5px; background: #000000a6; margin-top: 3px; overflow: hidden; }
 .bar > div { height: 100%; transition: width .25s; }
 .bar.hp > div { background: linear-gradient(90deg, #37e08b, #0f9d58); }
@@ -442,6 +449,67 @@ html, body {
   font-size: 11px; color: var(--ff-dim);
 }
 #menu-foot .gold { color: var(--ff-yellow); font-weight: bold; font-size: 13px; }
+
+/* ---------- Árvore de Skills (nós ligados) ---------- */
+#skills {
+  position: absolute; inset: 3%;
+  z-index: 40;
+  display: flex; flex-direction: column; gap: 8px;
+  background: linear-gradient(180deg, #0a1030f5, #060913f8);
+  border: 2px solid var(--ff-border);
+  border-radius: 12px;
+  box-shadow: 0 0 0 2px #0a1030, 0 0 40px #4fc3ff33, 0 12px 40px #000c;
+  padding: 14px 18px;
+  animation: panel-in .22s ease-out;
+  overflow-y: auto;
+}
+#skills-head { text-align: center; }
+#skills-head h2 { color: var(--ff-yellow); letter-spacing: 3px; font-size: clamp(16px, 2.4vw, 22px); }
+#skills-head .skills-hero { font-weight: bold; font-size: clamp(13px, 1.8vw, 17px); margin-top: 2px; }
+#skills-head .skills-sp { color: var(--ff-yellow); font-weight: bold; font-size: clamp(13px, 1.8vw, 17px); }
+#skills-map {
+  position: relative; flex: 1; min-height: 220px;
+  background: radial-gradient(ellipse at 50% 40%, #16236b88 0%, transparent 70%);
+  border: 1px solid #ffffff22; border-radius: 10px;
+  overflow: hidden;
+}
+#skills-links { position: absolute; inset: 0; width: 100%; height: 100%; }
+#skills-links line { stroke-width: .9; }
+#skills-links line.taken { stroke: #ffd75e; filter: drop-shadow(0 0 2px #ffd75e); }
+#skills-links line.avail { stroke: #4fc3ff88; stroke-dasharray: 2 1.2; }
+#skills-links line.locked { stroke: #ffffff22; }
+#skills-nodes { position: absolute; inset: 0; }
+.sk-node {
+  position: absolute; transform: translate(-50%, -50%);
+  display: flex; flex-direction: column; align-items: center; gap: 1px;
+  min-width: 76px; max-width: 96px;
+  padding: 5px 5px 4px;
+  border-radius: 10px;
+  border: 2px solid #ffffff33;
+  background: #0a1030d9;
+  cursor: pointer;
+  transition: transform .12s, box-shadow .12s, border-color .12s;
+  text-align: center;
+}
+.sk-node .sk-nm { font-size: 10px; font-weight: bold; line-height: 1.2; }
+.sk-node .sk-pips { font-size: 10px; letter-spacing: 2px; color: var(--ff-yellow); }
+.sk-node .sk-ic .ic { margin-right: 0; }
+.sk-node.locked { opacity: .45; filter: grayscale(.7); }
+.sk-node.avail { border-color: #4fc3ffaa; box-shadow: 0 0 10px #4fc3ff44; }
+.sk-node.taken { border-color: var(--ff-yellow); box-shadow: 0 0 12px #ffd75e55; background: #1a2a78ee; }
+.sk-node.sel { transform: translate(-50%, -50%) scale(1.12); border-color: #fff; z-index: 2; }
+#skills-detail { font-size: clamp(12px, 1.7vw, 15px); line-height: 1.5; }
+#skills-detail h3 { color: var(--ff-yellow); margin-bottom: 2px; }
+#skills-detail h3 .ic { vertical-align: -11px; margin-right: 6px; }
+#skills-detail .sk-fx { color: var(--ff-green); font-weight: bold; margin-top: 2px; }
+#skills-detail .req-ok { color: var(--ff-green); }
+#skills-detail .req-no { color: var(--ff-red); }
+#skills-detail .sk-hint { color: var(--ff-yellow); margin-top: 2px; }
+#skills-foot {
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 12px; color: var(--ff-dim);
+}
+#skills-foot .gold { color: var(--ff-yellow); font-weight: bold; font-size: 14px; }
 
 /* ---------- Título ---------- */
 #title {
@@ -749,6 +817,17 @@ html, body {
         <div id="menu-foot"></div>
       </div>
 
+      <!-- Árvore de skills (nós ligados, 1✦ por nível) -->
+      <div id="skills" class="hidden">
+        <div id="skills-head"></div>
+        <div id="skills-map">
+          <svg id="skills-links" viewBox="0 0 100 64" preserveAspectRatio="none"></svg>
+          <div id="skills-nodes"></div>
+        </div>
+        <div id="skills-detail" class="ff-box"></div>
+        <div id="skills-foot"></div>
+      </div>
+
       <!-- Batalha por turnos: foes à esq, party à dir, comandos horizontais embaixo -->
       <div id="battle" class="hidden">
         <div id="boss-bar" class="hidden">
@@ -832,8 +911,8 @@ const PLAYER_SPEED = 150;
 /** Chance de encontro por passo na grama alta (menor: há patrulheiros visíveis). */
 const ENCOUNTER_RATE = 0.05;
 
-/** Taxa de XP por nível (curva). */
-const xpForLevel = (level) => Math.floor(20 * Math.pow(level, 1.6));
+/** XP necessário para sair do nível `level` (curva JRPG: início fiel, fim íngreme). */
+const xpForLevel = (level) => Math.floor(14 * Math.pow(level, 1.8) + 6 * level);
 
 /** Paleta / nomes de locais. */
 const LOCATIONS = {
@@ -3041,6 +3120,145 @@ class Player {
   }
 }
 
+/* ===== js\systems\SkillTree.js ===== */
+/**
+ * SkillTree — árvores de skills por classe (nós que se ligam, com pré-requisitos).
+ * Heróis ganham +1 ponto de skill (✦) por nível e investem em Q > Skills.
+ * Efeitos: stats, magias (das existentes) e passivas usadas na batalha.
+ * @module systems/SkillTree
+ */
+
+/** Passivas (somas por nível investido). */
+const PASSIVES = {
+  crit:  { name: 'Crítico',       desc: '+5% de chance de crítico por nível.' },
+  regen: { name: 'Regeneração',   desc: 'Recupera 5% do HP máx. por turno.' },
+  focus: { name: 'Foco Arcano',   desc: '+2 MP por turno.' },
+  tough: { name: 'Couraça',       desc: '-8% de dano recebido por nível.' },
+  charm: { name: 'Carisma',       desc: '+15% de XP ganho por nível.' },
+};
+
+/** Nomes de stats p/ textos. */
+const STAT_NAMES = { atk: 'ATK', def: 'DEF', mag: 'MAG', spd: 'VEL', maxHp: 'HP máx', maxMp: 'MP máx' };
+
+/**
+ * Nó: {id, cls, name, desc, icon, x, y (0..100, 0..64), req:[ids], max, effect}
+ * effect: {kind:'stat', stat, per} | {kind:'spell', spell} | {kind:'passive', passive}
+ */
+const NODES = [
+  // ---------- KAEL · Guerreiro ----------
+  { id: 'k_hp1', cls: 'Guerreiro', name: 'Vigor de Aço', desc: 'Corpo treinado para aguentar porrada.', icon: 'potion', x: 50, y: 8, req: [], max: 3, effect: { kind: 'stat', stat: 'maxHp', per: 12 } },
+  { id: 'k_atk1', cls: 'Guerreiro', name: 'Golpe Firme', desc: 'Técnica básica de espada.', icon: 'attack', x: 20, y: 22, req: [], max: 3, effect: { kind: 'stat', stat: 'atk', per: 2 } },
+  { id: 'k_def1', cls: 'Guerreiro', name: 'Pele de Ferro', desc: 'Endurece contra cortes.', icon: 'guard', x: 80, y: 22, req: [], max: 3, effect: { kind: 'stat', stat: 'def', per: 2 } },
+  { id: 'k_regen', cls: 'Guerreiro', name: 'Sangue Quente', desc: 'Feridas fecham no calor da luta.', icon: 'regen', x: 50, y: 24, req: ['k_hp1'], max: 2, effect: { kind: 'passive', passive: 'regen' } },
+  { id: 'k_crit', cls: 'Guerreiro', name: 'Instinto Caçador', desc: 'Fareja o ponto fraco.', icon: 'crit', x: 12, y: 42, req: ['k_atk1'], max: 3, effect: { kind: 'passive', passive: 'crit' } },
+  { id: 'k_atk2', cls: 'Guerreiro', name: 'Lâmina Rúnica', desc: 'Espada gravada com runas de guerra.', icon: 'attack', x: 32, y: 44, req: ['k_atk1'], max: 2, effect: { kind: 'stat', stat: 'atk', per: 4 } },
+  { id: 'k_tough', cls: 'Guerreiro', name: 'Postura Inabalável', desc: 'Absorve impactos sem recuar.', icon: 'tough', x: 68, y: 44, req: ['k_def1'], max: 2, effect: { kind: 'passive', passive: 'tough' } },
+  { id: 'k_def2', cls: 'Guerreiro', name: 'Muralha', desc: 'Vira uma fortaleza ambulante.', icon: 'guard', x: 88, y: 42, req: ['k_def1'], max: 2, effect: { kind: 'stat', stat: 'def', per: 4 } },
+  { id: 'k_cure', cls: 'Guerreiro', name: 'Bênção da Capela', desc: 'Aprende a magia Cura.', icon: 'cure', x: 38, y: 58, req: ['k_regen'], max: 1, effect: { kind: 'spell', spell: 'cure' } },
+  { id: 'k_hp2', cls: 'Guerreiro', name: 'Coração Valente', desc: 'Coração que nunca desiste.', icon: 'potion', x: 62, y: 58, req: ['k_regen'], max: 1, effect: { kind: 'stat', stat: 'maxHp', per: 24 } },
+  // ---------- LYRA · Maga ----------
+  { id: 'l_mag1', cls: 'Maga', name: 'Mente Brilhante', desc: 'Poder arcano em expansão.', icon: 'magic', x: 50, y: 8, req: [], max: 3, effect: { kind: 'stat', stat: 'mag', per: 3 } },
+  { id: 'l_mp1', cls: 'Maga', name: 'Reserva de Mana', desc: 'Mais mana para conjurar.', icon: 'ether', x: 20, y: 24, req: [], max: 3, effect: { kind: 'stat', stat: 'maxMp', per: 6 } },
+  { id: 'l_ice', cls: 'Maga', name: 'Lâmina de Gelo', desc: 'Aprende a magia Gelo.', icon: 'ice', x: 80, y: 24, req: [], max: 1, effect: { kind: 'spell', spell: 'ice' } },
+  { id: 'l_focus', cls: 'Maga', name: 'Meditação', desc: 'Recupera mana no combate.', icon: 'focus', x: 50, y: 26, req: ['l_mag1'], max: 2, effect: { kind: 'passive', passive: 'focus' } },
+  { id: 'l_crit', cls: 'Maga', name: 'Ponto Fraco', desc: 'Acerta onde dói mais.', icon: 'crit', x: 14, y: 42, req: ['l_mp1'], max: 3, effect: { kind: 'passive', passive: 'crit' } },
+  { id: 'l_mp2', cls: 'Maga', name: 'Poço Profundo', desc: 'Mana quase infinita.', icon: 'ether', x: 22, y: 56, req: ['l_mp1'], max: 2, effect: { kind: 'stat', stat: 'maxMp', per: 8 } },
+  { id: 'l_cure', cls: 'Maga', name: 'Toque Suave', desc: 'Aprende a magia Cura.', icon: 'cure', x: 36, y: 44, req: ['l_focus'], max: 1, effect: { kind: 'spell', spell: 'cure' } },
+  { id: 'l_arch', cls: 'Maga', name: 'Arquimaga', desc: 'Poder de outro patamar.', icon: 'magic', x: 64, y: 44, req: ['l_focus'], max: 1, effect: { kind: 'stat', stat: 'mag', per: 5 } },
+  { id: 'l_frost', cls: 'Maga', name: 'Pele Gélida', desc: 'Fria como o inverno: sofre menos dano.', icon: 'tough', x: 88, y: 44, req: ['l_ice'], max: 2, effect: { kind: 'passive', passive: 'tough' } },
+  { id: 'l_hp1', cls: 'Maga', name: 'Corpo São', desc: 'Um corpo mais resistente.', icon: 'potion', x: 50, y: 58, req: ['l_focus'], max: 2, effect: { kind: 'stat', stat: 'maxHp', per: 10 } },
+  // ---------- MILO · Clérigo ----------
+  { id: 'm_mag1', cls: 'Clérigo', name: 'Fé Radiante', desc: 'A luz fortalece a mente.', icon: 'magic', x: 50, y: 8, req: [], max: 3, effect: { kind: 'stat', stat: 'mag', per: 2 } },
+  { id: 'm_hp1', cls: 'Clérigo', name: 'Voto de Vigor', desc: 'Guardião do grupo.', icon: 'potion', x: 20, y: 24, req: [], max: 3, effect: { kind: 'stat', stat: 'maxHp', per: 10 } },
+  { id: 'm_thunder', cls: 'Clérigo', name: 'Ira Divina', desc: 'Aprende a magia Trovão.', icon: 'thunder', x: 80, y: 24, req: [], max: 1, effect: { kind: 'spell', spell: 'thunder' } },
+  { id: 'm_focus', cls: 'Clérigo', name: 'Oração Contínua', desc: 'Fé que restaura mana.', icon: 'focus', x: 50, y: 26, req: ['m_mag1'], max: 2, effect: { kind: 'passive', passive: 'focus' } },
+  { id: 'm_crit', cls: 'Clérigo', name: 'Julgamento', desc: 'Golpes certeiros contra o mal.', icon: 'crit', x: 14, y: 42, req: ['m_hp1'], max: 2, effect: { kind: 'passive', passive: 'crit' } },
+  { id: 'm_hp2', cls: 'Clérigo', name: 'Coração Sagrado', desc: 'Um coração imenso.', icon: 'potion', x: 30, y: 58, req: ['m_hp1'], max: 1, effect: { kind: 'stat', stat: 'maxHp', per: 16 } },
+  { id: 'm_regen', cls: 'Clérigo', name: 'Luz Curativa', desc: 'A luz fecha feridas.', icon: 'regen', x: 36, y: 44, req: ['m_focus'], max: 2, effect: { kind: 'passive', passive: 'regen' } },
+  { id: 'm_def1', cls: 'Clérigo', name: 'Manto Protetor', desc: 'Proteção abençoada.', icon: 'guard', x: 64, y: 44, req: ['m_focus'], max: 3, effect: { kind: 'stat', stat: 'def', per: 2 } },
+  { id: 'm_ice', cls: 'Clérigo', name: 'Luz Gélida', desc: 'Aprende a magia Gelo.', icon: 'ice', x: 88, y: 44, req: ['m_thunder'], max: 1, effect: { kind: 'spell', spell: 'ice' } },
+  { id: 'm_tough', cls: 'Clérigo', name: 'Rocha da Fé', desc: 'Inabalável como a fé.', icon: 'tough', x: 70, y: 58, req: ['m_def1'], max: 2, effect: { kind: 'passive', passive: 'tough' } },
+];
+
+/** @param {string} cls */
+const treeFor = (cls) => NODES.filter((n) => n.cls === cls);
+/** @param {string} id */
+const nodeById = (id) => NODES.find((n) => n.id === id);
+
+/** Nível investido num nó. @param {any} h @param {string} id */
+const getRank = (h, id) => (h.skills && h.skills[id]) || 0;
+
+/** Nível total de uma passiva (soma dos nós). @param {any} h @param {string} passive */
+function skillRank(h, passive) {
+  let r = 0;
+  for (const n of NODES) {
+    if (n.cls === h.cls && n.effect.kind === 'passive' && n.effect.passive === passive) r += getRank(h, n.id);
+  }
+  return r;
+}
+
+/** Passivas ativas do herói p/ UI. @param {any} h */
+function listPassives(h) {
+  const out = [];
+  for (const pid of Object.keys(PASSIVES)) {
+    const r = skillRank(h, pid);
+    if (r > 0) out.push({ ...PASSIVES[pid], rank: r });
+  }
+  return out;
+}
+
+/** Pré-requisitos atendidos? @param {any} h @param {any} node */
+const reqMet = (h, node) => node.req.every((r) => getRank(h, r) > 0);
+
+/**
+ * Pode investir? @param {any} h @param {any} node
+ * @returns {{ok:boolean, reason:string}}
+ */
+function canInvest(h, node) {
+  if (!node || node.cls !== h.cls) return { ok: false, reason: 'no-node' };
+  if (getRank(h, node.id) >= node.max) return { ok: false, reason: 'maxed' };
+  if (!reqMet(h, node)) return { ok: false, reason: 'locked' };
+  if ((h.sp || 0) < (node.cost || 1)) return { ok: false, reason: 'no-sp' };
+  return { ok: true, reason: '' };
+}
+
+/** Texto do efeito p/ UI. @param {any} node */
+function effectText(node) {
+  const e = node.effect;
+  if (e.kind === 'stat') return `+${e.per} ${STAT_NAMES[e.stat] || e.stat} por nível`;
+  if (e.kind === 'spell') return `Aprende a magia ${(typeof e.spell === 'string' && e.spell[0].toUpperCase() + e.spell.slice(1)) || e.spell}`;
+  if (e.kind === 'passive') return PASSIVES[e.passive]?.desc || '';
+  return '';
+}
+
+/**
+ * Investe 1 ponto e aplica o efeito. @param {any} h @param {any} node
+ * @returns {{ok:boolean, reason:string}}
+ */
+function invest(h, node) {
+  const c = canInvest(h, node);
+  if (!c.ok) return c;
+  h.sp -= (node.cost || 1);
+  h.skills = h.skills || {};
+  h.skills[node.id] = getRank(h, node.id) + 1;
+  applyEffect(h, node);
+  return { ok: true, reason: '' };
+}
+
+/** Aplica o efeito de 1 nível do nó (sem checar custo). @param {any} h @param {any} node */
+function applyEffect(h, node) {
+  const e = node.effect;
+  if (e.kind === 'stat') {
+    h[e.stat] = (h[e.stat] || 0) + e.per;
+    if (e.stat === 'maxHp') h.hp = Math.min(h.maxHp, h.hp + e.per);
+    if (e.stat === 'maxMp') h.mp = Math.min(h.maxMp, h.mp + e.per);
+  } else if (e.kind === 'spell') {
+    h.spells = h.spells || [];
+    if (!h.spells.includes(e.spell)) h.spells.push(e.spell);
+  }
+  // passivas são derivadas via skillRank() — nada a mutar
+}
+
 /* ===== js\entities\Party.js ===== */
 /**
  * Party — personagens, atributos, XP e níveis (coração do JRPG).
@@ -3054,7 +3272,7 @@ const SPELLS = {
   cure:    { name: 'Cura',     mp: 5,  power: 2.2, target: 'ally',  desc: 'Restaura HP de um aliado' },
 };
 
-/** @typedef {{name:string,cls:string,level:number,xp:number,hp:number,maxHp:number,mp:number,maxMp:number,atk:number,def:number,spd:number,mag:number,spells:string[],sprite:string}} Hero */
+/** @typedef {{name:string,cls:string,level:number,xp:number,hp:number,maxHp:number,mp:number,maxMp:number,atk:number,def:number,spd:number,mag:number,spells:string[],sprite:string,sp:number,skills:Record<string,number>}} Hero */
 
 const BASE = [
   { name: 'Kael', cls: 'Guerreiro', maxHp: 42, maxMp: 8,  atk: 11, def: 8, spd: 7, mag: 3, spells: [],               sprite: 'hero' },
@@ -3062,30 +3280,52 @@ const BASE = [
   { name: 'Milo', cls: 'Clérigo',   maxHp: 34, maxMp: 20, atk: 7,  def: 6, spd: 6, mag: 9,  spells: ['cure', 'fire'], sprite: 'cleric' },
 ];
 
+/** Crescimento por nível e classe (base; VEL alterna por nível). */
+const GROWTH = {
+  Guerreiro: { maxHp: 7, maxMp: 1, atk: 2, def: 2, mag: 0, spd: 0 },
+  Maga:      { maxHp: 4, maxMp: 4, atk: 1, def: 1, mag: 3, spd: 1 },
+  Clérigo:   { maxHp: 6, maxMp: 3, atk: 1, def: 2, mag: 2, spd: 0 },
+};
+/** Classes que ganham +1 VEL nos níveis pares (passo mais leve). */
+const SPD_EVEN = { Guerreiro: true, Clérigo: true };
+
 /** @returns {Hero[]} */
 function newParty() {
-  return BASE.map((b) => ({ ...b, level: 1, xp: 0, hp: b.maxHp, mp: b.maxMp }));
+  return BASE.map((b) => ({ ...b, level: 1, xp: 0, hp: b.maxHp, mp: b.maxMp, sp: 0, skills: {} }));
 }
 
-/** Aplica XP; retorna lista de mensagens de level-up. @param {Hero[]} party @param {number} amount */
+/**
+ * Aplica XP; retorna lista de mensagens de level-up.
+ * Atrasados (abaixo da média do grupo) ganham +25% (catch-up); Carisma soma +15%/nv.
+ * Cada nível rende +1 ponto de skill (✦); magias vêm da árvore de skills.
+ * @param {Hero[]} party @param {number} amount
+ */
 function grantXp(party, amount) {
   const msgs = [];
+  const alive = party.filter((h) => h.hp > 0);
+  const avg = alive.length ? alive.reduce((s, h) => s + h.level, 0) / alive.length : 1;
   for (const h of party) {
     if (h.hp <= 0) continue;
-    h.xp += amount;
+    let gain = amount;
+    if (h.level < avg) gain = Math.round(gain * 1.25);
+    gain += Math.round(amount * 0.15 * skillRank(h, 'charm'));
+    h.xp += gain;
     while (h.xp >= xpForLevel(h.level)) {
       h.xp -= xpForLevel(h.level);
       h.level++;
-      const hpUp = 6 + Math.floor(Math.random() * 4);
-      const mpUp = h.cls === 'Guerreiro' ? 1 : 2 + Math.floor(Math.random() * 3);
-      h.maxHp += hpUp; h.hp = Math.min(h.maxHp, h.hp + hpUp);
-      h.maxMp += mpUp; h.mp = Math.min(h.maxMp, h.mp + mpUp);
-      h.atk += 1 + (h.cls === 'Guerreiro' ? 1 : 0);
-      h.def += 1; h.spd += h.cls === 'Maga' ? 1 : 0; h.mag += h.cls !== 'Guerreiro' ? 1 : 0;
-      if (h.cls === 'Clérigo' && h.level >= 3 && !h.spells.includes('thunder')) { h.spells.push('thunder'); }
-      if (h.cls === 'Maga' && h.level >= 4 && !h.spells.includes('ice')) { h.spells.push('ice'); msgs.push(`${h.name} aprendeu GELO!`); }
-      if (h.cls === 'Clérigo' && h.level >= 5 && !h.spells.includes('ice')) { h.spells.push('ice'); msgs.push(`${h.name} aprendeu GELO!`); }
-      msgs.push(`${h.name} subiu para o Nv ${h.level}!`);
+      const g = GROWTH[h.cls] || GROWTH.Guerreiro;
+      const up = {};
+      for (const k of ['maxHp', 'maxMp', 'atk', 'def', 'mag']) up[k] = g[k];
+      up.spd = g.spd + (SPD_EVEN[h.cls] && h.level % 2 === 0 ? 1 : 0);
+      // pequena variação (±1 em HP/MP) p/ cada herói ser único
+      up.maxHp += Math.floor(Math.random() * 3) - 1;
+      up.maxMp += Math.floor(Math.random() * 3) - 1;
+      for (const [k, v] of Object.entries(up)) h[k] = Math.max(1, (h[k] || 0) + v);
+      h.hp = Math.min(h.maxHp, h.hp + up.maxHp);
+      h.mp = Math.min(h.maxMp, h.mp + up.maxMp);
+      h.sp = (h.sp || 0) + 1;
+      h.skills = h.skills || {};
+      msgs.push(`${h.name} subiu para o Nv ${h.level}! (+1 ✦ ponto de skill)`);
     }
   }
   return msgs;
@@ -3098,10 +3338,21 @@ const partyWiped = (party) => party.every((h) => h.hp <= 0);
 /** @param {Hero[]} party */
 function fullHeal(party) { for (const h of party) { h.hp = h.maxHp; h.mp = h.maxMp; } }
 
-/** Serializa / restaura. */
+/** Serializa / restaura (com migração de saves antigos: sp/skills). */
 const serializeParty = (party) => JSON.parse(JSON.stringify(party));
 /** @param {any[]} data @returns {Hero[]} */
-function restoreParty(data) { return data.map((h) => ({ spells: [], ...h })); }
+function restoreParty(data) {
+  return data.map((h) => {
+    const r = { spells: [], sp: 0, skills: {}, ...h };
+    if (r.skills == null || typeof r.skills !== 'object') r.skills = {};
+    if (typeof r.sp !== 'number') r.sp = 0;
+    // saves de antes dos pontos de skill: compensa 1✦ por nível já ganho
+    if (h.sp === undefined && (r.level || 1) > 1 && Object.keys(r.skills).length === 0) {
+      r.sp = Math.max(0, r.level - 1);
+    }
+    return r;
+  });
+}
 
 /* ===== js\core\SpriteFactory.js ===== */
 /**
@@ -5597,6 +5848,7 @@ const TABS = [
   { id: 'config', label: `${ic('config', 18)} Config` },
   { id: 'save', label: `${ic('save', 18)} Salvar` },
   { id: 'quests', label: `${ic('quest', 18)} Quests` },
+  { id: 'skills', label: `${ic('spark', 18)} Skills` },
 ];
 
 class Menu {
@@ -5737,14 +5989,18 @@ class Menu {
       const h = party[this.sel];
       const face = this.ctx?.faces?.[h.sprite]
         ? `<img class="menu-face big" src="${this.ctx.faces[h.sprite]}" alt="" />` : '';
+      const xpPct = Math.max(0, Math.min(100, (100 * h.xp / xpForLevel(h.level)))).toFixed(0);
+      const pass = listPassives(h);
       this.detailEl.innerHTML = `<h3>${face}${h.name} <span class="row-sub">${h.cls} · Nv ${h.level}</span></h3>
         <div class="stat-grid">
           <b>HP</b><span>${Math.ceil(h.hp)} / ${h.maxHp}</span>
           <b>MP</b><span>${Math.ceil(h.mp)} / ${h.maxMp}</span>
           <b>ATK</b><span>${h.atk}</span><b>DEF</b><span>${h.def}</span>
           <b>MAG</b><span>${h.mag}</span><b>VEL</b><span>${h.spd}</span>
-          <b>XP</b><span>${h.xp} / ${xpForLevel(h.level)}</span>
+          <b>XP</b><span><span class="xpbar"><span style="width:${xpPct}%"></span></span> ${h.xp}/${xpForLevel(h.level)}</span>
+          <b>Skill ✦</b><span>${h.sp || 0} ponto(s) — aba Skills</span>
           <b>Magias</b><span>${h.spells.map((s) => SPELLS[s].name).join(', ') || '—'}</span>
+          ${pass.length ? `<b>Passivas</b><span>${pass.map((p) => `${p.name} ${p.rank}`).join(' · ')}</span>` : ''}
         </div>`;
     } else if (tabId === 'config') {
       const cfg = this._actions?.getConfig() || { sound: 'Ligado', speed: 'normal' };
@@ -5770,6 +6026,14 @@ class Menu {
         `<div class="opt ${i === this.sel ? 'sel' : ''}">${ic(q.done ? 'qdone' : 'qtodo')}${q.t}</div>`).join('');
       const q = qs[this.sel];
       this.detailEl.innerHTML = q ? `<h3>${ic(q.done ? 'qdone' : 'qtodo', 40)} ${q.t}</h3>${q.d}` : '<span class="row-sub">Nenhuma quest.</span>';
+    } else if (tabId === 'skills') {
+      this.rows = party.map((_, i) => i);
+      this.listEl.innerHTML = `<div class="list-head">Árvore de skills — quem vai treinar?</div>` +
+        party.map((h, i) =>
+          `<div class="opt ${i === this.sel ? 'sel' : ''}">${this._heroLine(h)}${(h.sp || 0) > 0 ? ` <span class="count">✦${h.sp}</span>` : ''}</div>`).join('');
+      const h = party[this.sel];
+      this.detailEl.innerHTML = `<h3>${ic('spark', 44)} Árvore de Skills</h3>` +
+        (h ? `E abre a árvore de <b>${h.name}</b> (${h.sp || 0} ✦ ponto(s)).<br/><span class="row-sub">Nós ligados se desbloqueiam em cadeia.</span>` : '');
     }
     this._foot(gold, time);
   }
@@ -5881,6 +6145,9 @@ class Menu {
     } else if (tabId === 'quests') {
       const q = this._quests?.[this.sel];
       this.notify(q ? `${q.t} — ${q.d}` : 'Sem quests.');
+    } else if (tabId === 'skills') {
+      if (party[this.sel]) actions.openSkills?.(this.sel);
+      else { this.notify('Sem herói.'); this.audio.sfx('flee-fail'); }
     } else if (tabId === 'save') {
       const slot = this.rows[this.sel];
       if (SaveSystem.info(slot) && this._armSave !== slot) {
@@ -5896,6 +6163,196 @@ class Menu {
       return;
     }
     this._render();
+  }
+}
+
+/* ===== js\ui\Skills.js ===== */
+/**
+ * Skills — árvore de skills por herói (nós que se ligam, estilo constelação).
+ * Setas navegam no espaço · E investe 1✦ · Q fecha. Mouse: passa seleciona,
+ * clica investe (2º clique no já selecionado).
+ * @module ui/Skills
+ */
+
+const REASONS = {
+  'maxed': 'Nível máximo já alcançado.',
+  'locked': 'Bloqueada: invista nos nós ligados antes.',
+  'no-sp': 'Sem pontos ✦. Suba de nível para ganhar mais.',
+  'no-node': 'Nó inválido.',
+};
+
+class Skills {
+  /** @param {import('../core/Audio.js').AudioMan} audio */
+  constructor(audio) {
+    this.audio = audio;
+    this.el = document.getElementById('skills');
+    this.headEl = document.getElementById('skills-head');
+    this.linksEl = document.getElementById('skills-links');
+    this.nodesEl = document.getElementById('skills-nodes');
+    this.detailEl = document.getElementById('skills-detail');
+    this.footEl = document.getElementById('skills-foot');
+    this.open = false;
+    /** @type {any} */
+    this.hero = null;
+    this.sel = 0;
+    /** @type {(msg:string)=>void} */
+    this.notify = () => {};
+    /** @type {(()=>void)|null} */
+    this.onClose = null;
+    // mouse: passar por cima seleciona
+    this.nodesEl.addEventListener('mouseover', (e) => {
+      if (!this.open) return;
+      const o = e.target.closest?.('.sk-node');
+      if (!o) return;
+      const i = [...this.nodesEl.querySelectorAll('.sk-node')].indexOf(o);
+      if (i >= 0 && i !== this.sel) { this.sel = i; this.audio.sfx('cursor'); this._render(); }
+    });
+    // mouse: 1º clique seleciona, 2º no mesmo investe
+    this.nodesEl.addEventListener('click', (e) => {
+      if (!this.open) return;
+      this.audio.unlock();
+      const o = e.target.closest?.('.sk-node');
+      if (!o) return;
+      const i = [...this.nodesEl.querySelectorAll('.sk-node')].indexOf(o);
+      if (i < 0) return;
+      if (i === this.sel) this._invest();
+      else { this.sel = i; this.audio.sfx('cursor'); this._render(); }
+    });
+  }
+
+  get active() { return this.open; }
+
+  /** @param {any} hero @param {(msg:string)=>void} [notify] @param {(()=>void)|null} [onClose] */
+  show(hero, notify = () => {}, onClose = null) {
+    this.hero = hero;
+    this.notify = notify;
+    this.onClose = onClose;
+    this.open = true;
+    this.sel = 0;
+    this.el.classList.remove('hidden');
+    this._render();
+  }
+
+  close() {
+    this.open = false;
+    this.hero = null;
+    this.el.classList.add('hidden');
+    const cb = this.onClose; this.onClose = null;
+    cb?.();
+  }
+
+  /** @param {import('../core/Input.js').Input} input */
+  handle(input) {
+    if (!this.open || !this.hero) return false;
+    const nodes = treeFor(this.hero.cls);
+    if (input.pressed.cancel || input.pressed.menu) {
+      this.audio.sfx('cancel');
+      this.close();
+      return true;
+    }
+    const dx = (input.pressed.right ? 1 : 0) - (input.pressed.left ? 1 : 0);
+    const dy = (input.pressed.down ? 1 : 0) - (input.pressed.up ? 1 : 0);
+    if (dx !== 0 || dy !== 0) {
+      const nx = this._nearest(nodes, this.sel, dx, dy);
+      if (nx >= 0 && nx !== this.sel) { this.sel = nx; this.audio.sfx('cursor'); this._render(); }
+      return true;
+    }
+    if (input.pressed.confirm) { this._invest(); return true; }
+    return true;
+  }
+
+  /** Vizinho mais próximo na direção (dx,dy) no espaço x/y dos nós. */
+  _nearest(nodes, from, dx, dy) {
+    const o = nodes[from];
+    if (!o) return from;
+    let best = from, bestScore = Infinity;
+    nodes.forEach((n, i) => {
+      if (i === from) return;
+      const vx = n.x - o.x, vy = (n.y - o.y) * (100 / 64);
+      const len = Math.hypot(vx, vy) || 1;
+      const dot = (vx * dx + vy * dy) / len;
+      if (dot < 0.45) return; // fora do cone da direção
+      const perp = Math.abs(vx * dy - vy * dx) / len;
+      const score = (len / dot) + perp * 2.2;
+      if (score < bestScore) { bestScore = score; best = i; }
+    });
+    return best;
+  }
+
+  _invest() {
+    const h = this.hero;
+    if (!h) return;
+    const nodes = treeFor(h.cls);
+    const node = nodes[this.sel];
+    const r = invest(h, node);
+    if (r.ok) {
+      this.audio.sfx('levelup');
+      const rank = getRank(h, node.id);
+      this.notify(`${h.name}: ${node.name} ${rank}/${node.max}!`);
+    } else {
+      this.audio.sfx('flee-fail');
+      this.notify(REASONS[r.reason] || 'Não foi possível investir.');
+    }
+    this._render();
+  }
+
+  _nodeClass(h, node) {
+    if (getRank(h, node.id) > 0) return 'taken';
+    return canInvest(h, node).ok ? 'avail' : 'locked';
+  }
+
+  _render() {
+    const h = this.hero;
+    if (!h) return;
+    const nodes = treeFor(h.cls);
+    if (this.sel >= nodes.length) this.sel = 0;
+    this.headEl.innerHTML =
+      `<h2>✦ ÁRVORE DE SKILLS ✦</h2>` +
+      `<div class="skills-hero">${h.name} <span class="row-sub">${h.cls} · Nv ${h.level}</span></div>` +
+      `<div class="skills-sp">✦ ${h.sp || 0} ponto(s)</div>`;
+    // ligações (SVG): dourada se o destino já tem nível, azul se destravada, apagada se bloqueada
+    this.linksEl.innerHTML = nodes.map((n) =>
+      n.req.map((rid) => {
+        const a = nodes.find((m) => m.id === rid);
+        if (!a) return '';
+        const cls = getRank(h, n.id) > 0 ? 'taken' : (reqMet(h, n) ? 'avail' : 'locked');
+        return `<line x1="${a.x}" y1="${a.y}" x2="${n.x}" y2="${n.y}" class="${cls}" />`;
+      }).join('')).join('');
+    // nós
+    this.nodesEl.innerHTML = nodes.map((n, i) => {
+      const rank = getRank(h, n.id);
+      const pips = Array.from({ length: n.max }, (_, k) => k < rank ? '●' : '○').join('');
+      return `<div class="sk-node ${this._nodeClass(h, n)} ${i === this.sel ? 'sel' : ''}" ` +
+        `style="left:${n.x}%;top:${(n.y / 64) * 100}%" data-i="${i}" title="${n.name}">` +
+        `<span class="sk-ic">${ic(n.icon, 26)}</span>` +
+        `<span class="sk-nm">${n.name}</span>` +
+        `<span class="sk-pips">${pips}</span></div>`;
+    }).join('');
+    // detalhe do selecionado
+    const n = nodes[this.sel];
+    if (n) {
+      const rank = getRank(h, n.id);
+      const reqNames = n.req.length
+        ? n.req.map((rid) => {
+            const rn = nodeById(rid);
+            const ok = rn && getRank(h, rid) > 0;
+            return `<span class="${ok ? 'req-ok' : 'req-no'}">${ok ? '✓' : '✗'} ${rn ? rn.name : rid}</span>`;
+          }).join(' · ')
+        : '<span class="req-ok">✓ inicial</span>';
+      const st = this._nodeClass(h, n);
+      const hint = st === 'taken' && rank >= n.max ? 'Nível máximo.' :
+        st === 'taken' ? 'E investe mais 1✦.' :
+        st === 'avail' ? `E investe 1✦ (você tem ${h.sp || 0}).` : 'Bloqueada.';
+      this.detailEl.innerHTML =
+        `<h3>${ic(n.icon, 40)} ${n.name} <span class="row-sub">${rank}/${n.max}</span></h3>` +
+        `<div>${n.desc}</div>` +
+        `<div class="sk-fx">${effectText(n)}</div>` +
+        `<div class="row-sub">Requer: ${reqNames}</div>` +
+        `<div class="sk-hint">${hint}</div>`;
+    } else {
+      this.detailEl.innerHTML = '';
+    }
+    this.footEl.innerHTML = `<span class="gold">${ic('gold', 20)} ✦ ${h.sp || 0}</span><span>Setas navegar · E investir · Q fechar</span>`;
   }
 }
 
@@ -5933,7 +6390,7 @@ class HUD {
       <div class="hud-card">
         ${faces[h.sprite] ? `<img class="hud-face" src="${faces[h.sprite]}" alt="" />` : ''}
         <div class="hud-info">
-          <span class="nm">${h.hp <= 0 ? '✝ ' : ''}${h.name}</span><span class="lv">Nv${h.level} ${h.cls}</span>
+          <span class="nm">${h.hp <= 0 ? '✝ ' : ''}${h.name}</span><span class="lv">Nv${h.level} ${h.cls}${(h.sp || 0) > 0 ? ` <span class="sp" title="Pontos de skill (Q > Skills)">✦${h.sp}</span>` : ''}</span>
           <div class="bar hp ${low ? 'low' : ''}"><div style="width:${hpPct}%"></div><span>${Math.max(0, Math.ceil(h.hp))}/${h.maxHp}</span></div>
           <div class="bar mp"><div style="width:${mpPct}%"></div><span>${Math.max(0, Math.ceil(h.mp))}/${h.maxMp}</span></div>
         </div>
@@ -6642,8 +7099,20 @@ class BattleSystem {
     if (this._checkEnd()) return;
     const turn = this.queue.shift();
     if (!turn) {
-      // nova rodada: a guarda cai, nova fase de comandos
-      for (const h of this.party) h.guard = false;
+      // nova rodada: a guarda cai, nova fase de comandos + passivas de turno
+      for (const h of this.party) {
+        h.guard = false;
+        if (h.hp > 0) {
+          const rg = skillRank(h, 'regen'), fc = skillRank(h, 'focus');
+          if (rg > 0 && h.hp < h.maxHp) {
+            const v = Math.min(Math.round(h.maxHp * 0.05 * rg), h.maxHp - Math.max(0, h.hp));
+            if (v > 0) { h.hp += v; this._healFx(this.heroPos(this.party.indexOf(h))); this._floatDmg(this.heroPos(this.party.indexOf(h)), `+${v}`, '#7dff9a', false); }
+          }
+          if (fc > 0 && h.mp < h.maxMp) {
+            h.mp = Math.min(h.maxMp, h.mp + 2 * fc);
+          }
+        }
+      }
       this.heroIdx = 0; this.actions = new Array(this.party.length).fill(null);
       this.phase = 'command';
       while (this.heroIdx < this.party.length && this.party[this.heroIdx].hp <= 0) { this.actions[this.heroIdx] = { type: 'skip' }; this.heroIdx++; }
@@ -6741,7 +7210,7 @@ class BattleSystem {
       const ti = this._resolveEnemyTarget(act.target ?? 0);
       if (ti < 0) return;
       const e = this.enemies[ti];
-      const crit = Math.random() < 0.12;
+      const crit = Math.random() < 0.12 + 0.05 * skillRank(h, 'crit');
       const dmg = Math.round(physDmg(h.atk, e.def) * (crit ? 1.7 : 1));
       e.hp -= dmg;
       e.hitT = 0.35;
@@ -6914,7 +7383,10 @@ class BattleSystem {
     const ti = this.party.indexOf(t);
     let dmg = rawDmg;
     let blocked = false;
-    if (t.guard) { dmg = Math.max(1, Math.ceil(rawDmg / 2)); blocked = true; }
+    // Couraça: reduz o dano antes da guarda
+    const tough = skillRank(t, 'tough');
+    if (tough > 0) dmg = Math.max(1, Math.round(dmg * (1 - 0.08 * tough)));
+    if (t.guard) { dmg = Math.max(1, Math.ceil(dmg / 2)); blocked = true; }
     t.hp -= dmg;
     t.hitT = 0.35;
     if (lungeTo) {
@@ -7790,6 +8262,7 @@ class Engine {
     this.camera = new Camera();
     this.dialog = new Dialog(this.audio);
     this.menu = new Menu(this.audio);
+    this.skills = new Skills(this.audio);
     this.hud = new HUD();
     this.title = new TitleScreen(this.audio);
     this.battle = new BattleSystem(this.audio);
@@ -8211,6 +8684,7 @@ class Engine {
     // diálogos e menus consomem o input primeiro
     if (this.dialog.active) { this.dialog.handle(inp); this.camera.update(dt); return; }
     if (this.menu.active) {
+      if (this.skills.active) { this.skills.handle(inp); return; }
       this.menu.handle(inp, this._menuActions());
       return;
     }
@@ -8373,6 +8847,12 @@ class Engine {
         SaveSystem.save(slot, this._snapshot());
         toast(`Jogo salvo no Slot ${slot}!`);
         this.audio.sfx('confirm');
+      },
+      openSkills: (idx) => {
+        const h = this.party[idx];
+        if (!h) return;
+        this.audio.sfx('confirm');
+        this.skills.show(h, (m) => toast(m), () => this.menu._render());
       },
     };
   }

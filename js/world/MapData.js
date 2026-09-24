@@ -17,10 +17,10 @@ export const TOY_SPOT = { x: 32, y: 22 };
 export const HEAL_CRYSTAL = { x: 54, y: 15 };
 /** Baús do tesouro: {id, x, y, loot:{gold, items}}. Abertura é salva em flags. */
 export const CHESTS = [
-  { id: 'plain', x: 28, y: 32, loot: { gold: 80, items: { potion: 1 } } },
+  { id: 'plain', x: 28, y: 32, loot: { gold: 80, items: { potion: 1, strongpotion: 1 } } },
   { id: 'forest', x: 5, y: 9, loot: { gold: 40, items: { ether: 1, antidote: 1 } } },
   { id: 'ruin', x: 53, y: 11, loot: { gold: 150, items: { hipotion: 1 } } },
-  { id: 'desert', x: 74, y: 38, loot: { gold: 120, items: { ether: 1 } } },
+  { id: 'desert', x: 74, y: 38, loot: { gold: 120, items: { ether: 1, megabomb: 1 } } },
   { id: 'swamp', x: 5, y: 54, loot: { gold: 90, items: { potion: 1, antidote: 1 } } },
   { id: 'snow', x: 40, y: 3, loot: { gold: 110, items: { hiether: 1 } } },
 ];

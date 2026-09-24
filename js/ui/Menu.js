@@ -3,9 +3,9 @@
  * ←→ troca de aba · ↑↓ navega · E confirma · Q fecha.
  * @module ui/Menu
  */
-import { ITEMS } from '../systems/Inventory.js';
+import { ITEMS, ITEM_CATS } from '../systems/Inventory.js';
 import { SPELLS, aliveHeroes } from '../entities/Party.js';
-import { listPassives } from '../systems/SkillTree.js';
+import { listPassives, treeFor, getRank } from '../systems/SkillTree.js';
 import { xpForLevel } from '../core/Config.js';
 import { SPEED_ORDER } from '../systems/Settings.js';
 import { SaveSystem } from '../systems/SaveSystem.js';
@@ -111,6 +111,30 @@ export class Menu {
     return `${face}${h.hp <= 0 ? '✝ ' : ''}${h.name} <span class="row-sub">${h.cls} Nv${h.level} · ${Math.ceil(h.hp)}/${h.maxHp} HP · ${Math.ceil(h.mp)}/${h.maxMp} MP</span>`;
   }
 
+  /** Linha de efeito resumida de um item. */
+  _itemFx(it) {
+    const parts = [];
+    if (it.heal) parts.push(`+${it.heal} HP`);
+    if (it.mp) parts.push(`+${it.mp} MP`);
+    if (it.revive) parts.push(`Revive ${Math.round(it.revive * 100)}%`);
+    if (it.dmg) parts.push(`${it.dmg} de dano`);
+    if (it.flee) parts.push('Fuga garantida');
+    return parts.join(' · ') || 'Efeito especial';
+  }
+
+  /** Onde o item funciona. */
+  _itemWhere(it) {
+    return (it.dmg || it.flee) ? 'Só em batalha' : 'Campo e batalha';
+  }
+
+  /** Nós de skill investidos/total do herói. */
+  _skillCount(h) {
+    const t = treeFor(h.cls);
+    const got = t.reduce((s, n) => s + getRank(h, n.id), 0);
+    const max = t.reduce((s, n) => s + n.max, 0);
+    return { got, max };
+  }
+
   _render() {
     const { party, inv, gold, time } = this.ctx;
     this.tabsEl.innerHTML = TABS.map((t, i) =>
@@ -129,29 +153,44 @@ export class Menu {
     }
 
     if (tabId === 'items') {
-      const ids = Object.keys(ITEMS);
+      // agrupado por categoria; cabeçalhos não são selecionáveis
+      const ids = [];
+      let html = '';
+      for (const c of ITEM_CATS) {
+        const inCat = c.ids.filter((id) => ITEMS[id]);
+        if (!inCat.length) continue;
+        const total = inCat.reduce((s, id) => s + (inv[id] || 0), 0);
+        html += `<div class="list-head">${c.label}<span class="count">×${total}</span></div>`;
+        for (const id of inCat) {
+          const i = ids.length;
+          ids.push(id);
+          const n = inv[id] || 0;
+          html += `<div class="opt ${i === this.sel ? 'sel' : ''}${n <= 0 ? ' empty' : ''}">${ic(id)}${ITEMS[id].name}<span class="count">×${n}</span></div>`;
+        }
+      }
       this.rows = ids;
-      this.listEl.innerHTML = ids.map((id, i) =>
-        `<div class="opt ${i === this.sel ? 'sel' : ''}">${ic(id)}${ITEMS[id].name}<span class="count">×${inv[id] || 0}</span></div>`).join('');
+      this.listEl.innerHTML = html;
       const selId = ids[this.sel];
       const it = ITEMS[selId];
-      this.detailEl.innerHTML = `<h3>${ic(selId, 44)} ${it.name}</h3>${it.desc}<br/><span class="row-sub">Preço na loja: ${it.price}G · possui ×${inv[selId] || 0}</span>`;
+      this.detailEl.innerHTML = `<h3>${ic(selId, 44)} ${it.name}</h3>` +
+        `<div class="sk-fx">${this._itemFx(it)} <span class="row-sub">· ${this._itemWhere(it)}</span></div>` +
+        `${it.desc}<br/><span class="row-sub">Preço na loja: ${it.price}G · possui ×${inv[selId] || 0}</span>`;
     } else if (tabId === 'magic') {
       if (this.spellHero == null) {
         this.rows = party.map((_, i) => i);
         this.listEl.innerHTML = party.map((h, i) =>
-          `<div class="opt ${i === this.sel ? 'sel' : ''}">${h.name}<span class="row-cost">${Math.ceil(h.mp)}/${h.maxMp} MP</span></div>`).join('');
+          `<div class="opt ${i === this.sel ? 'sel' : ''}">${h.name}<span class="row-sub">${h.spells.length} magia(s)</span><span class="row-cost">${Math.ceil(h.mp)}/${h.maxMp} MP</span></div>`).join('');
         const h = party[this.sel];
         this.detailEl.innerHTML = `<h3>Magias de ${h.name}</h3>` +
-          (h.spells.length ? h.spells.map((s) => `${ic(s, 20)} ${SPELLS[s].name} <span class="row-cost">${SPELLS[s].mp}MP</span>`).join('<br/>') : '<span class="row-sub">Nenhuma magia ainda.</span>');
+          (h.spells.length ? h.spells.map((s) => `${ic(s, 20)} ${SPELLS[s].name} <span class="row-cost">${SPELLS[s].mp}MP · ×${SPELLS[s].power}</span>`).join('<br/>') : '<span class="row-sub">Nenhuma magia ainda. Aprenda na árvore de Skills!</span>');
       } else {
         const h = party[this.spellHero];
         this.rows = h.spells;
-        this.listEl.innerHTML = `<div class="list-head">◀ ${h.name}</div>` +
+        this.listEl.innerHTML = `<div class="list-head">◀ ${h.name} <span class="count">${Math.ceil(h.mp)}/${h.maxMp} MP</span></div>` +
           h.spells.map((s, i) =>
-            `<div class="opt ${i === this.sel ? 'sel' : ''}">${ic(s)}${SPELLS[s].name}<span class="row-cost">${SPELLS[s].mp}MP</span></div>`).join('');
+            `<div class="opt ${i === this.sel ? 'sel' : ''}${h.mp < SPELLS[s].mp ? ' nomp' : ''}">${ic(s)}${SPELLS[s].name}<span class="row-cost">${SPELLS[s].mp}MP</span></div>`).join('');
         const s = h.spells[this.sel];
-        this.detailEl.innerHTML = s ? `<h3>${ic(s, 44)} ${SPELLS[s].name}</h3>${SPELLS[s].desc}<br/><span class="row-sub">Custo: ${SPELLS[s].mp} MP</span>` : '';
+        this.detailEl.innerHTML = s ? `<h3>${ic(s, 44)} ${SPELLS[s].name}</h3>${SPELLS[s].desc}<br/><span class="row-sub">Custo: ${SPELLS[s].mp} MP · Poder ×${SPELLS[s].power} · Alvo: ${SPELLS[s].target === 'ally' ? 'aliado' : 'inimigo'}</span>` : '';
       }
     } else if (tabId === 'status') {
       this.rows = party.map((_, i) => i);
@@ -161,7 +200,9 @@ export class Menu {
       const face = this.ctx?.faces?.[h.sprite]
         ? `<img class="menu-face big" src="${this.ctx.faces[h.sprite]}" alt="" />` : '';
       const xpPct = Math.max(0, Math.min(100, (100 * h.xp / xpForLevel(h.level)))).toFixed(0);
+      const xpLeft = Math.max(0, xpForLevel(h.level) - h.xp);
       const pass = listPassives(h);
+      const sk = this._skillCount(h);
       this.detailEl.innerHTML = `<h3>${face}${h.name} <span class="row-sub">${h.cls} · Nv ${h.level}</span></h3>
         <div class="stat-grid">
           <b>HP</b><span>${Math.ceil(h.hp)} / ${h.maxHp}</span>
@@ -169,7 +210,8 @@ export class Menu {
           <b>ATK</b><span>${h.atk}</span><b>DEF</b><span>${h.def}</span>
           <b>MAG</b><span>${h.mag}</span><b>VEL</b><span>${h.spd}</span>
           <b>XP</b><span><span class="xpbar"><span style="width:${xpPct}%"></span></span> ${h.xp}/${xpForLevel(h.level)}</span>
-          <b>Skill ✦</b><span>${h.sp || 0} ponto(s) — aba Skills</span>
+          <b>Próx. Nv</b><span>faltam ${xpLeft} XP</span>
+          <b>Skill ✦</b><span>${h.sp || 0} ponto(s) · nós ${sk.got}/${sk.max} — aba Skills</span>
           <b>Magias</b><span>${h.spells.map((s) => SPELLS[s].name).join(', ') || '—'}</span>
           ${pass.length ? `<b>Passivas</b><span>${pass.map((p) => `${p.name} ${p.rank}`).join(' · ')}</span>` : ''}
         </div>`;
@@ -180,7 +222,11 @@ export class Menu {
       const labels = { sound: `${sndIc} Som`, speed: `${ic('quest')} Texto` };
       this.listEl.innerHTML = this.rows.map((id, i) =>
         `<div class="opt ${i === this.sel ? 'sel' : ''}">${labels[id]}<span class="count">${id === 'sound' ? cfg.sound : cfg.speed}</span></div>`).join('');
-      this.detailEl.innerHTML = `<h3>${ic('config', 44)} Configurações</h3>E ou ←→ alterna o valor.<br/><span class="row-sub">Texto controla a velocidade do typewriter.</span>`;
+      const cfgDesc = {
+        sound: `<h3>${sndIc} Som</h3>Liga/desliga música e efeitos.<br/><span class="row-sub">Atual: ${cfg.sound} (tecla M também alterna).</span>`,
+        speed: `<h3>${ic('quest', 44)} Texto</h3>Velocidade do typewriter dos diálogos.<br/><span class="row-sub">Atual: ${cfg.speed} (lento → normal → rápido).</span>`,
+      };
+      this.detailEl.innerHTML = `${cfgDesc[this.rows[this.sel]] || ''}<br/><span class="row-sub">E ou ←→ alterna o valor.</span>`;
     } else if (tabId === 'save') {
       this.rows = [1, 2, 3];
       this.listEl.innerHTML = this.rows.map((s, i) => {
@@ -188,20 +234,28 @@ export class Menu {
         const armed = this._armSave === s ? ' <span class="count">confirma?</span>' : '';
         return `<div class="opt ${i === this.sel ? 'sel' : ''}">${ic('slot')} Slot ${s}${armed}<br/><span class="row-sub">${info || '(vazio)'}</span></div>`;
       }).join('');
-      this.detailEl.innerHTML = `<h3>${ic('save', 44)} Salvar progresso</h3>Grava posição, grupo, itens e ouro.<br/><span class="row-sub">Slot ocupado pede confirmação. Q volta sem salvar.</span>`;
+      const d = SaveSystem.load(this.rows[this.sel]);
+      const roster = d?.party?.map((h) => `${h.name} Nv${h.level ?? 1}`).join(' · ') || '';
+      this.detailEl.innerHTML = `<h3>${ic('save', 44)} Salvar progresso</h3>Grava posição, grupo, itens e ouro.<br/>` +
+        (d ? `<span class="row-sub">Slot ${this.rows[this.sel]}: ${roster} · ${d.gold ?? 0}G</span><br/>` : '') +
+        `<span class="row-sub">Slot ocupado pede confirmação. Q volta sem salvar.</span>`;
     } else if (tabId === 'quests') {
       const qs = this._questList();
       this._quests = qs;
+      const done = qs.filter((q) => q.done).length;
       this.rows = qs.map((_, i) => i);
-      this.listEl.innerHTML = qs.map((q, i) =>
+      this.listEl.innerHTML = `<div class="list-head">Diário — ${done}/${qs.length} concluídas</div>` +
+        qs.map((q, i) =>
         `<div class="opt ${i === this.sel ? 'sel' : ''}">${ic(q.done ? 'qdone' : 'qtodo')}${q.t}</div>`).join('');
       const q = qs[this.sel];
       this.detailEl.innerHTML = q ? `<h3>${ic(q.done ? 'qdone' : 'qtodo', 40)} ${q.t}</h3>${q.d}` : '<span class="row-sub">Nenhuma quest.</span>';
     } else if (tabId === 'skills') {
       this.rows = party.map((_, i) => i);
       this.listEl.innerHTML = `<div class="list-head">Árvore de skills — quem vai treinar?</div>` +
-        party.map((h, i) =>
-          `<div class="opt ${i === this.sel ? 'sel' : ''}">${this._heroLine(h)}${(h.sp || 0) > 0 ? ` <span class="count">✦${h.sp}</span>` : ''}</div>`).join('');
+        party.map((h, i) => {
+          const sk = this._skillCount(h);
+          return `<div class="opt ${i === this.sel ? 'sel' : ''}">${this._heroLine(h)}<span class="count">✦${h.sp || 0} · nós ${sk.got}/${sk.max}</span></div>`;
+        }).join('');
       const h = party[this.sel];
       this.detailEl.innerHTML = `<h3>${ic('spark', 44)} Árvore de Skills</h3>` +
         (h ? `E abre a árvore de <b>${h.name}</b> (${h.sp || 0} ✦ ponto(s)).<br/><span class="row-sub">Nós ligados se desbloqueiam em cadeia.</span>` : '');

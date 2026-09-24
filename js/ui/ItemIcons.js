@@ -788,12 +788,147 @@ function p_spark(g) {
   g.beginPath(); g.arc(24, 24, 3.4, 0, 7); g.fill();
 }
 
+function p_strongpotion(g) {
+  drop(g, 24, 39, 11);
+  // frasco verde com folha (meio-termo da poção)
+  g.fillStyle = vg(g, 8, 16, [[0, '#e8b878'], [1, '#8a5a2b']]);
+  g.fillRect(20, 8, 8, 9);
+  ln(g, 1.6); g.strokeRect(20, 8, 8, 9);
+  g.fillStyle = '#3a5e17';
+  rr(g, 19, 4.5, 10, 5, 2); g.fill(); ln(g, 1.4);
+  const bg = g.createRadialGradient(19, 24, 2, 24, 28, 14);
+  bg.addColorStop(0, '#a8e05f'); bg.addColorStop(0.45, '#37a05f'); bg.addColorStop(1, '#0f5e3a');
+  g.fillStyle = bg;
+  g.beginPath(); g.arc(24, 27, 12, 0, 7); g.fill(); ln(g, 2);
+  g.fillStyle = '#37e08b';
+  g.beginPath(); g.ellipse(24, 22, 3.4, 5, 0.5, 0, 7); g.fill();
+  ln(g, 1.2);
+  gloss(g, 19.5, 21.5, 4.4, 2.6);
+}
+
+function p_megapotion(g) {
+  drop(g, 24, 39, 11);
+  // frascão alto magenta com estrela
+  g.fillStyle = vg(g, 6, 16, [[0, '#ffe9a8'], [1, '#c98d2e']]);
+  g.fillRect(21, 6, 6, 9);
+  ln(g, 1.6); g.strokeRect(21, 6, 6, 9);
+  g.fillStyle = '#5e3a17';
+  rr(g, 20, 3, 8, 4.6, 2); g.fill(); ln(g, 1.4);
+  const bg = g.createRadialGradient(19, 22, 2, 24, 27, 14);
+  bg.addColorStop(0, '#ff9df1'); bg.addColorStop(0.5, '#c23ba8'); bg.addColorStop(1, '#6e105e');
+  g.fillStyle = bg;
+  rr(g, 13, 15, 22, 24, 8); g.fill(); ln(g, 2);
+  g.fillStyle = '#fff3c4';
+  g.beginPath();
+  for (let i = 0; i < 10; i++) {
+    const a = -Math.PI / 2 + (i / 10) * Math.PI * 2;
+    const rad = i % 2 === 0 ? 6 : 2.6;
+    g[i ? 'lineTo' : 'moveTo'](24 + Math.cos(a) * rad, 27 + Math.sin(a) * rad);
+  }
+  g.closePath(); g.fill();
+  g.strokeStyle = '#8c5a10'; g.lineWidth = 1.2; g.stroke();
+  gloss(g, 18.5, 20, 3.6, 5);
+}
+
+function p_bigether(g) {
+  drop(g, 24, 39, 10);
+  // orbe de mana com tampa prateada
+  g.fillStyle = vg(g, 8, 15, [[0, '#e8ecff'], [1, '#8d8d99']]);
+  rr(g, 19, 6, 10, 8, 2); g.fill(); ln(g, 1.6);
+  const bg = g.createRadialGradient(18, 22, 2, 24, 27, 15);
+  bg.addColorStop(0, '#bff3ff'); bg.addColorStop(0.45, '#2456e0'); bg.addColorStop(1, '#0d1449');
+  g.fillStyle = bg;
+  g.beginPath(); g.arc(24, 26, 13, 0, 7); g.fill(); ln(g, 2);
+  g.fillStyle = 'rgba(190,235,255,.85)';
+  g.beginPath(); g.arc(24, 26, 7, 0, 7); g.fill();
+  g.fillStyle = '#fff';
+  g.beginPath(); g.arc(21.5, 23.5, 2, 0, 7); g.fill();
+  g.beginPath(); g.arc(26.5, 29, 1.4, 0, 7); g.fill();
+  g.fillStyle = 'rgba(160,220,255,.9)';
+  g.fillRect(35, 20, 2, 2); g.fillRect(11, 30, 2, 2);
+  gloss(g, 19, 17, 3, 3.4);
+}
+
+function p_goldphoenix(g) {
+  drop(g, 24, 39, 10);
+  // pena dourada flamejante
+  g.fillStyle = 'rgba(255,215,94,.3)';
+  g.beginPath(); g.arc(24, 24, 15, 0, 7); g.fill();
+  g.fillStyle = vg(g, 8, 38, [[0, '#fff3c4'], [1, '#c98d2e']]);
+  g.beginPath();
+  g.moveTo(24, 6);
+  g.quadraticCurveTo(36, 20, 30, 34);
+  g.quadraticCurveTo(27, 39, 24, 40);
+  g.quadraticCurveTo(21, 39, 18, 34);
+  g.quadraticCurveTo(12, 20, 24, 6);
+  g.fill(); ln(g, 1.8);
+  g.strokeStyle = '#8c5a10'; g.lineWidth = 1.6;
+  g.beginPath(); g.moveTo(24, 10); g.lineTo(24, 37); g.stroke();
+  g.strokeStyle = 'rgba(140,90,16,.6)'; g.lineWidth = 1.1;
+  for (const [x0, y0, x1, y1] of [[24, 16, 29, 13], [24, 22, 30, 20], [24, 28, 29, 27], [24, 16, 19, 13], [24, 22, 18, 20], [24, 28, 19, 27]]) {
+    g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.stroke();
+  }
+  gloss(g, 20, 13, 2.4, 4);
+}
+
+function p_megabomb(g) {
+  drop(g, 24, 39, 12);
+  // faíscas ao fundo
+  g.fillStyle = 'rgba(255,150,60,.55)';
+  g.fillRect(10, 9, 2.4, 2.4); g.fillRect(36, 11, 2, 2); g.fillRect(32, 34, 2, 2);
+  // bombarda escura com espinhos
+  g.fillStyle = '#3a3a4a';
+  for (let i = 0; i < 8; i++) {
+    const a = (i / 8) * Math.PI * 2 + 0.4;
+    g.beginPath();
+    g.moveTo(24 + Math.cos(a - 0.12) * 10, 26 + Math.sin(a - 0.12) * 10);
+    g.lineTo(24 + Math.cos(a) * 15.5, 26 + Math.sin(a) * 15.5);
+    g.lineTo(24 + Math.cos(a + 0.12) * 10, 26 + Math.sin(a + 0.12) * 10);
+    g.closePath(); g.fill();
+  }
+  const bg = g.createRadialGradient(19, 21, 2, 24, 27, 13);
+  bg.addColorStop(0, '#ff8a6b'); bg.addColorStop(0.5, '#a02318'); bg.addColorStop(1, '#3a0d18');
+  g.fillStyle = bg;
+  g.beginPath(); g.arc(24, 26, 11, 0, 7); g.fill(); ln(g, 2);
+  g.fillStyle = '#8a5a2b';
+  g.fillRect(21, 11, 6, 5);
+  ln(g, 1.4); g.strokeRect(21, 11, 6, 5);
+  g.strokeStyle = '#d9b878'; g.lineWidth = 2;
+  g.beginPath(); g.moveTo(24, 11); g.quadraticCurveTo(27, 7, 31, 8); g.stroke();
+  g.fillStyle = '#ffe95e';
+  g.beginPath(); g.arc(31.5, 8, 3, 0, 7); g.fill();
+  g.fillStyle = '#fff';
+  g.beginPath(); g.arc(31, 7.4, 1.2, 0, 7); g.fill();
+  gloss(g, 19.5, 20.5, 4, 2.4);
+}
+
+function p_tonic(g) {
+  drop(g, 24, 39, 10);
+  // vial bipartido: HP em cima, MP embaixo
+  g.fillStyle = vg(g, 8, 15, [[0, '#e8ecff'], [1, '#8d8d99']]);
+  rr(g, 19, 8, 10, 7, 2); g.fill(); ln(g, 1.6);
+  const top = g.createLinearGradient(17, 0, 31, 0);
+  top.addColorStop(0, '#e0304e'); top.addColorStop(0.5, '#ff9b9b'); top.addColorStop(1, '#8c1030');
+  g.fillStyle = top;
+  rr(g, 17, 15, 14, 12, 5); g.fill(); ln(g, 1.8);
+  const bot = g.createLinearGradient(17, 0, 31, 0);
+  bot.addColorStop(0, '#2456e0'); bot.addColorStop(0.5, '#7fd4ff'); bot.addColorStop(1, '#1b2f9e');
+  g.fillStyle = bot;
+  rr(g, 17, 27, 14, 12, 5); g.fill(); ln(g, 1.8);
+  g.fillStyle = '#ffd75e';
+  g.fillRect(17, 25.6, 14, 2.4);
+  ln(g, 1.2);
+  gloss(g, 20.5, 18.5, 2.4, 6);
+}
+
 /* ================= REGISTRO ================= */
 
 const PAINT = {
-  potion: p_potion, hipotion: p_hipotion, ether: p_ether, antidote: p_antidote,
+  potion: p_potion, strongpotion: p_strongpotion, hipotion: p_hipotion, megapotion: p_megapotion,
+  ether: p_ether, bigether: p_bigether, antidote: p_antidote,
   fish: p_fish, lambari: p_lambari, royal: p_royal, goldfish: p_goldfish, phoenix: p_phoenix,
-  bomb: p_bomb, hiether: p_hiether, elixir: p_elixir,
+  goldphoenix: p_goldphoenix,
+  bomb: p_bomb, megabomb: p_megabomb, hiether: p_hiether, elixir: p_elixir, tonic: p_tonic,
   fire: p_fire, ice: p_ice, thunder: p_thunder, cure: p_cure,
   attack: p_attack, magic: p_magic, item: p_item, scan: p_scan, flee: p_flee, guard: p_guard,
   gold: p_gold, bed: p_bed, save: p_save, quest: p_quest, status: p_status, config: p_config,
@@ -814,6 +949,12 @@ function accentFor(id) {
     case 'thunder': return ['#ffe95e', true];
     case 'fire': return ['#ff8a6b', false];
     case 'cure': return ['#37e08b', false];
+    case 'strongpotion': return ['#37e08b', false];
+    case 'megapotion': return ['#ffd75e', true];
+    case 'bigether': return ['#7fd4ff', false];
+    case 'goldphoenix': return ['#ffd75e', true];
+    case 'megabomb': return ['#ff6b6b', true];
+    case 'tonic': return ['#c9a8ff', false];
     case 'gold': return ['#ffd75e', true];
     default: return ['#e8ecff', false];
   }

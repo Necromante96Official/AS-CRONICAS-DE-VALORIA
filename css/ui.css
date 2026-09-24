@@ -174,15 +174,15 @@
 .shop-price { color: var(--ff-yellow); font-weight: bold; float: right; }
 .shop-own { color: var(--ff-dim); font-size: .85em; margin-left: 8px; }
 
-/* ---------- Menu com abas (minimalista) ---------- */
+/* ---------- Menu com abas (tela cheia) ---------- */
 #menu {
-  position: absolute; top: 4%; left: 4%;
-  width: min(58%, 720px); max-height: 92%;
+  position: absolute; inset: 2.5%;
   z-index: 35;
   display: flex; flex-direction: column; gap: 8px;
   padding: 16px 20px;
   animation: panel-in .22s ease-out;
-  font-size: 15px;
+  font-size: 16px;
+  overflow: hidden;
 }
 #menu-body.tab-enter { animation: panel-fade .22s ease-out; }
 #menu h2 { color: var(--ff-yellow); letter-spacing: 3px; font-size: 18px; text-align: center; font-weight: bold; }
@@ -205,30 +205,42 @@
 }
 #menu-body {
   display: grid;
-  grid-template-columns: 1.05fr 1fr;
-  gap: 10px;
+  grid-template-columns: 1fr 1.2fr;
+  gap: 14px;
+  flex: 1;
   min-height: 0;
   border-top: 1px solid #ffffff1f;
-  padding-top: 6px;
+  padding-top: 8px;
 }
-#menu-list { overflow-y: auto; max-height: 44vh; font-size: 15px; }
-#menu-list .opt { padding: 6px 8px; border-radius: 6px; border-left: 2px solid transparent; transition: background .12s, transform .12s; }
+#menu-list { overflow-y: auto; overflow-x: hidden; min-height: 0; font-size: 15px; padding-right: 4px; }
+#menu-list .opt {
+  display: flex; align-items: center; gap: 8px;
+  min-width: 0;
+  padding: 7px 10px; border-radius: 6px; border-left: 2px solid transparent;
+  overflow-wrap: anywhere;
+  transition: background .12s, transform .12s;
+}
+#menu-list .opt.empty { opacity: .55; }
 #menu-list .opt.sel { background: linear-gradient(90deg, #ffffff1e, #ffffff08); border-left-color: var(--ff-yellow); transform: translateX(2px); }
-#menu-list .opt.sel::before { content: '▶ '; color: var(--ff-yellow); }
+#menu-list .opt.sel::before { content: '▶ '; color: var(--ff-yellow); flex: none; }
 #menu-list .list-head {
   color: var(--ff-yellow);
   font-weight: bold;
   letter-spacing: 1px;
-  padding: 6px 8px 2px;
+  padding: 8px 8px 2px;
   font-size: .92em;
+  display: flex; align-items: center; gap: 8px;
+  overflow-wrap: anywhere;
 }
-#menu-list .row-sub { color: var(--ff-dim); font-size: .8em; }
-#menu-list .row-cost { color: var(--ff-mp); font-size: .8em; float: right; }
-#menu-list .count { color: var(--ff-yellow); font-weight: bold; float: right; }
+#menu-list .row-sub { color: var(--ff-dim); font-size: .8em; overflow-wrap: anywhere; min-width: 0; }
+#menu-list .row-cost { color: var(--ff-mp); font-size: .8em; margin-left: auto; flex: none; }
+#menu-list .count { color: var(--ff-yellow); font-weight: bold; margin-left: auto; flex: none; }
+#menu-list .list-head .count { margin-left: auto; }
 #menu-detail {
   font-size: clamp(13px, 1.2vw, 15px); line-height: 1.65;
   border-left: 1px solid #ffffff1f; padding-left: 14px;
-  overflow-y: auto; max-height: 44vh;
+  overflow-y: auto; overflow-x: hidden; min-height: 0;
+  overflow-wrap: anywhere;
 }
 #menu-detail h3 { color: var(--ff-yellow); font-size: 1em; margin-bottom: 3px; }
 #menu-detail h3 .menu-face.big { width: 52px; height: 52px; vertical-align: -18px; margin-right: 8px; }
@@ -391,8 +403,9 @@
   .hud-card { min-width: 0; flex: 1 1 30%; padding: 4px 6px 4px 4px; }
   .hud-face { width: 26px; height: 26px; }
   #hud-location, #hud-gold { padding: 4px 7px; font-size: 11px; }
-  #menu { left: 4%; width: 92%; }
-  #menu-body { grid-template-columns: 1fr 1fr; gap: 6px; }
+  #menu { inset: 2%; padding: 10px 12px; font-size: 13px; }
+  #menu-body { grid-template-columns: 1fr; grid-template-rows: minmax(0, 1.1fr) minmax(0, 1fr); gap: 6px; }
+  #menu-detail { border-left: none; border-top: 1px solid #ffffff1f; padding-left: 0; padding-top: 6px; }
   #dialog-face { width: 40px; height: 40px; }
   #toast { top: auto; bottom: 34%; font-size: 12px; }
 }

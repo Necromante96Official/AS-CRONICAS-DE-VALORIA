@@ -9,8 +9,9 @@ import { SaveSystem } from '../systems/SaveSystem.js';
 import { makeEncounter, makeEnemy, encounterTable } from '../entities/Enemies.js';
 import { newParty, grantXp, restoreParty, serializeParty } from '../entities/Party.js';
 import { treeFor, nodeById, getRank, canInvest, invest, skillRank, listPassives } from '../systems/SkillTree.js';
+import { useItem, ITEMS, SHOP_STOCK, ITEM_CATS, newInventory } from '../systems/Inventory.js';
 import { TILE, xpForLevel } from '../core/Config.js';
-import { regionAt } from '../world/MapData.js';
+import { regionAt, CHESTS } from '../world/MapData.js';
 import { T } from '../world/Tiles.js';
 
 /** @param {import('../core/Engine.js').Engine} game */
@@ -245,20 +246,80 @@ export async function runAutoTest(game) {
     // ---- 6e. bomba de fumaça bloqueada em campo; éter com MP cheio ----
     game.inv.antidote = 1;
     await key('KeyQ');
-    await key('ArrowDown'); await key('ArrowDown'); await key('ArrowDown'); // Bomba
+    for (let i = 0; i < 9; i++) await key('ArrowDown'); // Bomba Fumaça (aba Batalha)
     await key('Enter');
     await frames(3);
     log(document.getElementById('toast').textContent.includes('batalha') && game.inv.antidote === 1 && game.menu.active, 'bomba-só-batalha');
     await key('Escape');
     await key('KeyQ');
     game.party[2].mp = game.party[2].maxMp; // garante MP cheio p/ testar o bloqueio
-    await key('ArrowDown'); await key('ArrowDown'); // Éter
+    await key('ArrowDown'); await key('ArrowDown'); await key('ArrowDown'); await key('ArrowDown'); // Éter (aba Mana)
     await key('Enter');                            // escolhe alvo
     await key('ArrowDown'); await key('ArrowDown'); // Milo (MP cheio)
     await key('Enter');
     await frames(3);
     log(document.getElementById('toast').textContent.includes('MP') && game.inv.ether === 1, 'eter-mp-cheio-bloqueia');
     log(await closeMenu(), 'menu-6e-fecha');
+
+    // ---- 6f. itens novos: efeitos, loja, ícones e baús ----
+    {
+      const mk = (hp, maxHp, mp, maxMp) => ({ hp, maxHp, mp, maxMp, name: 'T' });
+      let inv = newInventory();
+      inv.strongpotion = 1; inv.megapotion = 1; inv.bigether = 1;
+      inv.goldphoenix = 1; inv.megabomb = 1; inv.tonic = 1;
+      let r = useItem(inv, 'strongpotion', mk(10, 200, 0, 10));
+      log(r.ok && inv.strongpotion === 0, 'item-strongpotion');
+      r = useItem(inv, 'megapotion', mk(10, 500, 0, 10));
+      log(r.ok && r.msg.includes('320'), 'item-megapotion');
+      r = useItem(inv, 'bigether', mk(10, 100, 5, 60));
+      log(r.ok && r.msg.includes('40 MP'), 'item-bigether');
+      r = useItem(inv, 'goldphoenix', mk(0, 120, 0, 10));
+      log(r.ok, 'item-goldphoenix');
+      r = useItem(inv, 'megabomb', mk(10, 100, 0, 10));
+      log(!r.ok && inv.megabomb === 1, 'item-megabomb-campo');
+      r = useItem(inv, 'tonic', mk(10, 100, 5, 60));
+      log(r.ok && r.msg.includes('HP') && r.msg.includes('MP') && inv.tonic === 0, 'item-tonic');
+      const stock = ['strongpotion', 'megapotion', 'bigether', 'goldphoenix', 'megabomb', 'tonic'];
+      log(stock.every((id) => SHOP_STOCK.includes(id) && ITEMS[id]?.battle), 'item-loja');
+      log(ITEM_CATS.every((c) => c.ids.every((id) => ITEMS[id])) &&
+        ITEM_CATS.reduce((s, c) => s + c.ids.length, 0) === Object.keys(ITEMS).length, 'item-categorias');
+      const plain = CHESTS.find((c) => c.id === 'plain');
+      const desert = CHESTS.find((c) => c.id === 'desert');
+      log(plain.loot.items.strongpotion === 1 && desert.loot.items.megabomb === 1, 'item-baus');
+    }
+    {
+      // conteúdo rico das abas: categorias, efeitos, XP restante, nós, diário, save
+      const { iconURL } = await import('../ui/ItemIcons.js');
+      const okIcons = ['strongpotion', 'megapotion', 'bigether', 'goldphoenix', 'megabomb', 'tonic'].every((id) => {
+        try {
+          const u = iconURL(id);
+          return typeof u === 'string' && u.startsWith('data:image/png;base64,') && u.length > 500;
+        } catch { return false; }
+      });
+      log(okIcons, 'item-icones');
+      game.menu.show({ party: game.party, inv: game.inv, gold: game.gold, time: '00:00', flags: game.flags, faces: game.faces }, () => {}, game._menuActions());
+      await frames(3);
+      const listTxt = () => document.getElementById('menu-list').textContent;
+      const detailTxt = () => document.getElementById('menu-detail').textContent;
+      log(['Cura', 'Mana', 'Batalha', 'Pesca', 'Especiais'].every((t) => listTxt().includes(t)), 'menu-itens-cats');
+      game.menu.tab = 2; game.menu.sel = 0; game.menu._render();
+      await frames(2);
+      log(detailTxt().includes('Próx. Nv') && detailTxt().includes('nós'), 'menu-status-rico');
+      game.menu.tab = 6; game.menu.sel = 0; game.menu._render();
+      await frames(2);
+      log(listTxt().includes('nós') && detailTxt().includes('Árvore de Skills'), 'menu-skills-rico');
+      game.menu.tab = 4; game.menu.sel = 0; game.menu._render();
+      await frames(2);
+      SaveSystem.save(1, game._snapshot());
+      game.menu._render();
+      await frames(2);
+      log(detailTxt().includes('Kael') && detailTxt().includes('Nv'), 'menu-save-rico');
+      SaveSystem.erase(1);
+      game.menu.tab = 5; game.menu.sel = 0; game.menu._render();
+      await frames(2);
+      log(listTxt().includes('Diário'), 'menu-quests-rico');
+      log(await closeMenu(), 'menu-rico-fecha');
+    }
 
     // ---- 6d. aba Config alterna som ----
     await closeMenu();
